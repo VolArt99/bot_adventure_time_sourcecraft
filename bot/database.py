@@ -30,7 +30,7 @@ async def init_db():
                 location_lon REAL,
                 price_total REAL,
                 price_per_person REAL,
-                limit INTEGER,
+                participant_limit INTEGER,
                 thread_id INTEGER,
                 message_id INTEGER,
                 creator_id INTEGER,
@@ -86,7 +86,7 @@ async def create_event(event_data: Dict[str, Any]) -> int:
             INSERT INTO events (
                 title, description, date_time, duration_minutes,
                 location, location_lat, location_lon,
-                price_total, price_per_person, limit,
+                price_total, price_per_person, participant_limit,
                 thread_id, message_id, creator_id,
                 weather_info, carpool_enabled, category
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -95,7 +95,7 @@ async def create_event(event_data: Dict[str, Any]) -> int:
             event_data['date_time'], event_data.get('duration_minutes'),
             event_data.get('location'), event_data.get('location_lat'),
             event_data.get('location_lon'), event_data.get('price_total'),
-            event_data.get('price_per_person'), event_data.get('limit'),
+            event_data.get('price_per_person'), event_data.get('participant_limit'),
             event_data.get('thread_id'), event_data.get('message_id'),
             event_data.get('creator_id'), event_data.get('weather_info'),
             1 if event_data.get('carpool_enabled') else 0,
@@ -166,7 +166,7 @@ async def move_from_waitlist(event_id: int):
     if not event or event['status'] != 'active':
         return None
     going = await get_participants(event_id, 'going')
-    if len(going) >= event['limit']:
+    if event['participant_limit'] and len(going) >= event['participant_limit']:
         return None
     # Получаем первого в очереди резерва (по id)
     async with aiosqlite.connect(DB_PATH) as db:
@@ -193,3 +193,89 @@ async def update_event_status(event_id: int, status: str):
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("UPDATE events SET status = ? WHERE id = ?", (status, event_id))
         await db.commit()
+
+# database.py (дополнить)
+
+async def get_drivers_with_passengers(event_id: int) -> List[Dict]:
+    """Возвращает список водителей с их пассажирами."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        # Получаем водителей
+        async with db.execute("SELECT user_id, car_seats FROM participants WHERE event_id = ? AND status = 'driver'", (event_id,)) as cursor:
+            drivers = await cursor.fetchall()
+        result = []
+        for driver in drivers:
+            driver_id = driver['user_id']
+            # Получаем пассажиров этого водителя
+            async with db.execute("SELECT user_id FROM participants WHERE event_id = ? AND status = 'passenger' AND passenger_of = ?", (event_id, driver_id)) as cur:
+                passengers = await cur.fetchall()
+            result.append({
+                'user_id': driver_id,
+                'car_seats': driver['car_seats'],
+                'passengers': [p['user_id'] for p in passengers]
+            })
+        return result
+
+async def get_driver_free_seats(driver_id: int, event_id: int) -> int:
+    """Возвращает количество свободных мест у водителя."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute("SELECT car_seats FROM participants WHERE event_id = ? AND user_id = ? AND status = 'driver'", (event_id, driver_id)) as cursor:
+            row = await cursor.fetchone()
+            if not row:
+                return 0
+            total_seats = row[0]
+        async with db.execute("SELECT COUNT(*) FROM participants WHERE event_id = ? AND status = 'passenger' AND passenger_of = ?", (event_id, driver_id)) as cursor:
+            occupied = (await cursor.fetchone())[0]
+        return total_seats - occupied
+
+async def add_driver(event_id: int, user_id: int, car_seats: int) -> bool:
+    """Добавляет водителя."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        # Проверяем, не является ли уже участником (going или waitlist)
+        async with db.execute("SELECT status FROM participants WHERE event_id = ? AND user_id = ?", (event_id, user_id)) as cursor:
+            existing = await cursor.fetchone()
+            if existing:
+                status = existing[0]
+                if status in ('going', 'waitlist'):
+                    # Обновляем статус на driver, сохраняя car_seats
+                    await db.execute("UPDATE participants SET status = 'driver', car_seats = ? WHERE event_id = ? AND user_id = ?", (car_seats, event_id, user_id))
+                else:
+                    return False
+            else:
+                await db.execute("INSERT INTO participants (event_id, user_id, status, car_seats) VALUES (?, ?, 'driver', ?)", (event_id, user_id, car_seats))
+        await db.commit()
+        return True
+
+async def add_passenger(event_id: int, user_id: int, driver_id: int) -> bool:
+    """Добавляет пассажира к водителю."""
+    # Проверяем, есть ли места
+    free_seats = await get_driver_free_seats(driver_id, event_id)
+    if free_seats <= 0:
+        return False
+    async with aiosqlite.connect(DB_PATH) as db:
+        # Проверяем, не является ли уже участником
+        async with db.execute("SELECT status FROM participants WHERE event_id = ? AND user_id = ?", (event_id, user_id)) as cursor:
+            existing = await cursor.fetchone()
+            if existing:
+                status = existing[0]
+                if status in ('going', 'waitlist'):
+                    await db.execute("UPDATE participants SET status = 'passenger', passenger_of = ? WHERE event_id = ? AND user_id = ?", (driver_id, event_id, user_id))
+                else:
+                    return False
+            else:
+                await db.execute("INSERT INTO participants (event_id, user_id, status, passenger_of) VALUES (?, ?, 'passenger', ?)", (event_id, user_id, driver_id))
+        await db.commit()
+        return True
+
+async def remove_participant(event_id: int, user_id: int):
+    """Удаляет участника и, если это водитель, всех его пассажиров."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        # Проверяем, водитель ли
+        async with db.execute("SELECT status FROM participants WHERE event_id = ? AND user_id = ?", (event_id, user_id)) as cursor:
+            row = await cursor.fetchone()
+            if row and row[0] == 'driver':
+                # Удаляем всех пассажиров этого водителя
+                await db.execute("DELETE FROM participants WHERE event_id = ? AND passenger_of = ?", (event_id, user_id))
+        # Удаляем самого участника
+        await db.execute("DELETE FROM participants WHERE event_id = ? AND user_id = ?", (event_id, user_id))
+        await db.commit()        

@@ -4,11 +4,12 @@ from datetime import datetime
 from typing import List, Dict
 import pytz
 from config import TIMEZONE
+from database import get_drivers_with_passengers
 
 TZ = pytz.timezone(TIMEZONE)
 
-def format_event_message(event: Dict, going_list: List[int], waitlist_list: List[int], usernames_dict: Dict[int, str]) -> str:
-    """Формирует текст сообщения мероприятия."""
+async def format_event_message(event: Dict, going_list: List[int], waitlist_list: List[int], usernames_dict: Dict[int, str]) -> str:
+    """Формирует текст сообщения мероприятия (асинхронная)."""
     dt = datetime.fromisoformat(event['date_time']).astimezone(TZ)
     date_str = dt.strftime("%d.%m.%Y")
     time_str = dt.strftime("%H:%M")
@@ -16,7 +17,7 @@ def format_event_message(event: Dict, going_list: List[int], waitlist_list: List
     location = event['location'] or "не указано"
     price_total = event['price_total'] or 0
     price_per_person = event['price_per_person'] or 0
-    limit = event['limit'] or "∞"
+    limit = event['participant_limit'] or "∞"
     going_count = len(going_list)
     limit_str = str(limit) if limit != "∞" else "∞"
     price_text = ""
@@ -43,4 +44,21 @@ def format_event_message(event: Dict, going_list: List[int], waitlist_list: List
         f"Резерв:\n{waitlist_names}\n"
         f"{carpool}"
     )
+
+    # Блок карпулинга
+    if event['carpool_enabled']:
+        from database import get_drivers_with_passengers
+        drivers = await get_drivers_with_passengers(event['id'])
+        if drivers:
+            text += "\n\n🚗 Карпулинг:\n"
+            for driver in drivers:
+                driver_username = usernames_dict.get(driver['user_id'], str(driver['user_id']))
+                text += f"Водитель: @{driver_username} (мест: {driver['car_seats']})\n"
+                if driver['passengers']:
+                    passengers = []
+                    for p in driver['passengers']:
+                        passengers.append(f"@{usernames_dict.get(p, str(p))}")
+                    text += "  Пассажиры: " + ", ".join(passengers) + "\n"
+                else:
+                    text += "  Пассажиры: —\n"
     return text

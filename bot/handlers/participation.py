@@ -1,12 +1,20 @@
 # обработка кнопок "Пойду", "Отказаться", "В резерв"
 
 from aiogram import Router, F, Bot
-from aiogram.types import CallbackQuery
-from database import get_event, add_participant, remove_participant, get_participants, move_from_waitlist
-from keyboards import event_actions
+from aiogram.types import CallbackQuery, Message
+from keyboards import event_actions, InlineKeyboardBuilder
 from texts import format_event_message
 from utils.helpers import get_username_by_id
 from config import GROUP_ID
+from aiogram.fsm.state import StatesGroup, State
+from aiogram.fsm.context import FSMContext
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+from database import (get_event, add_participant, remove_participant, get_participants, move_from_waitlist, add_driver, 
+    add_passenger, get_drivers_with_passengers)
+
+# Состояния для ввода количества мест водителем
+class CarpoolState(StatesGroup):
+    seats = State()
 
 router = Router()
 
@@ -17,12 +25,17 @@ async def update_event_message(bot: Bot, event_id: int, thread_id: int, message_
         return
     going = await get_participants(event_id, 'going')
     waitlist = await get_participants(event_id, 'waitlist')
-    # Собираем имена участников
     all_users = set(going + waitlist)
+    # Добавляем водителей и пассажиров для получения имён
+    drivers = await get_drivers_with_passengers(event_id)
+    for driver in drivers:
+        all_users.add(driver['user_id'])
+        for p in driver['passengers']:
+            all_users.add(p)
     usernames = {}
     for uid in all_users:
         usernames[uid] = await get_username_by_id(uid, bot) or str(uid)
-    text = format_event_message(event, going, waitlist, usernames)
+    text = await format_event_message(event, going, waitlist, usernames)
     await bot.edit_message_text(
         chat_id=GROUP_ID,
         message_id=message_id,
@@ -40,7 +53,7 @@ async def join_event(callback: CallbackQuery):
         return
     # Проверяем лимит
     going = await get_participants(event_id, 'going')
-    if event['limit'] and len(going) >= event['limit']:
+    if event['participant_limit'] and len(going) >= event['participant_limit']:
         await callback.answer("Мест нет. Вы можете записаться в резерв", show_alert=True)
         return
     # Проверяем, не состоит ли уже в резерве
@@ -94,4 +107,137 @@ async def waitlist_event(callback: CallbackQuery):
         return
     await add_participant(event_id, user_id, 'waitlist')
     await update_event_message(callback.bot, event_id, event['thread_id'], event['message_id'])
-    await callback.answer("Вы добавлены в резерв")
+    await callback.answer("Вы добавлены в резерв") 
+
+@router.callback_query(F.data.startswith("driver_"))
+async def become_driver(callback: CallbackQuery, state: FSMContext):
+    event_id = int(callback.data.split("_")[1])
+    user_id = callback.from_user.id
+    event = await get_event(event_id)
+    if not event or event['status'] != 'active':
+        await callback.answer("Мероприятие уже завершено или отменено", show_alert=True)
+        return
+    # Проверяем, не является ли уже водителем или пассажиром
+    existing = await get_participants(event_id, 'driver')
+    if user_id in existing:
+        await callback.answer("Вы уже водитель", show_alert=True)
+        return
+    existing_pass = await get_participants(event_id, 'passenger')
+    if user_id in existing_pass:
+        await callback.answer("Вы уже пассажир. Откажитесь от места, чтобы стать водителем", show_alert=True)
+        return
+    # Запрашиваем количество мест
+    await state.update_data(event_id=event_id)
+    await state.set_state(CarpoolState.seats)
+    await callback.message.answer("Сколько свободных мест в вашей машине (включая вас)? Введите число:")
+    await callback.answer()
+
+@router.message(CarpoolState.seats)
+async def process_car_seats(message: Message, state: FSMContext):
+    try:
+        seats = int(message.text)
+        if seats < 1:
+            await message.answer("Число мест должно быть больше 0. Попробуйте снова:")
+            return
+    except ValueError:
+        await message.answer("Введите число:")
+        return
+    data = await state.get_data()
+    event_id = data['event_id']
+    user_id = message.from_user.id
+    # Добавляем водителя
+    success = await add_driver(event_id, user_id, seats)
+    if not success:
+        await message.answer("Не удалось добавить водителя. Возможно, вы уже участвуете.")
+        await state.clear()
+        return
+    # Добавляем водителя в основной список, если его там нет
+    going = await get_participants(event_id, 'going')
+    if user_id not in going:
+        await add_participant(event_id, user_id, 'going')
+    # Обновляем сообщение мероприятия
+    event = await get_event(event_id)
+    await update_event_message(message.bot, event_id, event['thread_id'], event['message_id'])
+    await message.answer("Вы успешно добавлены как водитель!")
+    await state.clear()
+
+@router.callback_query(F.data.startswith("passenger_"))
+async def become_passenger(callback: CallbackQuery):
+    event_id = int(callback.data.split("_")[1])
+    user_id = callback.from_user.id
+    event = await get_event(event_id)
+    if not event or event['status'] != 'active':
+        await callback.answer("Мероприятие уже завершено или отменено", show_alert=True)
+        return
+    # Проверяем, не является ли уже водителем или пассажиром
+    existing = await get_participants(event_id, 'driver')
+    if user_id in existing:
+        await callback.answer("Вы водитель. Чтобы стать пассажиром, сначала откажитесь от вождения.", show_alert=True)
+        return
+    existing_pass = await get_participants(event_id, 'passenger')
+    if user_id in existing_pass:
+        await callback.answer("Вы уже пассажир", show_alert=True)
+        return
+    # Получаем список водителей со свободными местами
+    drivers = await get_drivers_with_passengers(event_id)
+    if not drivers:
+        await callback.answer("Пока нет водителей. Станьте первым водителем!", show_alert=True)
+        return
+    # Формируем клавиатуру выбора водителя
+    builder = InlineKeyboardBuilder()
+    for driver in drivers:
+        free = driver['car_seats'] - len(driver['passengers'])
+        if free > 0:
+            # Получаем username водителя
+            username = await get_username_by_id(driver['user_id'], callback.bot) or str(driver['user_id'])
+            builder.button(text=f"{username} ({free} мест)", callback_data=f"choose_driver_{event_id}_{driver['user_id']}")
+    if len(builder.buttons) == 0:
+        await callback.answer("Нет свободных мест у водителей", show_alert=True)
+        return
+    builder.adjust(1)
+    await callback.message.answer("Выберите водителя:", reply_markup=builder.as_markup())
+    await callback.answer()
+
+@router.callback_query(F.data.startswith("choose_driver_"))
+async def choose_driver(callback: CallbackQuery):
+    parts = callback.data.split("_")
+    event_id = int(parts[2])
+    driver_id = int(parts[3])
+    user_id = callback.from_user.id
+    # Добавляем пассажира
+    success = await add_passenger(event_id, user_id, driver_id)
+    if not success:
+        await callback.answer("Не удалось добавить пассажира. Возможно, места уже заняты.", show_alert=True)
+        return
+    # Добавляем пассажира в основной список, если его там нет
+    going = await get_participants(event_id, 'going')
+    if user_id not in going:
+        await add_participant(event_id, user_id, 'going')
+    # Обновляем сообщение
+    event = await get_event(event_id)
+    await update_event_message(callback.bot, event_id, event['thread_id'], event['message_id'])
+    await callback.answer("Вы успешно присоединились к водителю!")
+    await callback.message.delete()  # удаляем клавиатуру выбора
+
+# Модифицируем функцию decline_event, чтобы учитывать удаление водителя и его пассажиров
+@router.callback_query(F.data.startswith("decline_"))
+async def decline_event(callback: CallbackQuery):
+    event_id = int(callback.data.split("_")[1])
+    user_id = callback.from_user.id
+    event = await get_event(event_id)
+    if not event:
+        await callback.answer("Мероприятие не найдено", show_alert=True)
+        return
+    # Удаляем участника (и если водитель, то и всех его пассажиров)
+    await remove_participant(event_id, user_id)
+    # Уведомляем пассажиров, если удалён водитель (это делается в remove_participant, но можно добавить уведомления)
+    # Для простоты уведомления не отправляем, но можно добавить
+    # Освободилось место? Перемещаем из резерва
+    moved_user = await move_from_waitlist(event_id)
+    if moved_user:
+        try:
+            await callback.bot.send_message(moved_user, f"Освободилось место на мероприятии {event['title']}! Вы автоматически добавлены в основной список.")
+        except:
+            pass
+    await update_event_message(callback.bot, event_id, event['thread_id'], event['message_id'])
+    await callback.answer("Вы отказались от участия")    

@@ -61,21 +61,23 @@ async def process_datetime(message: Message, state: FSMContext):
             return
         await state.update_data(date_time=dt.isoformat())
         await state.set_state(CreateEvent.duration)
-        await message.answer("Введите длительность в минутах (можно пропустить):", reply_markup=cancel_keyboard())
+        await message.answer("Введите длительность в часах (например, 2.5; можно пропустить):", reply_markup=cancel_keyboard())
     except ValueError:
         await message.answer("Неверный формат. Используйте ДД.ММ.ГГГГ ЧЧ:ММ")
 
 @router.message(CreateEvent.duration)
 async def process_duration(message: Message, state: FSMContext):
     if message.text.lower() == "пропустить":
-        duration = None
+        duration_minutes = None
     else:
         try:
-            duration = int(message.text)
+            # Ввод в часах (например, 2.5 или 2)
+            hours = float(message.text)
+            duration_minutes = int(hours * 60)  # Преобразуем в минуты для хранения
         except ValueError:
-            await message.answer("Введите число минут или 'пропустить':")
+            await message.answer("Введите число часов (например, 2.5) или 'пропустить':")
             return
-    await state.update_data(duration_minutes=duration)
+    await state.update_data(duration_minutes=duration_minutes)
     await state.set_state(CreateEvent.location)
     await message.answer("Введите место проведения (название или адрес):", reply_markup=cancel_keyboard())
 
@@ -113,14 +115,14 @@ async def process_price(message: Message, state: FSMContext):
 @router.message(CreateEvent.limit)
 async def process_limit(message: Message, state: FSMContext):
     if message.text.lower() == "без лимита":
-        limit = None
+        participant_limit = None
     else:
         try:
-            limit = int(message.text)
+            participant_limit = int(message.text)
         except ValueError:
             await message.answer("Введите число или 'без лимита':")
             return
-    await state.update_data(limit=limit)
+    await state.update_data(participant_limit=participant_limit)
     await state.set_state(CreateEvent.carpool)
     await message.answer("Нужна ли машина (карпулинг)? Ответьте да/нет:", reply_markup=cancel_keyboard())
 
@@ -128,18 +130,20 @@ async def process_limit(message: Message, state: FSMContext):
 async def process_carpool(message: Message, state: FSMContext):
     carpool = message.text.lower() in ["да", "yes", "y", "1", "true"]
     await state.update_data(carpool_enabled=carpool)
-    # Получаем список тем группы
     bot = message.bot
     try:
-        topics = await get_forum_topics(bot, GROUP_ID)
+        topics = await bot.get_forum_topics(GROUP_ID)
         if topics:
             await state.update_data(topics=topics)
             await state.set_state(CreateEvent.thread)
             await message.answer("Выберите тему для публикации:", reply_markup=choose_topic_keyboard(topics))
             return
+        else:
+            await message.answer("В группе нет тем. Публикация пойдёт в общий чат.")
     except Exception as e:
-        pass
-    # Если нет тем, пропускаем выбор
+        print(f"Ошибка при получении тем: {e}")
+        await message.answer("Не удалось получить список тем. Публикация пойдёт в общий чат.")
+    # Если нет тем или ошибка, пропускаем выбор
     await state.update_data(thread_id=None)
     await state.set_state(CreateEvent.category)
     await message.answer("Введите категорию мероприятия (спорт, прогулки, поездки, игры, культура, еда, обучение):", reply_markup=cancel_keyboard())
@@ -173,7 +177,7 @@ async def process_category(message: Message, state: FSMContext):
         'location': data.get('location'),
         'price_total': data.get('price_total'),
         'price_per_person': data.get('price_per_person'),
-        'limit': data.get('limit'),
+        'participant_limit': data.get('participant_limit'),
         'thread_id': data.get('thread_id'),
         'creator_id': message.from_user.id,
         'weather_info': weather_info,
