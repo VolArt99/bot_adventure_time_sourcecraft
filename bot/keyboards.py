@@ -28,25 +28,23 @@ def event_actions(event_id: int, carpool_enabled: bool = False) -> InlineKeyboar
     return builder.as_markup()
 
 
-# ✅ ИЗМЕНЕНИЕ: Функция choose_topic_keyboard() - исправляем работу с объектами ForumTopic
+# ✅ ИСПРАВЛЕННАЯ ФУНКЦИЯ choose_topic_keyboard() в keyboards.py
 
 
 def choose_topic_keyboard(topics):
-    """Клавиатура для выбора темы (исправленная версия)."""
+    """Клавиатура для выбора темы с реальными названиями."""
     builder = InlineKeyboardBuilder()
-    for topic in topics:
-        # topics может быть список dict'ов или ForumTopic объектов
-        # Извлекаем данные правильно
-        if isinstance(topic, dict):
-            # Если это словарь (из API)
-            topic_id = topic.get("message_thread_id")
-            topic_name = topic.get("name", f"Тема {topic_id}")
-        else:
-            # Если это объект ForumTopic из aiogram
-            topic_id = topic.message_thread_id
-            topic_name = topic.name
 
-        builder.button(text=topic_name, callback_data=f"topic_{topic_id}")
+    # Добавляем кнопку "В основной чат"
+    builder.button(text="📌 В основной чат", callback_data="topic_0")
+
+    # Добавляем все темы с их реальными названиями
+    for topic in topics:
+        topic_id = topic.get("message_thread_id") or topic.get("id")
+        # ✅ НОВОЕ: Используем реальное название темы
+        topic_name = topic.get("name", f"Тема {topic_id}")
+        builder.button(text=f"📁 {topic_name}", callback_data=f"topic_{topic_id}")
+
     builder.adjust(1)
     return builder.as_markup()
 

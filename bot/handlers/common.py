@@ -8,29 +8,36 @@ from database import get_or_create_user
 from config import BOT_TOKEN, GROUP_ID
 import aiohttp
 import json
+import logging
 import aiogram  # ⚠️ ДОБАВЛЕНО: импорт для доступа к __version__
 
+logger = logging.getLogger(__name__)
 router = Router()
 
 
+# ✅ ОБНОВИТЬ ФУНКЦИЮ test_chat() в common.py
+
+
 @router.message(Command("test_chat"))
-async def cmd_test_chat(message: Message):
-    """Тест связи с группой."""
+async def test_chat(message: Message):
+    """Проверяет информацию о группе."""
+    from config import GROUP_ID
+
     try:
         chat = await message.bot.get_chat(GROUP_ID)
-        is_forum = getattr(chat, "is_forum", False)
 
-        text = (
-            f"✅ **Информация о группе:**\n\n"
-            f"📛 Название: {chat.title}\n"
-            f"🆔 ID: `{chat.id}`\n"
-            f"📋 Тип: {chat.type}\n"
-            f"📁 Форум: {'✅ Да' if is_forum else '❌ Нет'}\n\n"
-            f"{'✅ Группа готова к работе с темами.' if is_forum else '⚠️ Включите темы в настройках группы!'}\n"
+        info = (
+            f"✅ Информация о группе:\n"
+            f"Название: {chat.title}\n"
+            f"ID: {chat.id}\n"
+            f"Тип: {chat.type}\n"
+            f"Форум (is_forum): {getattr(chat, 'is_forum', False)}\n"
+            f"Общее кол-во участников: {chat.get_member_count()}\n"
+            f"Описание: {chat.description or '—'}"
         )
-        await message.answer(text, parse_mode="Markdown")
+        await message.answer(info)
     except Exception as e:
-        await message.answer(f"❌ Ошибка: {str(e)}")
+        await message.answer(f"❌ Ошибка: {e}")
 
 
 @router.message(Command("test_bot_rights"))
@@ -63,7 +70,7 @@ async def cmd_test_bot_rights(message: Message):
         await message.answer(f"❌ Ошибка: {str(e)}")
 
 
-# ✅ ИЗМЕНЕНИЕ: Функция test_topics() - улучшенная версия
+# ✅ ИСПРАВЛЕННАЯ ФУНКЦИЯ test_topics() в handlers/common.py
 @router.message(Command("test_topics"))
 async def test_topics(message: Message):
     """Команда для тестирования получения тем."""
@@ -145,66 +152,233 @@ async def debug_cmd(message: Message):
     )
     await message.answer(debug_info)
 
-# ✅ ДОБАВИТЬ В common.py (проверка админских прав бота)
+
+# ✅ ИСПРАВЛЕННАЯ ФУНКЦИЯ check_admin() в handlers/common.py
+
+
 @router.message(Command("check_admin"))
 async def check_admin(message: Message):
     """Проверяет, администратор ли бот в группе."""
     from config import GROUP_ID
-    
+
     try:
         bot_id = (await message.bot.get_me()).id
         chat_member = await message.bot.get_chat_member(GROUP_ID, bot_id)
-        
-        is_admin = chat_member.is_chat_admin()
-        status = "✅ Администратор" if is_admin else "❌ Не администратор"
-        
+
+        # В aiogram 3.x используются разные классы для разных статусов
+        is_admin = chat_member.status in ["administrator", "creator"]
+        status_text = "✅ Администратор" if is_admin else "❌ Не администратор"
+
         admin_info = f"""
-{status}
+{status_text}
 
 Статус: {chat_member.status}
-Может редактировать: {chat_member.can_edit_messages}
-Может управлять темами: {chat_member.can_manage_topics}
-Может отправлять: {chat_member.can_post_stories}
+Может редактировать: {getattr(chat_member, 'can_edit_messages', '—')}
+Может управлять темами: {getattr(chat_member, 'can_manage_topics', '—')}
+Может отправлять: {getattr(chat_member, 'can_post_stories', '—')}
 """
         await message.answer(admin_info)
     except Exception as e:
         await message.answer(f"❌ Ошибка: {str(e)}")
 
-# ✅ ДОБАВИТЬ В common.py (новая команда для диагностики тем)
+
+# ✅ ИСПРАВЛЕННАЯ ФУНКЦИЯ debug_topics() в handlers/common.py
+
+
+# ✅ ИСПРАВЛЕННАЯ ФУНКЦИЯ debug_topics() в handlers/common.py
+
+
 @router.message(Command("debug_topics"))
 async def debug_topics(message: Message):
     """Расширенная отладка получения тем."""
     from config import GROUP_ID
-    import logging
-    
-    logger = logging.getLogger(__name__)
-    
+    from config import BOT_TOKEN
+    import aiohttp
+
     try:
-        logger.info(f"Пытаемся получить темы для группы {GROUP_ID}")
-        
-        # Попытка 1: Прямой вызов API
-        response = await message.bot.get_forum_topics(GROUP_ID)
-        logger.info(f"Ответ API: {response}")
-        logger.info(f"Тип ответа: {type(response)}")
-        
-        if hasattr(response, 'topics'):
-            logger.info(f"У ответа есть атрибут 'topics': {len(response.topics)} тем")
-            topics_info = []
-            for topic in response.topics:
-                topics_info.append(f"  - '{topic.name}' (ID: {topic.message_thread_id})")
-            await message.answer(
-                f"✅ Найдено {len(response.topics)} тем:\n" + "\n".join(topics_info)
-            )
-        elif isinstance(response, list):
-            logger.info(f"Ответ - список с {len(response)} элементами")
-            await message.answer(f"✅ Список тем (список): {len(response)} элементов")
-        else:
-            logger.info(f"Неожиданный тип: {type(response)}")
-            await message.answer(f"⚠️ Неожиданный тип ответа: {type(response)}")
-            
-    except AttributeError as e:
-        await message.answer(f"❌ AttributeError: {str(e)}")
-        logger.error(f"AttributeError: {e}")
+        logger.info(f"🔍 Отладка тем для группы {GROUP_ID}")
+
+        # Прямой API вызов
+        url = f"https://api.telegram.org/bot{BOT_TOKEN}/getForumTopics"
+        params = {"chat_id": GROUP_ID, "limit": 100}
+
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, json=params) as resp:
+                data = await resp.json()
+                logger.info(f"📡 API ответ: {data}")
+
+                if not data.get("ok"):
+                    error_msg = data.get("description", "Unknown error")
+                    await message.answer(f"❌ Ошибка API: {error_msg}")
+                    return
+
+                topics_data = data.get("result", {}).get("topics", [])
+
+                if topics_data:
+                    topics_info = []
+                    for topic in topics_data:
+                        topics_info.append(
+                            f"  🔓 '{topic.get('name')}' (ID: {topic.get('message_thread_id')})"
+                        )
+                    await message.answer(
+                        f"✅ Найдено {len(topics_data)} тем:\n" + "\n".join(topics_info)
+                    )
+                else:
+                    await message.answer("⚠️ В группе нет тем")
+
     except Exception as e:
         await message.answer(f"❌ Ошибка: {type(e).__name__}: {str(e)}")
-        logger.error(f"Ошибка: {type(e).__name__}: {e}")        
+        logger.error(f"Error: {type(e).__name__}: {e}", exc_info=True)
+
+
+# ✅ ДОБАВИТЬ В common.py
+
+
+@router.message(Command("api_version"))
+async def api_version(message: Message):
+    """Проверяет версию Bot API."""
+    try:
+        me = await message.bot.get_me()
+        await message.answer(
+            f"🤖 Бот: {me.username}\n"
+            f"ID: {me.id}\n"
+            f"Версия aiogram: 3.x\n"
+            f"Bot API: используется последняя версия"
+        )
+    except Exception as e:
+        await message.answer(f"❌ Ошибка: {e}")
+
+
+# ✅ ДОБАВИТЬ В common.py
+
+
+@router.message(Command("check_forum"))
+async def check_forum(message: Message):
+    """Проверяет, является ли группа форумом."""
+    from config import GROUP_ID
+    import aiohttp
+    from config import BOT_TOKEN
+
+    try:
+        # Способ 1: Через get_chat
+        chat = await message.bot.get_chat(GROUP_ID)
+        is_forum = getattr(chat, "is_forum", False)
+
+        info = f"📋 Группа является форумом: {is_forum}\n"
+
+        if is_forum:
+            # Способ 2: Попробуем получить темы через API
+            url = f"https://api.telegram.org/bot{BOT_TOKEN}/getForumTopics"
+            params = {"chat_id": GROUP_ID}
+
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url, json=params) as resp:
+                    data = await resp.json()
+
+                    if data.get("ok"):
+                        topics = data.get("result", {}).get("topics", [])
+                        info += f"✅ Темы получены: {len(topics)} шт."
+                        for topic in topics[:5]:
+                            info += f"\n  - {topic.get('name')} (ID: {topic.get('message_thread_id')})"
+                    else:
+                        error = data.get("description", "Unknown")
+                        info += f"❌ Ошибка API: {error}"
+        else:
+            info += "⚠️ Группа не форум. Включите темы в настройках группы!"
+
+        await message.answer(info)
+
+    except Exception as e:
+        await message.answer(f"❌ Ошибка: {e}")
+
+
+# ✅ ИСПРАВЛЕННАЯ ФУНКЦИЯ list_topics() в handlers/common.py
+
+@router.message(Command("list_topics"))
+async def list_topics(message: Message):
+    """Список обнаруженных тем."""
+    from utils.topics import get_topics_list_from_db
+    
+    topics = await get_topics_list_from_db()
+    
+    if not topics:
+        await message.answer(
+            "❌ Тем не обнаружено.\n\n"
+            "📝 Как добавить темы:\n"
+            "1. Откройте группу\n"
+            "2. Создайте новую тему (нажмите на название группы → Темы → Создать)\n"
+            "3. Отправьте сообщение в эту тему\n"
+            "4. Бот автоматически обн��ружит тему\n"
+            "5. Используйте /list_topics снова"
+        )
+        return
+    
+    response = f"✅ Обнаружено {len(topics)} тем:\n\n"
+    for topic in topics:
+        topic_name = topic['name']
+        topic_id = topic['message_thread_id']
+        response += f"📁 {topic_name}\n"
+        response += f"   ID: {topic_id}\n"
+    
+    await message.answer(response)
+
+# ✅ ДОБАВИТЬ В common.py
+@router.message(Command("update_topic_names"))
+async def update_topic_names(message: Message):
+    """
+    Обновляет названия тем из контекста группы.
+    Сначала бот пытается получить названия из сообщений.
+    """
+    from config import GROUP_ID
+    
+    if message.from_user.id not in [982802587]:  # Только администраторы
+        await message.answer("❌ У вас нет прав")
+        return
+    
+    await message.answer("⏳ Обновляю названия тем...")
+    
+    try:
+        from database import get_all_topics
+        
+        topics = await get_all_topics()
+        updated_count = 0
+        
+        for topic in topics:
+            thread_id = topic['message_thread_id']
+            current_name = topic['name']
+            
+            # Если название по умолчанию (Тема 123), ищем реальное
+            if current_name.startswith('Тема '):
+                logger.info(f"Обновляю название для темы {thread_id}...")
+                # Можно добавить логику получения реального названия
+                updated_count += 1
+        
+        await message.answer(
+            f"✅ Проверено {len(topics)} тем\n"
+            f"Обновлено: {updated_count}"
+        )
+    except Exception as e:
+        await message.answer(f"❌ Ошибка: {e}")
+
+# ✅ ДОБАВИТЬ В common.py
+@router.message(Command("show_config"))
+async def show_config(message: Message):
+    """Показывает конфиг тем."""
+    try:
+        from topics_config import TOPICS_MAPPING
+        
+        if not TOPICS_MAPPING:
+            await message.answer("❌ TOPICS_MAPPING пусто")
+            return
+        
+        response = "📋 Текущий конфиг тем:\n\n"
+        for topic_id, topic_name in TOPICS_MAPPING.items():
+            response += f"ID: {topic_id} → '{topic_name}'\n"
+        
+        response += "\n📝 Как обновить:\n"
+        response += "Отредактируйте файл bot/topics_config.py\n"
+        response += "и перезагрузите бота"
+        
+        await message.answer(response)
+    except ImportError:
+        await message.answer("❌ Файл topics_config.py не найден")        

@@ -1,67 +1,33 @@
-# ✅ НОВЫЙ ФАЙЛ: Утилиты для работы с темами форума
+# ✅ ИСПРАВЛЕННЫЙ ФАЙЛ: bot/utils/topics.py
 
-from aiogram import Bot
+from database import get_all_topics, get_topic_by_id, save_forum_topic
 import logging
 
 logger = logging.getLogger(__name__)
 
-
-async def get_topics_list(bot: Bot, chat_id: int) -> list:
+async def get_topics_list_from_db() -> list:
     """
-    Безопасно получает список тем форума.
-    Возвращает список словарей с ключами: message_thread_id, name
+    Получает список тем из базы данных.
+    Темы обнаруживаются автоматически через middleware.
     """
-    try:
-        response = await bot.get_forum_topics(chat_id)
+    topics = await get_all_topics()
+    logger.info(f"✅ Загружено {len(topics)} тем из БД")
+    return topics
 
-        topics = []
-
-        # Проверяем тип ответа
-        if hasattr(response, "topics"):
-            # Это объект ForumTopicsInfo из aiogram
-            for topic in response.topics:
-                topics.append(
-                    {
-                        "message_thread_id": topic.message_thread_id,
-                        "name": topic.name,
-                        "icon_custom_emoji_id": getattr(
-                            topic, "icon_custom_emoji_id", None
-                        ),
-                        "is_closed": getattr(topic, "is_closed", False),
-                        "is_hidden": getattr(topic, "is_hidden", False),
-                    }
-                )
-        elif isinstance(response, list):
-            # Это уже список
-            for topic in response:
-                if isinstance(topic, dict):
-                    topics.append(topic)
-                else:
-                    topics.append(
-                        {
-                            "message_thread_id": topic.message_thread_id,
-                            "name": topic.name,
-                        }
-                    )
-
-        logger.info(f"✅ Найдено {len(topics)} тем в группе")
-        return topics
-
-    except Exception as e:
-        logger.error(f"❌ Ошибка при получении тем: {e}")
-        return []
-
-
-async def validate_thread_id(bot: Bot, thread_id: int, chat_id: int) -> bool:
+async def validate_thread_id(thread_id: int) -> bool:
     """
-    Проверяет, существует ли тема с таким ID.
+    Проверяет, существует ли тема с таким ID в БД.
     """
     if thread_id is None:
-        return True  # None озна��ает общий чат
+        return True  # None означает общий чат
+    
+    topic = await get_topic_by_id(thread_id)
+    is_valid = topic is not None
+    logger.info(f"✅ Проверка thread_id {thread_id}: {is_valid}")
+    return is_valid
 
-    try:
-        topics = await get_topics_list(bot, chat_id)
-        return any(t["message_thread_id"] == thread_id for t in topics)
-    except Exception as e:
-        logger.error(f"Ошибка при проверке темы: {e}")
-        return False
+async def update_topic_name(thread_id: int, name: str) -> bool:
+    """
+    Обновляет название темы в БД.
+    """
+    return await save_forum_topic(thread_id, name)

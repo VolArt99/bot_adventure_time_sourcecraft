@@ -11,15 +11,8 @@ import logging
 from datetime import datetime
 import pytz
 from config import ADMIN_IDS, GROUP_ID, TIMEZONE
-
-# ✅ ИСПРАВИТЬ: Импорты (строки 14-22)
-from database import (
-    create_event,
-    update_event_message_id,
-    get_forum_topics_safe,  # ✅ Эта функция теперь есть в database.py
-    get_participants,
-)
-from utils.topics import get_topics_list, validate_thread_id
+from database import create_event, update_event_message_id, get_participants
+from utils.topics import get_topics_list_from_db, validate_thread_id
 from keyboards import cancel_keyboard, choose_topic_keyboard, event_actions
 from texts import format_event_message
 from utils.weather import get_weather
@@ -170,53 +163,73 @@ async def process_limit(message: Message, state: FSMContext):
     )
 
 
+# ✅ ИСПРАВЛЕННАЯ ФУНКЦИЯ process_carpool() в handlers/events.py
+
+
 @router.message(CreateEvent.carpool)
 async def process_carpool(message: Message, state: FSMContext):
     carpool = message.text.lower() in ["да", "yes", "y", "1", "true"]
     await state.update_data(carpool_enabled=carpool)
 
-    # ⚠️ ОБНОВЛЕНО: Улучшенное получение тем с логированием
-    bot = message.bot
-    logger.info(f"Получение тем для группы {GROUP_ID}")
-    try:
-        topics = await get_forum_topics_safe(bot, GROUP_ID)
-        logger.info(f"Получено тем: {len(topics)}")
+    # Получаем темы из БД
+    from utils.topics import get_topics_list_from_db
 
-        if topics:
-            await state.update_data(topics=topics)
-            await state.set_state(CreateEvent.thread)
-            await message.answer(
-                "📁 Выберите тему для публикации:",
-                reply_markup=choose_topic_keyboard(topics),
-            )
-            return
-        else:
-            logger.warning("Темы не найдены или группа не форум")
-            await message.answer("⚠️ В группе нет тем. Публикация пойдёт в общий чат.")
-    except Exception as e:
-        logger.error(f"Ошибка получения тем: {e}")
-        await message.answer(f"⚠️ Ошибка: {str(e)[:100]}... Публикация в общий чат.")
+    logger.info("Получение тем для выбора...")
+    topics = await get_topics_list_from_db()
 
-    # Если нет тем или ошибка, пропускаем выбор
+    logger.info(f"Доступные темы: {len(topics)}")
+
+    if topics:
+        await state.update_data(topics=topics)
+        await state.set_state(CreateEvent.thread)
+        await message.answer(
+            "🗂 Выберите, где опубликовать мероприятие:",
+            reply_markup=choose_topic_keyboard(topics),
+        )
+        return
+    else:
+        await message.answer(
+            "⚠️ Тем не найдено. Опубликуем в основной чат.\n"
+            "💡 Совет: Отправьте сообщение в любую тему группы, "
+            "и бот её автоматически обнаружит."
+        )
+
+    # Если нет тем, пропускаем выбор
     await state.update_data(thread_id=None)
     await state.set_state(CreateEvent.category)
     await message.answer(
-        "🏷 Введите категорию (спорт, прогулки, поездки, игры, культура, еда, обучение):",
+        "🏷 Введите категорию мероприятия:\n"
+        "Доступные варианты: спорт, прогулки, поездки, игры, культура, еда, обучение",
         reply_markup=cancel_keyboard(),
     )
 
 
+# ✅ ИСПРАВЛЕННАЯ ФУНКЦИЯ process_topic() в handlers/events.py
 @router.callback_query(CreateEvent.thread, F.data.startswith("topic_"))
 async def process_topic(callback: CallbackQuery, state: FSMContext):
-    if callback.data == "topic_general":
-        thread_id = None
-    else:
-        thread_id = int(callback.data.split("_")[1])
-    await state.update_data(thread_id=thread_id)
-    await callback.message.delete()
-    await callback.message.answer("🏷 Категория мероприятия:")
-    await state.set_state(CreateEvent.category)
-    await callback.answer()
+    try:
+        thread_id_str = callback.data.split("_")[1]
+        thread_id = int(thread_id_str) if thread_id_str != "0" else None
+
+        await state.update_data(thread_id=thread_id)
+        await callback.answer("✅ Тема выбрана!")
+
+        # Удаляем старое сообщение
+        try:
+            await callback.message.delete()
+        except:
+            pass
+
+        # Переходим к выбору категории
+        await state.set_state(CreateEvent.category)
+        await callback.message.answer(
+            "📂 Введите категорию мероприятия:\n"
+            "Доступные варианты: спорт, прогулки, поездки, игры, культура, еда, обучение",
+            reply_markup=cancel_keyboard(),
+        )
+    except Exception as e:
+        logger.error(f"Ошибка при обработке темы: {e}")
+        await callback.answer("❌ Ошибка! Попробуйте снова.", show_alert=True)
 
 
 @router.message(CreateEvent.category)

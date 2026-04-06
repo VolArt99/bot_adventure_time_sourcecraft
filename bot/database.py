@@ -92,6 +92,18 @@ async def init_db():
         )
         """
         )
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS forum_topics (
+                id INTEGER PRIMARY KEY,
+                message_thread_id INTEGER UNIQUE,
+                name TEXT NOT NULL,
+                is_closed INTEGER DEFAULT 0,
+                is_hidden INTEGER DEFAULT 0,
+                discovered_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """
+        )
         await db.commit()
 
 
@@ -455,51 +467,6 @@ async def get_forum_topics_raw(bot, chat_id: int):
         return []
 
 
-# ✅ ДОБАВИТЬ в database.py (после функции get_forum_topics_raw, если её нет, или замените существующую):
-
-
-async def get_forum_topics_safe(bot, chat_id: int) -> list:
-    """
-    Безопасно получает список тем форума.
-    Возвращает список словарей с ключами: message_thread_id, name
-    Это функция-обёртка для безопасной работы с API.
-    """
-    try:
-        response = await bot.get_forum_topics(chat_id)
-        topics = []
-        # Проверяем тип ответа
-        if hasattr(response, "topics"):
-            # Это объект ForumTopicsInfo из aiogram
-            for topic in response.topics:
-                topics.append(
-                    {
-                        "message_thread_id": topic.message_thread_id,
-                        "name": topic.name,
-                        "icon_custom_emoji_id": getattr(
-                            topic, "icon_custom_emoji_id", None
-                        ),
-                        "is_closed": getattr(topic, "is_closed", False),
-                        "is_hidden": getattr(topic, "is_hidden", False),
-                    }
-                )
-        elif isinstance(response, list):
-            # Это уже список
-            for topic in response:
-                if isinstance(topic, dict):
-                    topics.append(topic)
-                else:
-                    topics.append(
-                        {
-                            "message_thread_id": topic.message_thread_id,
-                            "name": topic.name,
-                        }
-                    )
-        return topics
-    except Exception as e:
-        print(f"❌ Ошибка при получении тем: {e}")
-        return []
-
-
 # ----- Вспомогательные функции -----
 async def update_event_status(event_id: int, status: str):
     """Обновляет статус мероприятия."""
@@ -528,3 +495,47 @@ async def get_events_for_digest(days: int = 7) -> List[Dict]:
         ) as cursor:
             rows = await cursor.fetchall()
             return [dict(row) for row in rows]
+
+
+async def save_forum_topic(message_thread_id: int, name: str) -> bool:
+    """Сохраняет тему форума в БД."""
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute(
+                "INSERT OR REPLACE INTO forum_topics (message_thread_id, name) VALUES (?, ?)",
+                (message_thread_id, name),
+            )
+            await db.commit()
+        return True
+    except Exception as e:
+        print(f"Ошибка сохранения темы: {e}")
+        return False
+
+
+async def get_all_topics() -> list:
+    """Возвращает все известные темы."""
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute("SELECT * FROM forum_topics ORDER BY name") as cursor:
+                rows = await cursor.fetchall()
+                return [dict(row) for row in rows]
+    except Exception as e:
+        print(f"Ошибка получения тем: {e}")
+        return []
+
+
+async def get_topic_by_id(message_thread_id: int) -> dict:
+    """Получает тему по ID."""
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute(
+                "SELECT * FROM forum_topics WHERE message_thread_id = ?",
+                (message_thread_id,),
+            ) as cursor:
+                row = await cursor.fetchone()
+                return dict(row) if row else None
+    except Exception as e:
+        print(f"Ошибка получения темы: {e}")
+        return None

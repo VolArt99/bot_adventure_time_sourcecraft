@@ -40,7 +40,7 @@ async def main():
     # Инициализация бота
     bot = Bot(token=BOT_TOKEN)
     dp = Dispatcher(storage=MemoryStorage())
-    
+
     # Регистрация роутеров
     dp.include_router(common.router)
     dp.include_router(events.router)
@@ -49,6 +49,10 @@ async def main():
     dp.include_router(reminders.router)
     dp.include_router(my_events.router)  # ⚠️ НОВОЕ
     logger.info("Роутеры зарегистрированы")
+
+    # Регистрируем middleware на основной dispatcher
+    from middleware.topic_discoverer import TopicDiscovererMiddleware
+    dp.update.middleware(TopicDiscovererMiddleware())
     
     # Запуск планировщика
     start_scheduler()
