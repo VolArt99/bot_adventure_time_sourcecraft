@@ -15,6 +15,7 @@ from database import (
     create_event, update_event_message_id, 
     get_forum_topics_safe, get_participants
 )
+from utils.topics import get_topics_list, validate_thread_id
 from keyboards import cancel_keyboard, choose_topic_keyboard, event_actions
 from texts import format_event_message
 from utils.weather import get_weather

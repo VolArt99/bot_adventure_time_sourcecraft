@@ -12,13 +12,14 @@ import aiogram  # ⚠️ ДОБАВЛЕНО: импорт для доступа 
 
 router = Router()
 
+
 @router.message(Command("test_chat"))
 async def cmd_test_chat(message: Message):
     """Тест связи с группой."""
     try:
         chat = await message.bot.get_chat(GROUP_ID)
-        is_forum = getattr(chat, 'is_forum', False)
-        
+        is_forum = getattr(chat, "is_forum", False)
+
         text = (
             f"✅ **Информация о группе:**\n\n"
             f"📛 Название: {chat.title}\n"
@@ -31,23 +32,24 @@ async def cmd_test_chat(message: Message):
     except Exception as e:
         await message.answer(f"❌ Ошибка: {str(e)}")
 
+
 @router.message(Command("test_bot_rights"))
 async def cmd_test_bot_rights(message: Message):
     """Проверка прав бота в группе."""
     try:
         chat = await message.bot.get_chat(GROUP_ID)
         member = await message.bot.get_chat_member(GROUP_ID, message.bot.id)
-        
-        is_admin = member.status in ['administrator', 'creator']
-        
+
+        is_admin = member.status in ["administrator", "creator"]
+
         text = (
             f"🤖 **Статус бота в группе:**\n\n"
             f"📛 Группа: {chat.title}\n"
             f"👤 Статус: {member.status}\n"
             f"🔑 Администратор: {'✅ Да' if is_admin else '❌ Нет'}\n"
         )
-        
-        if is_admin and hasattr(member, 'privileges'):
+
+        if is_admin and hasattr(member, "privileges"):
             permissions = member.privileges
             text += (
                 f"\n**Права:**\n"
@@ -55,69 +57,39 @@ async def cmd_test_bot_rights(message: Message):
                 f"• Темы форума: {'✅' if getattr(permissions, 'can_manage_forum', False) else '❌'}\n"
                 f"• Редактирование: {'✅' if permissions.can_edit_messages else '❌'}\n"
             )
-        
+
         await message.answer(text, parse_mode="Markdown")
     except Exception as e:
         await message.answer(f"❌ Ошибка: {str(e)}")
 
+
+# ✅ ИЗМЕНЕНИЕ: Функция test_topics() - улучшенная версия
 @router.message(Command("test_topics"))
-async def cmd_test_topics(message: Message):
-    """Тест получения тем форума."""
-    try:
-        # Проверка типа группы
-        chat = await message.bot.get_chat(GROUP_ID)
-        is_forum = getattr(chat, 'is_forum', False)
-        
-        if not is_forum:
-            await message.answer(
-                "❌ **Группа не является форумом!**\n\n"
-                "Включите темы: Настройки группы → Тип группы → Форум",
-                parse_mode="Markdown"
-            )
-            return
-        
-        # ⚠️ Получение тем
-        topics = await message.bot.get_forum_topics(GROUP_ID)
-        
-        if not topics:
-            await message.answer(
-                "⚠️ **Темы не найдены!**\n\n"
-                "Создайте хотя бы одну тему вручную в группе.",
-                parse_mode="Markdown"
-            )
-            return
-        
-        text = f"✅ **Найдено тем: {len(topics)}**\n\n"
-        for topic in topics[:10]:
-            text += f"📁 `{topic.message_thread_id}` — {topic.name}\n"
-        
-        if len(topics) > 10:
-            text += f"\n... и ещё {len(topics) - 10} тем"
-        
-        await message.answer(text, parse_mode="Markdown")
-        
-    except AttributeError as e:
-        if 'get_forum_topics' in str(e):
-            await message.answer(
-                "❌ **Ошибка версии aiogram!**\n\n"
-                f"Ваша ошибка: `{str(e)}`\n\n"
-                "**Решение:**\n"
-                "1. Остановите бота\n"
-                "2. `pip install --upgrade aiogram`\n"
-                "3. Удалите папки `__pycache__`\n"
-                "4. Перезапустите бота",
-                parse_mode="Markdown"
-            )
-        else:
-            await message.answer(f"❌ Ошибка: {str(e)}")
-    except Exception as e:
-        await message.answer(f"❌ Ошибка API: {str(e)[:200]}")
+async def test_topics(message: Message):
+    """Команда для тестирования получения тем."""
+    from utils.topics import get_topics_list
+
+    topics = await get_topics_list(message.bot)
+
+    if not topics:
+        await message.answer("❌ Темы не найдены или ошибка API")
+        return
+
+    response_text = f"✅ Найдено тем: {len(topics)}\n\n"
+    for topic in topics[:10]:  # Показываем первые 10
+        status = "🔒" if topic.get("is_closed") else "🔓"
+        response_text += (
+            f"{status} '{topic['name']}' (ID: {topic['message_thread_id']})\n"
+        )
+
+    await message.answer(response_text)
+
 
 @router.message(Command("test_version"))
 async def cmd_test_version(message: Message):
     """Проверка версии aiogram."""
     import sys
-    
+
     text = (
         f"📦 **Версии библиотек:**\n\n"
         f"🐍 Python: `{sys.version.split()[0]}`\n"
@@ -126,12 +98,14 @@ async def cmd_test_version(message: Message):
     )
     await message.answer(text, parse_mode="Markdown")
 
+
 @router.message(CommandStart())
 async def cmd_start(message: Message):
     user_id = message.from_user.id
     username = message.from_user.username
     await get_or_create_user(user_id, username)
     await message.answer("Привет! Я бот для управления мероприятиями в группе.")
+
 
 @router.message(Command("help"))
 async def cmd_help(message: Message):
@@ -143,6 +117,7 @@ async def cmd_help(message: Message):
         "/help - это сообщение"
     )
     await message.answer(help_text)
+
 
 @router.callback_query(F.data == "cancel_create")
 async def cancel_create(callback: CallbackQuery, state: FSMContext):

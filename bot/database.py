@@ -441,15 +441,17 @@ async def add_passenger(event_id: int, user_id: int, driver_id: int) -> bool:
         return True
 
 
-# ----- Функции для тем форума -----
-# ⚠️ ОБНОВЛЕНО: database.py
-async def get_forum_topics_safe(bot: Bot, chat_id: int) -> list:
-    """Безопасное получение тем форума."""
+# ✅ ИЗМЕНЕНИЕ: Функция get_forum_topics() - возвращаем правильный формат
+async def get_forum_topics_raw(bot, chat_id: int):
+    """Возвращает список тем форума в виде словарей."""
     try:
-        topics = await bot.get_forum_topics(chat_id)
-        return list(topics) if topics else []
+        response = await bot.get_forum_topics(chat_id)
+        # response может быть ForumTopicUpdated объект или список
+        if hasattr(response, "topics"):
+            return response.topics  # Если объект
+        return response or []  # Если список
     except Exception as e:
-        print(f"⚠️ Ошибка получения тем: {e}")
+        print(f"Ошибка при получении тем: {e}")
         return []
 
 
