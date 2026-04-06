@@ -455,6 +455,51 @@ async def get_forum_topics_raw(bot, chat_id: int):
         return []
 
 
+# ✅ ДОБАВИТЬ в database.py (после функции get_forum_topics_raw, если её нет, или замените существующую):
+
+
+async def get_forum_topics_safe(bot, chat_id: int) -> list:
+    """
+    Безопасно получает список тем форума.
+    Возвращает список словарей с ключами: message_thread_id, name
+    Это функция-обёртка для безопасной работы с API.
+    """
+    try:
+        response = await bot.get_forum_topics(chat_id)
+        topics = []
+        # Проверяем тип ответа
+        if hasattr(response, "topics"):
+            # Это объект ForumTopicsInfo из aiogram
+            for topic in response.topics:
+                topics.append(
+                    {
+                        "message_thread_id": topic.message_thread_id,
+                        "name": topic.name,
+                        "icon_custom_emoji_id": getattr(
+                            topic, "icon_custom_emoji_id", None
+                        ),
+                        "is_closed": getattr(topic, "is_closed", False),
+                        "is_hidden": getattr(topic, "is_hidden", False),
+                    }
+                )
+        elif isinstance(response, list):
+            # Это уже список
+            for topic in response:
+                if isinstance(topic, dict):
+                    topics.append(topic)
+                else:
+                    topics.append(
+                        {
+                            "message_thread_id": topic.message_thread_id,
+                            "name": topic.name,
+                        }
+                    )
+        return topics
+    except Exception as e:
+        print(f"❌ Ошибка при получении тем: {e}")
+        return []
+
+
 # ----- Вспомогательные функции -----
 async def update_event_status(event_id: int, status: str):
     """Обновляет статус мероприятия."""

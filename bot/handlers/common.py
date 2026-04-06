@@ -68,8 +68,9 @@ async def cmd_test_bot_rights(message: Message):
 async def test_topics(message: Message):
     """Команда для тестирования получения тем."""
     from utils.topics import get_topics_list
+    from config import GROUP_ID
 
-    topics = await get_topics_list(message.bot)
+    topics = await get_topics_list(message.bot, GROUP_ID)
 
     if not topics:
         await message.answer("❌ Темы не найдены или ошибка API")
@@ -124,3 +125,86 @@ async def cancel_create(callback: CallbackQuery, state: FSMContext):
     await state.clear()
     await callback.message.delete()
     await callback.answer("Создание мероприятия отменено", show_alert=True)
+
+
+# ✅ ДОБАВИТЬ В common.py (в конец перед последней функцией)
+
+
+@router.message(Command("debug"))
+async def debug_cmd(message: Message):
+    """Команда для отладки."""
+    from config import BOT_TOKEN, GROUP_ID, ADMIN_IDS
+
+    debug_info = (
+        f"🔍 Отладка:\n"
+        f"GROUP_ID: {GROUP_ID}\n"
+        f"Ваш ID: {message.from_user.id}\n"
+        f"Администраторы: {ADMIN_IDS}\n"
+        f"Вы администратор: {message.from_user.id in ADMIN_IDS}\n"
+        f"aiogram версия: 3.x+"
+    )
+    await message.answer(debug_info)
+
+# ✅ ДОБАВИТЬ В common.py (проверка админских прав бота)
+@router.message(Command("check_admin"))
+async def check_admin(message: Message):
+    """Проверяет, администратор ли бот в группе."""
+    from config import GROUP_ID
+    
+    try:
+        bot_id = (await message.bot.get_me()).id
+        chat_member = await message.bot.get_chat_member(GROUP_ID, bot_id)
+        
+        is_admin = chat_member.is_chat_admin()
+        status = "✅ Администратор" if is_admin else "❌ Не администратор"
+        
+        admin_info = f"""
+{status}
+
+Статус: {chat_member.status}
+Может редактировать: {chat_member.can_edit_messages}
+Может управлять темами: {chat_member.can_manage_topics}
+Может отправлять: {chat_member.can_post_stories}
+"""
+        await message.answer(admin_info)
+    except Exception as e:
+        await message.answer(f"❌ Ошибка: {str(e)}")
+
+# ✅ ДОБАВИТЬ В common.py (новая команда для диагностики тем)
+@router.message(Command("debug_topics"))
+async def debug_topics(message: Message):
+    """Расширенная отладка получения тем."""
+    from config import GROUP_ID
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    
+    try:
+        logger.info(f"Пытаемся получить темы для группы {GROUP_ID}")
+        
+        # Попытка 1: Прямой вызов API
+        response = await message.bot.get_forum_topics(GROUP_ID)
+        logger.info(f"Ответ API: {response}")
+        logger.info(f"Тип ответа: {type(response)}")
+        
+        if hasattr(response, 'topics'):
+            logger.info(f"У ответа есть атрибут 'topics': {len(response.topics)} тем")
+            topics_info = []
+            for topic in response.topics:
+                topics_info.append(f"  - '{topic.name}' (ID: {topic.message_thread_id})")
+            await message.answer(
+                f"✅ Найдено {len(response.topics)} тем:\n" + "\n".join(topics_info)
+            )
+        elif isinstance(response, list):
+            logger.info(f"Ответ - список с {len(response)} элементами")
+            await message.answer(f"✅ Список тем (список): {len(response)} элементов")
+        else:
+            logger.info(f"Неожиданный тип: {type(response)}")
+            await message.answer(f"⚠️ Неожиданный тип ответа: {type(response)}")
+            
+    except AttributeError as e:
+        await message.answer(f"❌ AttributeError: {str(e)}")
+        logger.error(f"AttributeError: {e}")
+    except Exception as e:
+        await message.answer(f"❌ Ошибка: {type(e).__name__}: {str(e)}")
+        logger.error(f"Ошибка: {type(e).__name__}: {e}")        

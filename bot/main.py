@@ -2,6 +2,10 @@
 
 # ⚠️ ОБНОВЛЕНО: Улучшенная инициализация и восстановление
 
+import sys
+import os
+sys.path.insert(0, os.path.dirname(__file__))
+
 import asyncio
 import logging
 import os

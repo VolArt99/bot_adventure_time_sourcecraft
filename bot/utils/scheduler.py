@@ -19,6 +19,12 @@ scheduler = AsyncIOScheduler(
     timezone=TZ
 )
 
+# Запуск планировщика
+def start_scheduler():
+    if not scheduler.running:
+        scheduler.start()
+        logger.info("Планировщик запущен")
+
 async def schedule_reminders_for_event(event_id: int, bot):
     """Планирует напоминания для мероприятия."""
     event = await get_event(event_id)
@@ -101,9 +107,3 @@ async def schedule_digest(bot, chat_id: int, thread_id: int = None):
         replace_existing=True
     )
     logger.info("Запланирован еженедельный дайджест")
-
-# Запуск планировщика
-def start_scheduler():
-    if not scheduler.running:
-        scheduler.start()
-        logger.info("Планировщик запущен")

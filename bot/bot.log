@@ -426,3 +426,234 @@ NameError: name 'aiogram' is not defined
 2026-03-25 01:52:06,199 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8663379193)
 2026-03-25 01:52:06,462 - aiogram.dispatcher - INFO - Polling stopped for bot @adventur_time_bot id=8663379193 - 'bot_adventure_time'
 2026-03-25 01:52:06,464 - __main__ - INFO - Бот остановлен пользователем
+2026-04-06 17:48:06,952 - __main__ - INFO - Запуск бота...
+2026-04-06 17:48:06,964 - __main__ - INFO - База данных инициализирована
+2026-04-06 17:48:07,132 - __main__ - INFO - Роутеры зарегистрированы
+2026-04-06 17:48:07,133 - apscheduler.scheduler - INFO - Scheduler started
+2026-04-06 17:48:07,134 - utils.scheduler - INFO - Планировщик запущен
+2026-04-06 17:48:07,134 - utils.scheduler - INFO - Восстановление запланированных напоминаний...
+2026-04-06 17:48:07,140 - utils.scheduler - INFO - Восстановлено 2 мероприятий с напоминаниями
+2026-04-06 17:48:07,140 - __main__ - INFO - Напоминания восстановлены
+2026-04-06 17:48:07,140 - __main__ - INFO - Запуск поллинга...
+2026-04-06 17:48:07,140 - aiogram.dispatcher - INFO - Start polling
+2026-04-06 17:48:07,684 - aiogram.dispatcher - INFO - Run polling for bot @adventur_time_bot id=8663379193 - 'bot_adventure_time'
+2026-04-06 17:49:00,380 - aiogram.event - INFO - Update id=326878294 is handled. Duration 1265 ms by bot id=8663379193
+2026-04-06 17:49:11,813 - aiogram.event - INFO - Update id=326878295 is handled. Duration 404 ms by bot id=8663379193
+2026-04-06 17:49:55,549 - aiogram.event - INFO - Update id=326878296 is handled. Duration 1068 ms by bot id=8663379193
+2026-04-06 17:50:09,474 - aiogram.event - INFO - Update id=326878297 is not handled. Duration 0 ms by bot id=8663379193
+2026-04-06 17:50:09,474 - aiogram.event - ERROR - Cause exception while process update id=326878297 by bot id=8663379193
+TypeError: get_topics_list() missing 1 required positional argument: 'chat_id'
+Traceback (most recent call last):
+  File "C:\Users\Artem.Volynec\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\aiogram\dispatcher\dispatcher.py", line 320, in _process_update
+    response = await self.feed_update(bot, update, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\aiogram\dispatcher\dispatcher.py", line 164, in feed_update
+    response = await self.update.wrap_outer_middleware(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    )
+    ^
+  File "C:\Users\Artem.Volynec\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\aiogram\dispatcher\middlewares\error.py", line 27, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\aiogram\dispatcher\middlewares\user_context.py", line 58, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\aiogram\fsm\middleware.py", line 43, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\aiogram\dispatcher\event\telegram.py", line 126, in trigger
+    return await wrapped_inner(event, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\aiogram\dispatcher\event\handler.py", line 71, in call
+    return await wrapped()
+           ^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\aiogram\dispatcher\dispatcher.py", line 283, in _listen_update
+    return await self.propagate_event(update_type=update_type, event=event, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\aiogram\dispatcher\router.py", line 163, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\aiogram\dispatcher\router.py", line 155, in _wrapped
+    return await self._propagate_event(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "C:\Users\Artem.Volynec\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\aiogram\dispatcher\router.py", line 191, in _propagate_event
+    response = await router.propagate_event(update_type=update_type, event=event, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\aiogram\dispatcher\router.py", line 163, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\aiogram\dispatcher\router.py", line 155, in _wrapped
+    return await self._propagate_event(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "C:\Users\Artem.Volynec\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\aiogram\dispatcher\router.py", line 183, in _propagate_event
+    response = await observer.trigger(event, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\aiogram\dispatcher\event\telegram.py", line 126, in trigger
+    return await wrapped_inner(event, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\aiogram\dispatcher\event\handler.py", line 71, in call
+    return await wrapped()
+           ^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\bot\handlers\common.py", line 72, in test_topics
+    topics = await get_topics_list(message.bot)
+                   ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+TypeError: get_topics_list() missing 1 required positional argument: 'chat_id'
+2026-04-06 17:50:39,840 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramNetworkError: HTTP Client says - ServerDisconnectedError: Server disconnected
+2026-04-06 17:50:39,841 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8663379193)
+2026-04-06 17:51:13,568 - aiogram.dispatcher - INFO - Connection established (tryings = 1, bot id = 8663379193)
+2026-04-06 17:52:00,633 - aiogram.event - INFO - Update id=326878298 is not handled. Duration 0 ms by bot id=8663379193
+2026-04-06 17:52:00,634 - aiogram.event - ERROR - Cause exception while process update id=326878298 by bot id=8663379193
+TypeError: get_topics_list() missing 1 required positional argument: 'chat_id'
+Traceback (most recent call last):
+  File "C:\Users\Artem.Volynec\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\aiogram\dispatcher\dispatcher.py", line 320, in _process_update
+    response = await self.feed_update(bot, update, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\aiogram\dispatcher\dispatcher.py", line 164, in feed_update
+    response = await self.update.wrap_outer_middleware(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    )
+    ^
+  File "C:\Users\Artem.Volynec\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\aiogram\dispatcher\middlewares\error.py", line 27, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\aiogram\dispatcher\middlewares\user_context.py", line 58, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\aiogram\fsm\middleware.py", line 43, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\aiogram\dispatcher\event\telegram.py", line 126, in trigger
+    return await wrapped_inner(event, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\aiogram\dispatcher\event\handler.py", line 71, in call
+    return await wrapped()
+           ^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\aiogram\dispatcher\dispatcher.py", line 283, in _listen_update
+    return await self.propagate_event(update_type=update_type, event=event, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\aiogram\dispatcher\router.py", line 163, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\aiogram\dispatcher\router.py", line 155, in _wrapped
+    return await self._propagate_event(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "C:\Users\Artem.Volynec\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\aiogram\dispatcher\router.py", line 191, in _propagate_event
+    response = await router.propagate_event(update_type=update_type, event=event, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\aiogram\dispatcher\router.py", line 163, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\aiogram\dispatcher\router.py", line 155, in _wrapped
+    return await self._propagate_event(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "C:\Users\Artem.Volynec\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\aiogram\dispatcher\router.py", line 183, in _propagate_event
+    response = await observer.trigger(event, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\aiogram\dispatcher\event\telegram.py", line 126, in trigger
+    return await wrapped_inner(event, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\LocalCache\local-packages\Python313\site-packages\aiogram\dispatcher\event\handler.py", line 71, in call
+    return await wrapped()
+           ^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\bot\handlers\common.py", line 72, in test_topics
+    topics = await get_topics_list(message.bot)
+                   ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+TypeError: get_topics_list() missing 1 required positional argument: 'chat_id'
+2026-04-06 17:52:36,734 - aiogram.dispatcher - INFO - Polling stopped
+2026-04-06 17:52:36,735 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramNetworkError: HTTP Client says - ServerDisconnectedError: Server disconnected
+2026-04-06 17:52:36,736 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8663379193)
+2026-04-06 17:52:37,001 - aiogram.dispatcher - INFO - Polling stopped for bot @adventur_time_bot id=8663379193 - 'bot_adventure_time'
+2026-04-06 17:52:37,003 - __main__ - INFO - Бот остановлен пользователем
+2026-04-06 17:57:01,160 - __main__ - INFO - Запуск бота...
+2026-04-06 17:57:01,164 - __main__ - INFO - База данных инициализирована
+2026-04-06 17:57:01,334 - __main__ - INFO - Роутеры зарегистрированы
+2026-04-06 17:57:01,336 - apscheduler.scheduler - INFO - Scheduler started
+2026-04-06 17:57:01,336 - utils.scheduler - INFO - Планировщик запущен
+2026-04-06 17:57:01,336 - utils.scheduler - INFO - Восстановление запланированных напоминаний...
+2026-04-06 17:57:01,340 - utils.scheduler - INFO - Восстановлено 2 мероприятий с напоминаниями
+2026-04-06 17:57:01,340 - __main__ - INFO - Напоминания восстановлены
+2026-04-06 17:57:01,340 - __main__ - INFO - Запуск поллинга...
+2026-04-06 17:57:01,340 - aiogram.dispatcher - INFO - Start polling
+2026-04-06 17:57:02,486 - aiogram.dispatcher - INFO - Run polling for bot @adventur_time_bot id=8663379193 - 'bot_adventure_time'
+2026-04-06 17:57:11,811 - utils.topics - ERROR - ❌ Ошибка при получении тем: 'Bot' object has no attribute 'get_forum_topics'
+2026-04-06 17:57:12,975 - aiogram.event - INFO - Update id=326878299 is handled. Duration 1164 ms by bot id=8663379193
+2026-04-06 17:58:25,497 - aiogram.dispatcher - INFO - Polling stopped
+2026-04-06 17:58:25,498 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramNetworkError: HTTP Client says - ServerDisconnectedError: Server disconnected
+2026-04-06 17:58:25,498 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8663379193)
+2026-04-06 17:58:25,758 - aiogram.dispatcher - INFO - Polling stopped for bot @adventur_time_bot id=8663379193 - 'bot_adventure_time'
+2026-04-06 17:58:25,760 - __main__ - INFO - Бот остановлен пользователем
+2026-04-06 18:01:36,411 - __main__ - INFO - Запуск бота...
+2026-04-06 18:01:36,413 - __main__ - INFO - База данных инициализирована
+2026-04-06 18:01:36,582 - __main__ - INFO - Роутеры зарегистрированы
+2026-04-06 18:01:36,583 - apscheduler.scheduler - INFO - Scheduler started
+2026-04-06 18:01:36,584 - utils.scheduler - INFO - Планировщик запущен
+2026-04-06 18:01:36,584 - utils.scheduler - INFO - Восстановление запланированных напоминаний...
+2026-04-06 18:01:36,588 - utils.scheduler - INFO - Восстановлено 2 мероприятий с напоминаниями
+2026-04-06 18:01:36,588 - __main__ - INFO - Напоминания восстановлены
+2026-04-06 18:01:36,589 - __main__ - INFO - Запуск поллинга...
+2026-04-06 18:01:36,589 - aiogram.dispatcher - INFO - Start polling
+2026-04-06 18:01:41,341 - aiogram.dispatcher - INFO - Run polling for bot @adventur_time_bot id=8663379193 - 'bot_adventure_time'
+2026-04-06 18:01:41,482 - utils.topics - ERROR - ❌ Ошибка при получении тем: 'Bot' object has no attribute 'get_forum_topics'
+2026-04-06 18:01:42,246 - aiogram.event - INFO - Update id=326878300 is handled. Duration 765 ms by bot id=8663379193
+2026-04-06 18:01:53,375 - aiogram.event - INFO - Update id=326878301 is handled. Duration 322 ms by bot id=8663379193
+2026-04-06 18:02:02,964 - utils.topics - ERROR - ❌ Ошибка при получении тем: 'Bot' object has no attribute 'get_forum_topics'
+2026-04-06 18:02:03,143 - aiogram.event - INFO - Update id=326878302 is handled. Duration 178 ms by bot id=8663379193
+2026-04-06 18:04:21,069 - aiogram.dispatcher - INFO - Polling stopped
+2026-04-06 18:04:21,071 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramNetworkError: HTTP Client says - ServerDisconnectedError: Server disconnected
+2026-04-06 18:04:21,071 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8663379193)
+2026-04-06 18:04:21,337 - aiogram.dispatcher - INFO - Polling stopped for bot @adventur_time_bot id=8663379193 - 'bot_adventure_time'
+2026-04-06 18:04:21,340 - __main__ - INFO - Бот остановлен пользователем
+2026-04-06 18:07:07,745 - __main__ - INFO - Запуск бота...
+2026-04-06 18:07:07,748 - __main__ - INFO - База данных инициализирована
+2026-04-06 18:07:07,921 - __main__ - INFO - Роутеры зарегистрированы
+2026-04-06 18:07:07,922 - apscheduler.scheduler - INFO - Scheduler started
+2026-04-06 18:07:07,922 - utils.scheduler - INFO - Планировщик запущен
+2026-04-06 18:07:07,923 - utils.scheduler - INFO - Восстановление запланированных напоминаний...
+2026-04-06 18:07:07,927 - utils.scheduler - INFO - Восстановлено 2 мероприятий с напоминаниями
+2026-04-06 18:07:07,927 - __main__ - INFO - Напоминания восстановлены
+2026-04-06 18:07:07,928 - __main__ - INFO - Запуск поллинга...
+2026-04-06 18:07:07,928 - aiogram.dispatcher - INFO - Start polling
+2026-04-06 18:07:08,421 - aiogram.dispatcher - INFO - Run polling for bot @adventur_time_bot id=8663379193 - 'bot_adventure_time'
+2026-04-06 18:07:22,685 - aiogram.event - INFO - Update id=326878303 is handled. Duration 2086 ms by bot id=8663379193
+2026-04-06 18:08:55,879 - aiogram.event - INFO - Update id=326878304 is handled. Duration 163 ms by bot id=8663379193
+2026-04-06 18:09:39,063 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramNetworkError: HTTP Client says - ServerDisconnectedError: Server disconnected
+2026-04-06 18:09:39,064 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8663379193)
+2026-04-06 18:09:43,151 - aiogram.dispatcher - INFO - Polling stopped
+2026-04-06 18:09:43,408 - aiogram.dispatcher - INFO - Polling stopped for bot @adventur_time_bot id=8663379193 - 'bot_adventure_time'
+2026-04-06 18:09:43,411 - __main__ - INFO - Бот остановлен пользователем
+2026-04-06 20:34:22,029 - __main__ - INFO - Запуск бота...
+2026-04-06 20:34:22,032 - __main__ - INFO - База данных инициализирована
+2026-04-06 20:34:22,198 - __main__ - INFO - Роутеры зарегистрированы
+2026-04-06 20:34:22,199 - apscheduler.scheduler - INFO - Scheduler started
+2026-04-06 20:34:22,199 - utils.scheduler - INFO - Планировщик запущен
+2026-04-06 20:34:22,199 - utils.scheduler - INFO - Восстановление запланированных напоминаний...
+2026-04-06 20:34:22,202 - utils.scheduler - INFO - Восстановлено 2 мероприятий с напоминаниями
+2026-04-06 20:34:22,203 - __main__ - INFO - Напоминания восстановлены
+2026-04-06 20:34:22,203 - __main__ - INFO - Запуск поллинга...
+2026-04-06 20:34:22,203 - aiogram.dispatcher - INFO - Start polling
+2026-04-06 20:34:43,281 - aiogram.dispatcher - INFO - Polling stopped
+2026-04-06 20:38:14,278 - __main__ - INFO - Запуск бота...
+2026-04-06 20:38:14,281 - __main__ - INFO - База данных инициализирована
+2026-04-06 20:38:14,442 - __main__ - INFO - Роутеры зарегистрированы
+2026-04-06 20:38:14,443 - apscheduler.scheduler - INFO - Scheduler started
+2026-04-06 20:38:14,443 - utils.scheduler - INFO - Планировщик запущен
+2026-04-06 20:38:14,444 - utils.scheduler - INFO - Восстановление запланированных напоминаний...
+2026-04-06 20:38:14,447 - utils.scheduler - INFO - Восстановлено 2 мероприятий с напоминаниями
+2026-04-06 20:38:14,447 - __main__ - INFO - Напоминания восстановлены
+2026-04-06 20:38:14,447 - __main__ - INFO - Запуск поллинга...
+2026-04-06 20:38:14,447 - aiogram.dispatcher - INFO - Start polling
+2026-04-06 20:38:35,518 - aiogram.dispatcher - INFO - Polling stopped

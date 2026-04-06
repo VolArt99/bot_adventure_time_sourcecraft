@@ -1,6 +1,6 @@
 # ⚠️ НОВОЕ: Обработчик команды /my_events
 
-from aiogram import Router, F
+from aiogram import Router, F, Bot
 from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command
 from datetime import datetime
