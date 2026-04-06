@@ -1,0 +1,428 @@
+2026-03-25 00:23:16,675 - __main__ - INFO - Запуск бота...
+2026-03-25 00:23:16,687 - __main__ - INFO - База данных инициализирована
+2026-03-25 00:23:16,892 - __main__ - INFO - Роутеры зарегистрированы
+2026-03-25 00:23:16,893 - apscheduler.scheduler - INFO - Scheduler started
+2026-03-25 00:23:16,893 - utils.scheduler - INFO - Планировщик запущен
+2026-03-25 00:23:16,893 - utils.scheduler - INFO - Восстановление запланированных напоминаний...
+2026-03-25 00:23:16,896 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 00:23:16,896 - utils.scheduler - INFO - Запланировано напоминание reminder_1_86400 на 2026-03-27 16:00:00+03:00
+2026-03-25 00:23:16,899 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 00:23:16,899 - utils.scheduler - INFO - Запланировано напоминание reminder_1_10800 на 2026-03-28 13:00:00+03:00
+2026-03-25 00:23:16,900 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 00:23:16,900 - utils.scheduler - INFO - Запланировано напоминание reminder_1_7200 на 2026-03-28 14:00:00+03:00
+2026-03-25 00:23:16,900 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 00:23:16,901 - utils.scheduler - INFO - Запланировано напоминание reminder_1_3600 на 2026-03-28 15:00:00+03:00
+2026-03-25 00:23:16,901 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 00:23:16,901 - utils.scheduler - INFO - Запланировано напоминание reminder_1_1800 на 2026-03-28 15:30:00+03:00
+2026-03-25 00:23:16,903 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 00:23:16,904 - utils.scheduler - INFO - Запланировано напоминание reminder_2_86400 на 2026-03-28 16:00:00+03:00
+2026-03-25 00:23:16,904 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 00:23:16,904 - utils.scheduler - INFO - Запланировано напоминание reminder_2_10800 на 2026-03-29 13:00:00+03:00
+2026-03-25 00:23:16,905 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 00:23:16,906 - utils.scheduler - INFO - Запланировано напоминание reminder_2_7200 на 2026-03-29 14:00:00+03:00
+2026-03-25 00:23:16,906 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 00:23:16,906 - utils.scheduler - INFO - Запланировано напоминание reminder_2_3600 на 2026-03-29 15:00:00+03:00
+2026-03-25 00:23:16,906 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 00:23:16,907 - utils.scheduler - INFO - Запланировано напоминание reminder_2_1800 на 2026-03-29 15:30:00+03:00
+2026-03-25 00:23:16,907 - utils.scheduler - INFO - Восстановлено 2 мероприятий с напоминаниями
+2026-03-25 00:23:16,907 - __main__ - INFO - Напоминания восстановлены
+2026-03-25 00:23:16,907 - __main__ - INFO - Запуск поллинга...
+2026-03-25 00:23:16,907 - aiogram.dispatcher - INFO - Start polling
+2026-03-25 00:23:32,366 - aiogram.dispatcher - INFO - Run polling for bot @adventur_time_bot id=8663379193 - 'bot_adventure_time'
+2026-03-25 00:23:38,666 - aiogram.event - INFO - Update id=326878253 is handled. Duration 726 ms by bot id=8663379193
+2026-03-25 00:24:43,928 - aiogram.event - INFO - Update id=326878254 is handled. Duration 15752 ms by bot id=8663379193
+2026-03-25 00:25:10,001 - aiogram.dispatcher - INFO - Polling stopped
+2026-03-25 00:25:10,263 - aiogram.dispatcher - INFO - Polling stopped for bot @adventur_time_bot id=8663379193 - 'bot_adventure_time'
+2026-03-25 00:25:10,265 - __main__ - INFO - Бот остановлен пользователем
+2026-03-25 00:27:42,513 - __main__ - INFO - Запуск бота...
+2026-03-25 00:27:42,516 - __main__ - INFO - База данных инициализирована
+2026-03-25 00:27:42,706 - __main__ - INFO - Роутеры зарегистрированы
+2026-03-25 00:27:42,709 - apscheduler.scheduler - INFO - Scheduler started
+2026-03-25 00:27:42,709 - utils.scheduler - INFO - Планировщик запущен
+2026-03-25 00:27:42,710 - utils.scheduler - INFO - Восстановление запланированных напоминаний...
+2026-03-25 00:27:42,714 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 00:27:42,714 - utils.scheduler - INFO - Запланировано напоминание reminder_1_86400 на 2026-03-27 16:00:00+03:00
+2026-03-25 00:27:42,714 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 00:27:42,715 - utils.scheduler - INFO - Запланировано напоминание reminder_1_10800 на 2026-03-28 13:00:00+03:00
+2026-03-25 00:27:42,715 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 00:27:42,716 - utils.scheduler - INFO - Запланировано напоминание reminder_1_7200 на 2026-03-28 14:00:00+03:00
+2026-03-25 00:27:42,716 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 00:27:42,716 - utils.scheduler - INFO - Запланировано напоминание reminder_1_3600 на 2026-03-28 15:00:00+03:00
+2026-03-25 00:27:42,716 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 00:27:42,716 - utils.scheduler - INFO - Запланировано напоминание reminder_1_1800 на 2026-03-28 15:30:00+03:00
+2026-03-25 00:27:42,718 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 00:27:42,718 - utils.scheduler - INFO - Запланировано напоминание reminder_2_86400 на 2026-03-28 16:00:00+03:00
+2026-03-25 00:27:42,719 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 00:27:42,719 - utils.scheduler - INFO - Запланировано напоминание reminder_2_10800 на 2026-03-29 13:00:00+03:00
+2026-03-25 00:27:42,719 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 00:27:42,719 - utils.scheduler - INFO - Запланировано напоминание reminder_2_7200 на 2026-03-29 14:00:00+03:00
+2026-03-25 00:27:42,719 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 00:27:42,719 - utils.scheduler - INFO - Запланировано напоминание reminder_2_3600 на 2026-03-29 15:00:00+03:00
+2026-03-25 00:27:42,720 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 00:27:42,720 - utils.scheduler - INFO - Запланировано напоминание reminder_2_1800 на 2026-03-29 15:30:00+03:00
+2026-03-25 00:27:42,720 - utils.scheduler - INFO - Восстановлено 2 мероприятий с напоминаниями
+2026-03-25 00:27:42,720 - __main__ - INFO - Напоминания восстановлены
+2026-03-25 00:27:42,720 - __main__ - INFO - Запуск поллинга...
+2026-03-25 00:27:42,720 - aiogram.dispatcher - INFO - Start polling
+2026-03-25 00:27:43,069 - aiogram.dispatcher - INFO - Run polling for bot @adventur_time_bot id=8663379193 - 'bot_adventure_time'
+2026-03-25 00:27:49,798 - aiogram.event - INFO - Update id=326878255 is handled. Duration 690 ms by bot id=8663379193
+2026-03-25 00:27:52,008 - aiogram.event - INFO - Update id=326878256 is handled. Duration 421 ms by bot id=8663379193
+2026-03-25 00:33:52,093 - aiogram.event - INFO - Update id=326878257 is handled. Duration 15497 ms by bot id=8663379193
+2026-03-25 00:37:17,339 - aiogram.event - INFO - Update id=326878258 is not handled. Duration 2 ms by bot id=8663379193
+2026-03-25 00:37:41,624 - aiogram.event - INFO - Update id=326878259 is not handled. Duration 1 ms by bot id=8663379193
+2026-03-25 00:38:06,114 - aiogram.event - INFO - Update id=326878260 is not handled. Duration 8 ms by bot id=8663379193
+2026-03-25 00:40:00,940 - aiogram.event - INFO - Update id=326878261 is not handled. Duration 10 ms by bot id=8663379193
+2026-03-25 00:40:08,105 - aiogram.event - INFO - Update id=326878262 is not handled. Duration 2 ms by bot id=8663379193
+2026-03-25 00:40:17,413 - aiogram.event - INFO - Update id=326878263 is not handled. Duration 6 ms by bot id=8663379193
+2026-03-25 00:40:35,254 - aiogram.event - INFO - Update id=326878264 is not handled. Duration 2 ms by bot id=8663379193
+2026-03-25 00:42:24,386 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramNetworkError: HTTP Client says - ClientOSError: [WinError 1236] Подключение к сети было разорвано локальной системой
+2026-03-25 00:42:24,389 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8663379193)
+2026-03-25 00:43:25,452 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramNetworkError: HTTP Client says - ClientConnectorError: Cannot connect to host api.telegram.org:443 ssl:default [None]
+2026-03-25 00:43:25,453 - aiogram.dispatcher - WARNING - Sleep for 1.308688 seconds and try again... (tryings = 1, bot id = 8663379193)
+2026-03-25 00:43:36,118 - aiogram.dispatcher - INFO - Connection established (tryings = 2, bot id = 8663379193)
+2026-03-25 00:43:36,120 - aiogram.event - INFO - Update id=326878265 is not handled. Duration 1 ms by bot id=8663379193
+2026-03-25 00:44:14,466 - aiogram.event - INFO - Update id=326878266 is not handled. Duration 5 ms by bot id=8663379193
+2026-03-25 00:51:47,656 - aiogram.event - INFO - Update id=326878267 is not handled. Duration 2 ms by bot id=8663379193
+2026-03-25 00:51:59,401 - aiogram.event - INFO - Update id=326878268 is not handled. Duration 5 ms by bot id=8663379193
+2026-03-25 00:52:01,467 - aiogram.event - INFO - Update id=326878269 is not handled. Duration 3 ms by bot id=8663379193
+2026-03-25 00:52:10,325 - aiogram.event - INFO - Update id=326878270 is not handled. Duration 3 ms by bot id=8663379193
+2026-03-25 00:52:15,372 - aiogram.event - INFO - Update id=326878271 is not handled. Duration 3 ms by bot id=8663379193
+2026-03-25 00:52:29,116 - aiogram.event - INFO - Update id=326878272 is not handled. Duration 3 ms by bot id=8663379193
+2026-03-25 00:52:52,712 - aiogram.dispatcher - INFO - Polling stopped
+2026-03-25 00:52:52,713 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramNetworkError: HTTP Client says - ServerDisconnectedError: Server disconnected
+2026-03-25 00:52:52,713 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8663379193)
+2026-03-25 00:52:52,967 - aiogram.dispatcher - INFO - Polling stopped for bot @adventur_time_bot id=8663379193 - 'bot_adventure_time'
+2026-03-25 00:52:52,969 - __main__ - INFO - Бот остановлен пользователем
+2026-03-25 00:52:57,009 - __main__ - INFO - Запуск бота...
+2026-03-25 00:52:57,012 - __main__ - INFO - База данных инициализирована
+2026-03-25 00:52:57,187 - __main__ - INFO - Роутеры зарегистрированы
+2026-03-25 00:52:57,188 - apscheduler.scheduler - INFO - Scheduler started
+2026-03-25 00:52:57,188 - utils.scheduler - INFO - Планировщик запущен
+2026-03-25 00:52:57,188 - utils.scheduler - INFO - Восстановление запланированных напоминаний...
+2026-03-25 00:52:57,192 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 00:52:57,192 - utils.scheduler - INFO - Запланировано напоминание reminder_1_86400 на 2026-03-27 16:00:00+03:00
+2026-03-25 00:52:57,193 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 00:52:57,193 - utils.scheduler - INFO - Запланировано напоминание reminder_1_10800 на 2026-03-28 13:00:00+03:00
+2026-03-25 00:52:57,193 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 00:52:57,193 - utils.scheduler - INFO - Запланировано напоминание reminder_1_7200 на 2026-03-28 14:00:00+03:00
+2026-03-25 00:52:57,194 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 00:52:57,194 - utils.scheduler - INFO - Запланировано напоминание reminder_1_3600 на 2026-03-28 15:00:00+03:00
+2026-03-25 00:52:57,194 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 00:52:57,194 - utils.scheduler - INFO - Запланировано напоминание reminder_1_1800 на 2026-03-28 15:30:00+03:00
+2026-03-25 00:52:57,197 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 00:52:57,197 - utils.scheduler - INFO - Запланировано напоминание reminder_2_86400 на 2026-03-28 16:00:00+03:00
+2026-03-25 00:52:57,198 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 00:52:57,198 - utils.scheduler - INFO - Запланировано напоминание reminder_2_10800 на 2026-03-29 13:00:00+03:00
+2026-03-25 00:52:57,198 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 00:52:57,199 - utils.scheduler - INFO - Запланировано напоминание reminder_2_7200 на 2026-03-29 14:00:00+03:00
+2026-03-25 00:52:57,199 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 00:52:57,200 - utils.scheduler - INFO - Запланировано напоминание reminder_2_3600 на 2026-03-29 15:00:00+03:00
+2026-03-25 00:52:57,200 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 00:52:57,200 - utils.scheduler - INFO - Запланировано напоминание reminder_2_1800 на 2026-03-29 15:30:00+03:00
+2026-03-25 00:52:57,201 - utils.scheduler - INFO - Восстановлено 2 мероприятий с напоминаниями
+2026-03-25 00:52:57,201 - __main__ - INFO - Напоминания восстановлены
+2026-03-25 00:52:57,201 - __main__ - INFO - Запуск поллинга...
+2026-03-25 00:52:57,201 - aiogram.dispatcher - INFO - Start polling
+2026-03-25 00:53:12,987 - aiogram.dispatcher - INFO - Run polling for bot @adventur_time_bot id=8663379193 - 'bot_adventure_time'
+2026-03-25 00:53:14,259 - aiogram.event - INFO - Update id=326878273 is handled. Duration 1180 ms by bot id=8663379193
+2026-03-25 00:53:32,164 - aiogram.event - INFO - Update id=326878274 is handled. Duration 311 ms by bot id=8663379193
+2026-03-25 00:53:40,984 - aiogram.event - INFO - Update id=326878275 is handled. Duration 178 ms by bot id=8663379193
+2026-03-25 00:55:59,550 - aiogram.dispatcher - INFO - Polling stopped
+2026-03-25 00:55:59,551 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramNetworkError: HTTP Client says - ServerDisconnectedError: Server disconnected
+2026-03-25 00:55:59,551 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8663379193)
+2026-03-25 00:55:59,813 - aiogram.dispatcher - INFO - Polling stopped for bot @adventur_time_bot id=8663379193 - 'bot_adventure_time'
+2026-03-25 00:55:59,816 - __main__ - INFO - Бот остановлен пользователем
+2026-03-25 01:03:23,771 - __main__ - INFO - Запуск бота...
+2026-03-25 01:03:23,774 - __main__ - INFO - База данных инициализирована
+2026-03-25 01:03:23,950 - __main__ - INFO - Роутеры зарегистрированы
+2026-03-25 01:03:23,951 - apscheduler.scheduler - INFO - Scheduler started
+2026-03-25 01:03:23,951 - utils.scheduler - INFO - Планировщик запущен
+2026-03-25 01:03:23,951 - utils.scheduler - INFO - Восстановление запланированных напоминаний...
+2026-03-25 01:03:23,954 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:03:23,955 - utils.scheduler - INFO - Запланировано напоминание reminder_1_86400 на 2026-03-27 16:00:00+03:00
+2026-03-25 01:03:23,955 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:03:23,955 - utils.scheduler - INFO - Запланировано напоминание reminder_1_10800 на 2026-03-28 13:00:00+03:00
+2026-03-25 01:03:23,955 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:03:23,956 - utils.scheduler - INFO - Запланировано напоминание reminder_1_7200 на 2026-03-28 14:00:00+03:00
+2026-03-25 01:03:23,956 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:03:23,956 - utils.scheduler - INFO - Запланировано напоминание reminder_1_3600 на 2026-03-28 15:00:00+03:00
+2026-03-25 01:03:23,956 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:03:23,957 - utils.scheduler - INFO - Запланировано напоминание reminder_1_1800 на 2026-03-28 15:30:00+03:00
+2026-03-25 01:03:23,959 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:03:23,959 - utils.scheduler - INFO - Запланировано напоминание reminder_2_86400 на 2026-03-28 16:00:00+03:00
+2026-03-25 01:03:23,959 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:03:23,960 - utils.scheduler - INFO - Запланировано напоминание reminder_2_10800 на 2026-03-29 13:00:00+03:00
+2026-03-25 01:03:23,960 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:03:23,960 - utils.scheduler - INFO - Запланировано напоминание reminder_2_7200 на 2026-03-29 14:00:00+03:00
+2026-03-25 01:03:23,961 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:03:23,961 - utils.scheduler - INFO - Запланировано напоминание reminder_2_3600 на 2026-03-29 15:00:00+03:00
+2026-03-25 01:03:23,962 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:03:23,962 - utils.scheduler - INFO - Запланировано напоминание reminder_2_1800 на 2026-03-29 15:30:00+03:00
+2026-03-25 01:03:23,963 - utils.scheduler - INFO - Восстановлено 2 мероприятий с напоминаниями
+2026-03-25 01:03:23,963 - __main__ - INFO - Напоминания восстановлены
+2026-03-25 01:03:23,963 - __main__ - INFO - Запуск поллинга...
+2026-03-25 01:03:23,963 - aiogram.dispatcher - INFO - Start polling
+2026-03-25 01:03:40,171 - aiogram.dispatcher - INFO - Run polling for bot @adventur_time_bot id=8663379193 - 'bot_adventure_time'
+2026-03-25 01:03:51,719 - aiogram.event - INFO - Update id=326878276 is handled. Duration 749 ms by bot id=8663379193
+2026-03-25 01:05:40,842 - aiogram.event - INFO - Update id=326878277 is handled. Duration 323 ms by bot id=8663379193
+2026-03-25 01:06:42,162 - aiogram.event - INFO - Update id=326878278 is handled. Duration 706 ms by bot id=8663379193
+2026-03-25 01:06:55,471 - aiogram.event - INFO - Update id=326878279 is handled. Duration 291 ms by bot id=8663379193
+2026-03-25 01:07:15,493 - aiogram.event - INFO - Update id=326878280 is handled. Duration 136 ms by bot id=8663379193
+2026-03-25 01:07:31,495 - aiogram.dispatcher - INFO - Polling stopped
+2026-03-25 01:07:31,496 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramNetworkError: HTTP Client says - ServerDisconnectedError: Server disconnected
+2026-03-25 01:07:31,496 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8663379193)
+2026-03-25 01:07:31,759 - aiogram.dispatcher - INFO - Polling stopped for bot @adventur_time_bot id=8663379193 - 'bot_adventure_time'
+2026-03-25 01:07:31,761 - __main__ - INFO - Бот остановлен пользователем
+2026-03-25 01:08:14,295 - __main__ - INFO - Запуск бота...
+2026-03-25 01:08:14,299 - __main__ - INFO - База данных инициализирована
+2026-03-25 01:08:14,470 - __main__ - INFO - Роутеры зарегистрированы
+2026-03-25 01:08:14,471 - apscheduler.scheduler - INFO - Scheduler started
+2026-03-25 01:08:14,472 - utils.scheduler - INFO - Планировщик запущен
+2026-03-25 01:08:14,472 - utils.scheduler - INFO - Восстановление запланированных напоминаний...
+2026-03-25 01:08:14,476 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:08:14,476 - utils.scheduler - INFO - Запланировано напоминание reminder_1_86400 на 2026-03-27 16:00:00+03:00
+2026-03-25 01:08:14,477 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:08:14,477 - utils.scheduler - INFO - Запланировано напоминание reminder_1_10800 на 2026-03-28 13:00:00+03:00
+2026-03-25 01:08:14,477 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:08:14,477 - utils.scheduler - INFO - Запланировано напоминание reminder_1_7200 на 2026-03-28 14:00:00+03:00
+2026-03-25 01:08:14,478 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:08:14,478 - utils.scheduler - INFO - Запланировано напоминание reminder_1_3600 на 2026-03-28 15:00:00+03:00
+2026-03-25 01:08:14,478 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:08:14,478 - utils.scheduler - INFO - Запланировано напоминание reminder_1_1800 на 2026-03-28 15:30:00+03:00
+2026-03-25 01:08:14,480 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:08:14,480 - utils.scheduler - INFO - Запланировано напоминание reminder_2_86400 на 2026-03-28 16:00:00+03:00
+2026-03-25 01:08:14,481 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:08:14,481 - utils.scheduler - INFO - Запланировано напоминание reminder_2_10800 на 2026-03-29 13:00:00+03:00
+2026-03-25 01:08:14,481 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:08:14,481 - utils.scheduler - INFO - Запланировано напоминание reminder_2_7200 на 2026-03-29 14:00:00+03:00
+2026-03-25 01:08:14,482 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:08:14,482 - utils.scheduler - INFO - Запланировано напоминание reminder_2_3600 на 2026-03-29 15:00:00+03:00
+2026-03-25 01:08:14,483 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:08:14,483 - utils.scheduler - INFO - Запланировано напоминание reminder_2_1800 на 2026-03-29 15:30:00+03:00
+2026-03-25 01:08:14,483 - utils.scheduler - INFO - Восстановлено 2 мероприятий с напоминаниями
+2026-03-25 01:08:14,483 - __main__ - INFO - Напоминания восстановлены
+2026-03-25 01:08:14,484 - __main__ - INFO - Запуск поллинга...
+2026-03-25 01:08:14,484 - aiogram.dispatcher - INFO - Start polling
+2026-03-25 01:08:29,911 - aiogram.dispatcher - INFO - Run polling for bot @adventur_time_bot id=8663379193 - 'bot_adventure_time'
+2026-03-25 01:08:30,428 - aiogram.event - INFO - Update id=326878281 is handled. Duration 426 ms by bot id=8663379193
+2026-03-25 01:08:34,976 - aiogram.event - INFO - Update id=326878282 is handled. Duration 155 ms by bot id=8663379193
+2026-03-25 01:10:04,420 - aiogram.dispatcher - INFO - Polling stopped
+2026-03-25 01:10:04,422 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramNetworkError: HTTP Client says - ServerDisconnectedError: Server disconnected
+2026-03-25 01:10:04,422 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8663379193)
+2026-03-25 01:10:04,685 - aiogram.dispatcher - INFO - Polling stopped for bot @adventur_time_bot id=8663379193 - 'bot_adventure_time'
+2026-03-25 01:10:04,687 - __main__ - INFO - Бот остановлен пользователем
+2026-03-25 01:13:59,404 - __main__ - INFO - Запуск бота...
+2026-03-25 01:13:59,407 - __main__ - INFO - База данных инициализирована
+2026-03-25 01:13:59,576 - __main__ - INFO - Роутеры зарегистрированы
+2026-03-25 01:13:59,577 - apscheduler.scheduler - INFO - Scheduler started
+2026-03-25 01:13:59,577 - utils.scheduler - INFO - Планировщик запущен
+2026-03-25 01:13:59,577 - utils.scheduler - INFO - Восстановление запланированных напоминаний...
+2026-03-25 01:13:59,580 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:13:59,581 - utils.scheduler - INFO - Запланировано напоминание reminder_1_86400 на 2026-03-27 16:00:00+03:00
+2026-03-25 01:13:59,581 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:13:59,581 - utils.scheduler - INFO - Запланировано напоминание reminder_1_10800 на 2026-03-28 13:00:00+03:00
+2026-03-25 01:13:59,581 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:13:59,581 - utils.scheduler - INFO - Запланировано напоминание reminder_1_7200 на 2026-03-28 14:00:00+03:00
+2026-03-25 01:13:59,582 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:13:59,582 - utils.scheduler - INFO - Запланировано напоминание reminder_1_3600 на 2026-03-28 15:00:00+03:00
+2026-03-25 01:13:59,582 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:13:59,582 - utils.scheduler - INFO - Запланировано напоминание reminder_1_1800 на 2026-03-28 15:30:00+03:00
+2026-03-25 01:13:59,584 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:13:59,585 - utils.scheduler - INFO - Запланировано напоминание reminder_2_86400 на 2026-03-28 16:00:00+03:00
+2026-03-25 01:13:59,585 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:13:59,585 - utils.scheduler - INFO - Запланировано напоминание reminder_2_10800 на 2026-03-29 13:00:00+03:00
+2026-03-25 01:13:59,586 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:13:59,586 - utils.scheduler - INFO - Запланировано напоминание reminder_2_7200 на 2026-03-29 14:00:00+03:00
+2026-03-25 01:13:59,586 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:13:59,586 - utils.scheduler - INFO - Запланировано напоминание reminder_2_3600 на 2026-03-29 15:00:00+03:00
+2026-03-25 01:13:59,587 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:13:59,587 - utils.scheduler - INFO - Запланировано напоминание reminder_2_1800 на 2026-03-29 15:30:00+03:00
+2026-03-25 01:13:59,588 - utils.scheduler - INFO - Восстановлено 2 мероприятий с напоминаниями
+2026-03-25 01:13:59,588 - __main__ - INFO - Напоминания восстановлены
+2026-03-25 01:13:59,589 - __main__ - INFO - Запуск поллинга...
+2026-03-25 01:13:59,589 - aiogram.dispatcher - INFO - Start polling
+2026-03-25 01:14:15,009 - aiogram.dispatcher - INFO - Run polling for bot @adventur_time_bot id=8663379193 - 'bot_adventure_time'
+2026-03-25 01:14:15,582 - aiogram.event - INFO - Update id=326878283 is handled. Duration 365 ms by bot id=8663379193
+2026-03-25 01:14:23,467 - aiogram.event - INFO - Update id=326878284 is handled. Duration 260 ms by bot id=8663379193
+2026-03-25 01:15:24,887 - aiogram.dispatcher - INFO - Polling stopped
+2026-03-25 01:15:25,139 - aiogram.dispatcher - INFO - Polling stopped for bot @adventur_time_bot id=8663379193 - 'bot_adventure_time'
+2026-03-25 01:15:25,141 - __main__ - INFO - Бот остановлен пользователем
+2026-03-25 01:23:01,025 - __main__ - INFO - Запуск бота...
+2026-03-25 01:23:01,029 - __main__ - INFO - База данных инициализирована
+2026-03-25 01:23:01,205 - __main__ - INFO - Роутеры зарегистрированы
+2026-03-25 01:23:01,206 - apscheduler.scheduler - INFO - Scheduler started
+2026-03-25 01:23:01,206 - utils.scheduler - INFO - Планировщик запущен
+2026-03-25 01:23:01,207 - utils.scheduler - INFO - Восстановление запланированных напоминаний...
+2026-03-25 01:23:01,211 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:23:01,212 - utils.scheduler - INFO - Запланировано напоминание reminder_1_86400 на 2026-03-27 16:00:00+03:00
+2026-03-25 01:23:01,212 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:23:01,212 - utils.scheduler - INFO - Запланировано напоминание reminder_1_10800 на 2026-03-28 13:00:00+03:00
+2026-03-25 01:23:01,212 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:23:01,212 - utils.scheduler - INFO - Запланировано напоминание reminder_1_7200 на 2026-03-28 14:00:00+03:00
+2026-03-25 01:23:01,212 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:23:01,212 - utils.scheduler - INFO - Запланировано напоминание reminder_1_3600 на 2026-03-28 15:00:00+03:00
+2026-03-25 01:23:01,213 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:23:01,213 - utils.scheduler - INFO - Запланировано напоминание reminder_1_1800 на 2026-03-28 15:30:00+03:00
+2026-03-25 01:23:01,214 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:23:01,215 - utils.scheduler - INFO - Запланировано напоминание reminder_2_86400 на 2026-03-28 16:00:00+03:00
+2026-03-25 01:23:01,215 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:23:01,215 - utils.scheduler - INFO - Запланировано напоминание reminder_2_10800 на 2026-03-29 13:00:00+03:00
+2026-03-25 01:23:01,215 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:23:01,216 - utils.scheduler - INFO - Запланировано напоминание reminder_2_7200 на 2026-03-29 14:00:00+03:00
+2026-03-25 01:23:01,216 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:23:01,216 - utils.scheduler - INFO - Запланировано напоминание reminder_2_3600 на 2026-03-29 15:00:00+03:00
+2026-03-25 01:23:01,217 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:23:01,217 - utils.scheduler - INFO - Запланировано напоминание reminder_2_1800 на 2026-03-29 15:30:00+03:00
+2026-03-25 01:23:01,217 - utils.scheduler - INFO - Восстановлено 2 мероприятий с напоминаниями
+2026-03-25 01:23:01,218 - __main__ - INFO - Напоминания восстановлены
+2026-03-25 01:23:01,218 - __main__ - INFO - Запуск поллинга...
+2026-03-25 01:23:01,218 - aiogram.dispatcher - INFO - Start polling
+2026-03-25 01:23:16,688 - aiogram.dispatcher - INFO - Run polling for bot @adventur_time_bot id=8663379193 - 'bot_adventure_time'
+2026-03-25 01:23:17,234 - aiogram.event - INFO - Update id=326878285 is handled. Duration 410 ms by bot id=8663379193
+2026-03-25 01:23:20,711 - aiogram.event - INFO - Update id=326878286 is handled. Duration 286 ms by bot id=8663379193
+2026-03-25 01:23:34,752 - aiogram.dispatcher - INFO - Polling stopped
+2026-03-25 01:23:35,015 - aiogram.dispatcher - INFO - Polling stopped for bot @adventur_time_bot id=8663379193 - 'bot_adventure_time'
+2026-03-25 01:23:35,020 - __main__ - INFO - Бот остановлен пользователем
+2026-03-25 01:45:33,989 - __main__ - INFO - Запуск бота...
+2026-03-25 01:45:33,991 - __main__ - INFO - База данных инициализирована
+2026-03-25 01:45:34,169 - __main__ - INFO - Роутеры зарегистрированы
+2026-03-25 01:45:34,170 - apscheduler.scheduler - INFO - Scheduler started
+2026-03-25 01:45:34,170 - utils.scheduler - INFO - Планировщик запущен
+2026-03-25 01:45:34,171 - utils.scheduler - INFO - Восстановление запланированных напоминаний...
+2026-03-25 01:45:34,174 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:45:34,174 - utils.scheduler - INFO - Запланировано напоминание reminder_1_86400 на 2026-03-27 16:00:00+03:00
+2026-03-25 01:45:34,174 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:45:34,174 - utils.scheduler - INFO - Запланировано напоминание reminder_1_10800 на 2026-03-28 13:00:00+03:00
+2026-03-25 01:45:34,175 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:45:34,175 - utils.scheduler - INFO - Запланировано напоминание reminder_1_7200 на 2026-03-28 14:00:00+03:00
+2026-03-25 01:45:34,176 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:45:34,176 - utils.scheduler - INFO - Запланировано напоминание reminder_1_3600 на 2026-03-28 15:00:00+03:00
+2026-03-25 01:45:34,176 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:45:34,176 - utils.scheduler - INFO - Запланировано напоминание reminder_1_1800 на 2026-03-28 15:30:00+03:00
+2026-03-25 01:45:34,178 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:45:34,179 - utils.scheduler - INFO - Запланировано напоминание reminder_2_86400 на 2026-03-28 16:00:00+03:00
+2026-03-25 01:45:34,179 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:45:34,179 - utils.scheduler - INFO - Запланировано напоминание reminder_2_10800 на 2026-03-29 13:00:00+03:00
+2026-03-25 01:45:34,180 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:45:34,180 - utils.scheduler - INFO - Запланировано напоминание reminder_2_7200 на 2026-03-29 14:00:00+03:00
+2026-03-25 01:45:34,180 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:45:34,180 - utils.scheduler - INFO - Запланировано напоминание reminder_2_3600 на 2026-03-29 15:00:00+03:00
+2026-03-25 01:45:34,180 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:45:34,181 - utils.scheduler - INFO - Запланировано напоминание reminder_2_1800 на 2026-03-29 15:30:00+03:00
+2026-03-25 01:45:34,181 - utils.scheduler - INFO - Восстановлено 2 мероприятий с напоминаниями
+2026-03-25 01:45:34,181 - __main__ - INFO - Напоминания восстановлены
+2026-03-25 01:45:34,181 - __main__ - INFO - Запуск поллинга...
+2026-03-25 01:45:34,182 - aiogram.dispatcher - INFO - Start polling
+2026-03-25 01:45:49,749 - aiogram.dispatcher - INFO - Run polling for bot @adventur_time_bot id=8663379193 - 'bot_adventure_time'
+2026-03-25 01:45:49,877 - aiogram.event - INFO - Update id=326878287 is not handled. Duration 0 ms by bot id=8663379193
+2026-03-25 01:45:49,877 - aiogram.event - ERROR - Cause exception while process update id=326878287 by bot id=8663379193
+NameError: name 'aiogram' is not defined
+Traceback (most recent call last):
+  File "C:\Users\nb-3\Desktop\Бот для группы\bot_adventure_time\bot\venv\Lib\site-packages\aiogram\dispatcher\dispatcher.py", line 320, in _process_update
+    response = await self.feed_update(bot, update, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\nb-3\Desktop\Бот для группы\bot_adventure_time\bot\venv\Lib\site-packages\aiogram\dispatcher\dispatcher.py", line 164, in feed_update
+    response = await self.update.wrap_outer_middleware(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    )
+    ^
+  File "C:\Users\nb-3\Desktop\Бот для группы\bot_adventure_time\bot\venv\Lib\site-packages\aiogram\dispatcher\middlewares\error.py", line 27, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\nb-3\Desktop\Бот для группы\bot_adventure_time\bot\venv\Lib\site-packages\aiogram\dispatcher\middlewares\user_context.py", line 58, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\nb-3\Desktop\Бот для группы\bot_adventure_time\bot\venv\Lib\site-packages\aiogram\fsm\middleware.py", line 43, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\nb-3\Desktop\Бот для группы\bot_adventure_time\bot\venv\Lib\site-packages\aiogram\dispatcher\event\telegram.py", line 126, in trigger
+    return await wrapped_inner(event, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\nb-3\Desktop\Бот для группы\bot_adventure_time\bot\venv\Lib\site-packages\aiogram\dispatcher\event\handler.py", line 71, in call
+    return await wrapped()
+           ^^^^^^^^^^^^^^^
+  File "C:\Users\nb-3\Desktop\Бот для группы\bot_adventure_time\bot\venv\Lib\site-packages\aiogram\dispatcher\dispatcher.py", line 283, in _listen_update
+    return await self.propagate_event(update_type=update_type, event=event, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\nb-3\Desktop\Бот для группы\bot_adventure_time\bot\venv\Lib\site-packages\aiogram\dispatcher\router.py", line 161, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\nb-3\Desktop\Бот для группы\bot_adventure_time\bot\venv\Lib\site-packages\aiogram\dispatcher\router.py", line 153, in _wrapped
+    return await self._propagate_event(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "C:\Users\nb-3\Desktop\Бот для группы\bot_adventure_time\bot\venv\Lib\site-packages\aiogram\dispatcher\router.py", line 189, in _propagate_event
+    response = await router.propagate_event(update_type=update_type, event=event, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\nb-3\Desktop\Бот для группы\bot_adventure_time\bot\venv\Lib\site-packages\aiogram\dispatcher\router.py", line 161, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\nb-3\Desktop\Бот для группы\bot_adventure_time\bot\venv\Lib\site-packages\aiogram\dispatcher\router.py", line 153, in _wrapped
+    return await self._propagate_event(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "C:\Users\nb-3\Desktop\Бот для группы\bot_adventure_time\bot\venv\Lib\site-packages\aiogram\dispatcher\router.py", line 181, in _propagate_event
+    response = await observer.trigger(event, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\nb-3\Desktop\Бот для группы\bot_adventure_time\bot\venv\Lib\site-packages\aiogram\dispatcher\event\telegram.py", line 126, in trigger
+    return await wrapped_inner(event, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\nb-3\Desktop\Бот для группы\bot_adventure_time\bot\venv\Lib\site-packages\aiogram\dispatcher\event\handler.py", line 71, in call
+    return await wrapped()
+           ^^^^^^^^^^^^^^^
+  File "C:\Users\nb-3\Desktop\Бот для группы\bot_adventure_time\bot\handlers\common.py", line 123, in cmd_test_version
+    f"🤖 aiogram: `{aiogram.__version__}`\n\n"
+                    ^^^^^^^
+NameError: name 'aiogram' is not defined
+2026-03-25 01:47:23,570 - aiogram.dispatcher - INFO - Polling stopped
+2026-03-25 01:47:23,571 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramNetworkError: HTTP Client says - ServerDisconnectedError: Server disconnected
+2026-03-25 01:47:23,571 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8663379193)
+2026-03-25 01:47:23,828 - aiogram.dispatcher - INFO - Polling stopped for bot @adventur_time_bot id=8663379193 - 'bot_adventure_time'
+2026-03-25 01:47:23,830 - __main__ - INFO - Бот остановлен пользователем
+2026-03-25 01:49:14,341 - __main__ - INFO - Запуск бота...
+2026-03-25 01:49:14,345 - __main__ - INFO - База данных инициализирована
+2026-03-25 01:49:14,513 - __main__ - INFO - Роутеры зарегистрированы
+2026-03-25 01:49:14,514 - apscheduler.scheduler - INFO - Scheduler started
+2026-03-25 01:49:14,515 - utils.scheduler - INFO - Планировщик запущен
+2026-03-25 01:49:14,515 - utils.scheduler - INFO - Восстановление запланированных напоминаний...
+2026-03-25 01:49:14,519 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:49:14,520 - utils.scheduler - INFO - Запланировано напоминание reminder_1_86400 на 2026-03-27 16:00:00+03:00
+2026-03-25 01:49:14,520 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:49:14,520 - utils.scheduler - INFO - Запланировано напоминание reminder_1_10800 на 2026-03-28 13:00:00+03:00
+2026-03-25 01:49:14,521 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:49:14,521 - utils.scheduler - INFO - Запланировано напоминание reminder_1_7200 на 2026-03-28 14:00:00+03:00
+2026-03-25 01:49:14,521 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:49:14,522 - utils.scheduler - INFO - Запланировано напоминание reminder_1_3600 на 2026-03-28 15:00:00+03:00
+2026-03-25 01:49:14,522 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:49:14,522 - utils.scheduler - INFO - Запланировано напоминание reminder_1_1800 на 2026-03-28 15:30:00+03:00
+2026-03-25 01:49:14,525 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:49:14,525 - utils.scheduler - INFO - Запланировано напоминание reminder_2_86400 на 2026-03-28 16:00:00+03:00
+2026-03-25 01:49:14,526 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:49:14,526 - utils.scheduler - INFO - Запланировано напоминание reminder_2_10800 на 2026-03-29 13:00:00+03:00
+2026-03-25 01:49:14,527 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:49:14,527 - utils.scheduler - INFO - Запланировано напоминание reminder_2_7200 на 2026-03-29 14:00:00+03:00
+2026-03-25 01:49:14,528 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:49:14,528 - utils.scheduler - INFO - Запланировано напоминание reminder_2_3600 на 2026-03-29 15:00:00+03:00
+2026-03-25 01:49:14,528 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-03-25 01:49:14,528 - utils.scheduler - INFO - Запланировано напоминание reminder_2_1800 на 2026-03-29 15:30:00+03:00
+2026-03-25 01:49:14,528 - utils.scheduler - INFO - Восстановлено 2 мероприятий с напоминаниями
+2026-03-25 01:49:14,529 - __main__ - INFO - Напоминания восстановлены
+2026-03-25 01:49:14,529 - __main__ - INFO - Запуск поллинга...
+2026-03-25 01:49:14,529 - aiogram.dispatcher - INFO - Start polling
+2026-03-25 01:49:29,935 - aiogram.dispatcher - INFO - Run polling for bot @adventur_time_bot id=8663379193 - 'bot_adventure_time'
+2026-03-25 01:49:30,352 - aiogram.event - INFO - Update id=326878288 is handled. Duration 326 ms by bot id=8663379193
+2026-03-25 01:49:42,451 - aiogram.event - INFO - Update id=326878289 is handled. Duration 248 ms by bot id=8663379193
+2026-03-25 01:49:59,639 - aiogram.event - INFO - Update id=326878290 is handled. Duration 170 ms by bot id=8663379193
+2026-03-25 01:50:11,899 - aiogram.event - INFO - Update id=326878291 is handled. Duration 259 ms by bot id=8663379193
+2026-03-25 01:50:23,011 - aiogram.event - INFO - Update id=326878292 is handled. Duration 222 ms by bot id=8663379193
+2026-03-25 01:51:18,242 - aiogram.event - INFO - Update id=326878293 is handled. Duration 123 ms by bot id=8663379193
+2026-03-25 01:52:06,198 - aiogram.dispatcher - INFO - Polling stopped
+2026-03-25 01:52:06,199 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramNetworkError: HTTP Client says - ServerDisconnectedError: Server disconnected
+2026-03-25 01:52:06,199 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8663379193)
+2026-03-25 01:52:06,462 - aiogram.dispatcher - INFO - Polling stopped for bot @adventur_time_bot id=8663379193 - 'bot_adventure_time'
+2026-03-25 01:52:06,464 - __main__ - INFO - Бот остановлен пользователем
