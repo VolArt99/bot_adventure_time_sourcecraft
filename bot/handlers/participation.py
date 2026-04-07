@@ -15,6 +15,7 @@ from database import (
     add_participant,
     remove_participant,
     get_participants,
+    get_main_participants,
     move_from_waitlist,
     add_driver,
     add_passenger,
@@ -40,7 +41,7 @@ async def update_event_message(
     from database import get_topic_name_by_thread_id
     from utils.helpers import get_user_mention
 
-    going = await get_participants(event_id, "going")
+    going = await get_main_participants(event_id)
     waitlist = await get_participants(event_id, "waitlist")
 
     all_users = set(going + waitlist + [event["creator_id"]])
@@ -89,7 +90,7 @@ async def join_event(callback: CallbackQuery):
         await callback.answer("Мероприятие уже завершено или отменено", show_alert=True)
         return
     # Проверяем лимит
-    going = await get_participants(event_id, "going")
+    going = await get_main_participants(event_id)
     if event["participant_limit"] and len(going) >= event["participant_limit"]:
         await callback.answer(
             "Мест нет. Вы можете записаться в резерв", show_alert=True
@@ -121,7 +122,7 @@ async def waitlist_event(callback: CallbackQuery):
         await callback.answer("Мероприятие уже завершено или отменено", show_alert=True)
         return
     # Проверяем, не в основном ли уже
-    if user_id in await get_participants(event_id, "going"):
+    if user_id in await get_main_participants(event_id):
         await callback.answer("Вы уже в основном списке", show_alert=True)
         return
     # Проверяем, не в резерве ли
@@ -195,7 +196,7 @@ async def process_car_seats(message: Message, state: FSMContext):
         await state.clear()
         return
     # Добавляем водителя в основной список, если его там нет
-    going = await get_participants(event_id, "going")
+    going = await get_main_participants(event_id)
     if user_id not in going:
         await add_participant(event_id, user_id, "going")
     # Обновляем сообщение мероприятия
@@ -281,7 +282,7 @@ async def choose_driver(callback: CallbackQuery):
         )
         return
     # Добавляем пассажира в основной список, если его там нет
-    going = await get_participants(event_id, "going")
+    going = await get_main_participants(event_id)
     if user_id not in going:
         await add_participant(event_id, user_id, "going")
     # Обновляем сообщение

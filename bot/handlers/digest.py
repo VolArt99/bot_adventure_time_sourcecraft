@@ -33,7 +33,7 @@ async def cmd_digest(message: Message):
         usernames[cid] = await get_username_by_id(cid, message.bot) or str(cid)
     
     text = format_digest_text(events, usernames)
-    await message.answer(text, parse_mode="Markdown")
+    await message.answer(text, parse_mode="HTML")
 
 async def send_digest(bot, chat_id: int, thread_id: int = None):
     """⚠️ НОВОЕ: Автоматическая отправка дайджеста."""
@@ -53,7 +53,7 @@ async def send_digest(bot, chat_id: int, thread_id: int = None):
             chat_id=chat_id,
             message_thread_id=thread_id,
             text=text,
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
         logger.info("Дайджест отправлен")
     except Exception as e:

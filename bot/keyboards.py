@@ -50,6 +50,27 @@ def choose_topic_keyboard(topics):
 
 
 # ⚠️ НОВОЕ: Клавиатура для моих мероприятий
+
+def skip_field_keyboard(field: str) -> InlineKeyboardMarkup:
+    """Кнопка для пропуска опционального шага."""
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="⏭ Пропустить", callback_data=f"skip_{field}")],
+            [InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_create")],
+        ]
+    )
+
+
+def category_keyboard(categories: list[str]) -> InlineKeyboardMarkup:
+    """Кнопки выбора категории."""
+    builder = InlineKeyboardBuilder()
+    for category in categories:
+        builder.button(text=f"📂 {category.title()}", callback_data=f"category_{category}")
+    builder.button(text="❌ Отмена", callback_data="cancel_create")
+    builder.adjust(2, 2, 2, 2, 1)
+    return builder.as_markup()
+
+
 def my_events_keyboard(events: list) -> InlineKeyboardMarkup:
     """Клавиатура со списком мероприятий пользователя."""
     builder = InlineKeyboardBuilder()

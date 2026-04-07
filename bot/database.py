@@ -211,15 +211,16 @@ async def get_active_events() -> List[Dict]:
 
 # ⚠️ НОВОЕ: Получение мероприятий пользователя
 async def get_user_events(user_id: int, status: str = None) -> List[Dict]:
-    """Возвращает мероприятия, в которых участвует пользователь."""
+    """Возвращает мероприятия пользователя: как участника и/или организатора."""
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         query = """
-        SELECT e.* FROM events e
-        JOIN participants p ON e.id = p.event_id
-        WHERE p.user_id = ?
+        SELECT DISTINCT e.*
+        FROM events e
+        LEFT JOIN participants p ON e.id = p.event_id
+        WHERE p.user_id = ? OR e.creator_id = ?
         """
-        params = [user_id]
+        params = [user_id, user_id]
         if status:
             query += " AND e.status = ?"
             params.append(status)
@@ -285,6 +286,20 @@ async def get_participants(event_id: int, status: str = None) -> List[int]:
         params.append(status)
     async with aiosqlite.connect(DB_PATH) as db:
         async with db.execute(query, params) as cursor:
+            rows = await cursor.fetchall()
+            return [row[0] for row in rows]
+
+
+async def get_main_participants(event_id: int) -> List[int]:
+    """Возвращает ID участников основного состава (идут + карпулинг)."""
+    statuses = ("going", "driver", "passenger")
+    placeholders = ",".join("?" for _ in statuses)
+    query = (
+        f"SELECT DISTINCT user_id FROM participants "
+        f"WHERE event_id = ? AND status IN ({placeholders})"
+    )
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute(query, (event_id, *statuses)) as cursor:
             rows = await cursor.fetchall()
             return [row[0] for row in rows]
 
@@ -539,6 +554,7 @@ async def get_topic_by_id(message_thread_id: int) -> dict:
     except Exception as e:
         print(f"Ошибка получения темы: {e}")
         return None
+
 
 async def sync_topics_from_config() -> None:
     """Загружает названия тем из topics_config.py в БД."""

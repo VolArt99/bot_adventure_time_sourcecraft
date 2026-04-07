@@ -1,8 +1,6 @@
 # создание, редактирование, просмотр мероприятий
 
-# ⚠️ ОБНОВЛЕНО: Исправлена работа с темами, добавлена валидация
-
-from aiogram import Router, F, Bot
+from aiogram import Router, F
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery
@@ -11,17 +9,19 @@ import logging
 from datetime import datetime
 import pytz
 from config import ADMIN_IDS, GROUP_ID, TIMEZONE
-from database import (
-    create_event,
-    update_event_message_id,
-    get_topic_name_by_thread_id,
+from constants import EVENT_CATEGORIES, CARPOOL_HELP_TEXT
+from database import create_event, update_event_message_id, get_topic_name_by_thread_id
+from keyboards import (
+    cancel_keyboard,
+    choose_topic_keyboard,
+    event_actions,
+    skip_field_keyboard,
+    category_keyboard,
 )
-from utils.topics import get_topics_list_from_db
-from keyboards import cancel_keyboard, choose_topic_keyboard, event_actions
 from texts import format_event_message
-from utils.weather import get_weather
 from utils.helpers import get_user_mention
-
+from utils.topics import get_topics_list_from_db
+from utils.weather import get_weather
 
 logger = logging.getLogger(__name__)
 router = Router()
@@ -44,21 +44,15 @@ class CreateEvent(StatesGroup):
 @router.message(Command("create_event"))
 async def cmd_create_event(message: Message, state: FSMContext):
     if message.chat.type != "private":
-        await message.answer(
-            "❌ Команду /create_event нужно запускать в личных сообщениях с ботом."
-        )
+        await message.answer("❌ Команду /create_event нужно запускать в личных сообщениях с ботом.")
         return
 
     if message.from_user.id not in ADMIN_IDS:
-        await message.answer(
-            "❌ У вас нет прав для создания мероприятий.\nОбратитесь к администратору."
-        )
+        await message.answer("❌ У вас нет прав для создания мероприятий.\nОбратитесь к администратору.")
         return
 
     await state.set_state(CreateEvent.title)
-    await message.answer(
-        "📝 Введите название мероприятия:", reply_markup=cancel_keyboard()
-    )
+    await message.answer("📝 Введите название мероприятия:", reply_markup=cancel_keyboard())
 
 
 @router.message(CreateEvent.title)
@@ -66,15 +60,24 @@ async def process_title(message: Message, state: FSMContext):
     await state.update_data(title=message.text)
     await state.set_state(CreateEvent.description)
     await message.answer(
-        "📄 Введите описание (или 'пропустить'):", reply_markup=cancel_keyboard()
+        "📄 Введите описание (или 'пропустить'):",
+        reply_markup=skip_field_keyboard("description"),
+    )
+
+@router.callback_query(CreateEvent.description, F.data == "skip_description")
+async def skip_description(callback: CallbackQuery, state: FSMContext):
+    await state.update_data(description="")
+    await state.set_state(CreateEvent.datetime)
+    await callback.answer("Описание пропущено")
+    await callback.message.answer(
+        "🗓 Введите дату и время (ДД.ММ.ГГГГ ЧЧ:ММ):\nПример: 31.12.2025 18:00",
+        reply_markup=cancel_keyboard(),
     )
 
 
 @router.message(CreateEvent.description)
 async def process_description(message: Message, state: FSMContext):
-    await state.update_data(
-        description=message.text if message.text.lower() != "пропустить" else ""
-    )
+    await state.update_data(description=message.text if message.text.lower() != "пропустить" else "")
     await state.set_state(CreateEvent.datetime)
     await message.answer(
         "🗓 Введите дату и время (ДД.ММ.ГГГГ ЧЧ:ММ):\nПример: 31.12.2025 18:00",
@@ -94,11 +97,17 @@ async def process_datetime(message: Message, state: FSMContext):
         await state.set_state(CreateEvent.duration)
         await message.answer(
             "⏱ Введите длительность в часах (или 'пропустить'):\nПример: 2.5",
-            reply_markup=cancel_keyboard(),
+            reply_markup=skip_field_keyboard("duration"),
         )
     except ValueError:
         await message.answer("❌ Неверный формат. Используйте ДД.ММ.ГГГГ ЧЧ:ММ")
 
+@router.callback_query(CreateEvent.duration, F.data == "skip_duration")
+async def skip_duration(callback: CallbackQuery, state: FSMContext):
+    await state.update_data(duration_minutes=None)
+    await state.set_state(CreateEvent.location)
+    await callback.answer("Длительность пропущена")
+    await callback.message.answer("📍 Введите место проведения:", reply_markup=cancel_keyboard())
 
 @router.message(CreateEvent.duration)
 async def process_duration(message: Message, state: FSMContext):
@@ -106,13 +115,11 @@ async def process_duration(message: Message, state: FSMContext):
         duration_minutes = None
     else:
         try:
-            hours = float(message.text)
-            duration_minutes = int(hours * 60)
+            duration_minutes = int(float(message.text) * 60)
         except ValueError:
-            await message.answer(
-                "❌ Введите число часов (например, 2.5) или 'пропустить':"
-            )
+            await message.answer("❌ Введите число часов (например, 2.5) или 'пропустить':")
             return
+        
     await state.update_data(duration_minutes=duration_minutes)
     await state.set_state(CreateEvent.location)
     await message.answer("📍 Введите место проведения:", reply_markup=cancel_keyboard())
@@ -149,29 +156,36 @@ async def process_price(message: Message, state: FSMContext):
     else:
         await message.answer("❌ Введите одно или два числа")
         return
+    
     await state.update_data(price_total=total, price_per_person=per_person)
     await state.set_state(CreateEvent.limit)
     await message.answer(
-        "👥 Введите лимит участников (число или 'без лимита'):",
-        reply_markup=cancel_keyboard(),
+        "👥 Введите лимит участников (число, 'без лимита' или 'пропустить'):",
+        reply_markup=skip_field_keyboard("limit"),
     )
 
+@router.callback_query(CreateEvent.limit, F.data == "skip_limit")
+async def skip_limit(callback: CallbackQuery, state: FSMContext):
+    await state.update_data(participant_limit=None)
+    await state.set_state(CreateEvent.carpool)
+    await callback.answer("Лимит пропущен")
+    await callback.message.answer(CARPOOL_HELP_TEXT, reply_markup=cancel_keyboard(), parse_mode="HTML")
 
 @router.message(CreateEvent.limit)
 async def process_limit(message: Message, state: FSMContext):
-    if message.text.lower() == "без лимита":
+    if message.text.lower() in {"без лимита", "пропустить"}:
         participant_limit = None
     else:
         try:
             participant_limit = int(message.text)
         except ValueError:
-            await message.answer("❌ Введите число или 'без лимита':")
+            await message.answer("❌ Введите число, 'без лимита' или 'пропустить':")
             return
+        
     await state.update_data(participant_limit=participant_limit)
     await state.set_state(CreateEvent.carpool)
-    await message.answer(
-        "🚗 Нужен карпулинг? (да/нет):", reply_markup=cancel_keyboard()
-    )
+    await message.answer(CARPOOL_HELP_TEXT, reply_markup=cancel_keyboard(), parse_mode="HTML")
+
 
 
 # ✅ ИСПРАВЛЕННАЯ ФУНКЦИЯ process_carpool() в handlers/events.py
@@ -182,40 +196,22 @@ async def process_carpool(message: Message, state: FSMContext):
     carpool = message.text.lower() in ["да", "yes", "y", "1", "true"]
     await state.update_data(carpool_enabled=carpool)
 
-    # Получаем темы из БД
-    from utils.topics import get_topics_list_from_db
-
-    logger.info("Получение тем для выбора...")
     topics = await get_topics_list_from_db()
 
-    logger.info(f"Доступные темы: {len(topics)}")
-
     if topics:
-        await state.update_data(topics=topics)
         await state.set_state(CreateEvent.thread)
-        await message.answer(
-            "🗂 Выберите, где опубликовать мероприятие:",
-            reply_markup=choose_topic_keyboard(topics),
-        )
+        await message.answer("🗂 Выберите, где опубликовать мероприятие:", reply_markup=choose_topic_keyboard(topics))
         return
-    else:
-        await message.answer(
-            "⚠️ Тем не найдено. Опубликуем в основной чат.\n"
-            "💡 Совет: Отправьте сообщение в любую тему группы, "
-            "и бот её автоматически обнаружит."
-        )
 
-    # Если нет тем, пропускаем выбор
+    await message.answer(
+        "⚠️ Тем не найдено. Опубликуем в основной чат.\n"
+        "💡 Отправьте сообщение в любую тему группы, и бот её автоматически обнаружит."
+    )
     await state.update_data(thread_id=None)
     await state.set_state(CreateEvent.category)
-    await message.answer(
-        "🏷 Введите категорию мероприятия:\n"
-        "Доступные варианты: спорт, прогулки, поездки, игры, культура, еда, обучение",
-        reply_markup=cancel_keyboard(),
-    )
+    await message.answer("📂 Выберите категорию мероприятия:", reply_markup=category_keyboard(EVENT_CATEGORIES))
 
 
-# ✅ ИСПРАВЛЕННАЯ ФУНКЦИЯ process_topic() в handlers/events.py
 @router.callback_query(CreateEvent.thread, F.data.startswith("topic_"))
 async def process_topic(callback: CallbackQuery, state: FSMContext):
     try:
@@ -225,38 +221,44 @@ async def process_topic(callback: CallbackQuery, state: FSMContext):
         await state.update_data(thread_id=thread_id)
         await callback.answer("✅ Тема выбрана!")
 
-        # Удаляем старое сообщение
-        try:
-            await callback.message.delete()
-        except:
-            pass
-
-        # Переходим к выбору категории
         await state.set_state(CreateEvent.category)
-        await callback.message.answer(
-            "📂 Введите категорию мероприятия:\n"
-            "Доступные варианты: спорт, прогулки, поездки, игры, культура, еда, обучение",
-            reply_markup=cancel_keyboard(),
-        )
-    except Exception as e:
-        logger.error(f"Ошибка при обработке темы: {e}")
+        await callback.message.answer("📂 Выберите категорию мероприятия:", reply_markup=category_keyboard(EVENT_CATEGORIES))
+    except Exception as exc:
+        logger.error(f"Ошибка при обработке темы: {exc}")
         await callback.answer("❌ Ошибка! Попробуйте снова.", show_alert=True)
 
 
 @router.message(CreateEvent.category)
 async def process_category(message: Message, state: FSMContext):
-    await state.update_data(category=message.text)
+    category_text = (message.text or "").strip().lower()
+    if category_text not in EVENT_CATEGORIES:
+        await message.answer("❌ Выберите категорию из кнопок ниже.", reply_markup=category_keyboard(EVENT_CATEGORIES))
+        return
+
+    await finalize_event_creation(message, state, category_text)
+
+
+@router.callback_query(CreateEvent.category, F.data.startswith("category_"))
+async def process_category_callback(callback: CallbackQuery, state: FSMContext):
+    category_text = callback.data.replace("category_", "", 1)
+    if category_text not in EVENT_CATEGORIES:
+        await callback.answer("Категория недоступна", show_alert=True)
+        return
+
+    await callback.answer("Категория выбрана")
+    await finalize_event_creation(callback.message, state, category_text)
+
+
+async def finalize_event_creation(message: Message, state: FSMContext, category_value: str):
+    await state.update_data(category=category_value)
     data = await state.get_data()
 
-    # Получаем погоду
     weather_info = ""
     if data.get("location"):
         weather = await get_weather(city=data["location"])
         if weather:
-            weather_info = (
-                f"{weather['icon']} {weather['description']}, {weather['temp']}°C"
-            )
-    # Сохраняем в БД
+            weather_info = f"{weather['icon']} {weather['description']}, {weather['temp']}°C"
+
     event_data = {
         "title": data["title"],
         "description": data.get("description"),
@@ -270,11 +272,11 @@ async def process_category(message: Message, state: FSMContext):
         "creator_id": message.from_user.id,
         "weather_info": weather_info,
         "carpool_enabled": data.get("carpool_enabled", False),
-        "category": data.get("category"),
+        "category": category_value,
     }
     event_id = await create_event(event_data)
 
-    # Публикуем сообщение в группе
+    
     bot = message.bot
     organizer_mention = await get_user_mention(message.from_user.id, bot)
     mentions = {message.from_user.id: organizer_mention}
@@ -289,7 +291,6 @@ async def process_category(message: Message, state: FSMContext):
         organizer_mention=organizer_mention,
     )
 
-    # ⚠️ ОБНОВЛЕНО: Отправка с обработкой ошибок
     try:
         sent_msg = await bot.send_message(
             chat_id=GROUP_ID,
@@ -299,24 +300,15 @@ async def process_category(message: Message, state: FSMContext):
             parse_mode="HTML",
             disable_web_page_preview=True,
         )
-        await update_event_message_id(
-            event_id, data.get("thread_id"), sent_msg.message_id
-        )
+        await update_event_message_id(event_id, data.get("thread_id"), sent_msg.message_id)
 
-        # ⚠️ НОВОЕ: Планирование напоминаний
         from utils.scheduler import schedule_reminders_for_event
 
         await schedule_reminders_for_event(event_id, bot)
 
         await state.clear()
-        link = (
-            f"https://t.me/c/{str(GROUP_ID).replace('-100', '')}/{sent_msg.message_id}"
-        )
-        await message.answer(
-            f"✅ Мероприятие создано!\n"
-            f"🧵 Тема: {topic_name or 'Основной чат'}\n"
-            f"🔗 {link}"
-        )
-    except Exception as e:
-        logger.error(f"Ошибка публикации: {e}")
-        await message.answer(f"❌ Ошибка публикации: {str(e)[:200]}")
+        link = f"https://t.me/c/{str(GROUP_ID).replace('-100', '')}/{sent_msg.message_id}"
+        await message.answer(f"✅ Мероприятие создано!\n🧵 Тема: {topic_name or 'Основной чат'}\n🔗 {link}")
+    except Exception as exc:
+        logger.error(f"Ошибка публикации: {exc}")
+        await message.answer(f"❌ Ошибка публикации: {str(exc)[:200]}")

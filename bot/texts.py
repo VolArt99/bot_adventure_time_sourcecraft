@@ -6,6 +6,28 @@ from config import TIMEZONE
 
 TZ = pytz.timezone(TIMEZONE)
 
+
+def format_duration(minutes: int | None) -> str:
+    if not minutes:
+        return "не указана"
+
+    hours = minutes // 60
+    mins = minutes % 60
+
+    if hours and mins:
+        return f"{hours} ч {mins} мин"
+    if hours:
+        return f"{hours} ч"
+    return f"{mins} мин"
+
+
+def category_to_hashtag(category: str | None) -> str:
+    if not category:
+        return ""
+    safe = category.lower().replace(" ", "_")
+    return f"#{safe}"
+
+
 async def format_event_message(
     event: Dict,
     going_list: List[int],
@@ -18,16 +40,16 @@ async def format_event_message(
     date_str = dt.strftime("%d.%m.%Y")
     time_str = dt.strftime("%H:%M")
 
-    duration = (
-        f"{event['duration_minutes']} мин"
-        if event.get("duration_minutes")
-        else "не указана"
-    )
+    duration = format_duration(event.get("duration_minutes"))
 
     location = escape(event.get("location") or "не указано")
     title = escape(event["title"])
     description = escape(event.get("description") or "")
-    category = escape(event.get("category") or "не указана")
+    category_raw = event.get("category") or "не указана"
+    category = escape(category_raw)
+    category_tag = (
+        escape(category_to_hashtag(category_raw)) if event.get("category") else ""
+    )
 
     price_total = event.get("price_total") or 0
     price_per_person = event.get("price_per_person") or 0
@@ -38,8 +60,7 @@ async def format_event_message(
     if price_total > 0 and going_count > 0:
         calculated_per_person = round(price_total / going_count, 2)
         price_text = (
-            f"💰 Общая: {price_total} ₽\n"
-            f"💰 С человека: {calculated_per_person} ₽"
+            f"💰 Общая: {price_total} ₽\n" f"💰 С человека: {calculated_per_person} ₽"
         )
     elif price_total > 0:
         price_text = f"💰 Общая: {price_total} ₽"
@@ -48,11 +69,19 @@ async def format_event_message(
     else:
         price_text = "💰 Бесплатно"
 
-    weather = f"🌤 Погода: {escape(event['weather_info'])}" if event.get("weather_info") else ""
+    weather = (
+        f"🌤 Погода: {escape(event['weather_info'])}"
+        if event.get("weather_info")
+        else ""
+    )
     carpool = "🚗 Карпулинг включён" if event.get("carpool_enabled") else ""
 
-    going_names = "\n".join(mentions_dict.get(uid, f"id{uid}") for uid in going_list) or "—"
-    waitlist_names = "\n".join(mentions_dict.get(uid, f"id{uid}") for uid in waitlist_list) or "—"
+    going_names = (
+        "\n".join(mentions_dict.get(uid, f"id{uid}") for uid in going_list) or "—"
+    )
+    waitlist_names = (
+        "\n".join(mentions_dict.get(uid, f"id{uid}") for uid in waitlist_list) or "—"
+    )
 
     lines = [
         f"📌 <b>{title}</b>",
@@ -70,31 +99,36 @@ async def format_event_message(
     if weather:
         lines.append(weather)
 
-    lines.extend([
-        f"🗓 {date_str} в {time_str}",
-        f"⏱ Длительность: {duration}",
-        f"📂 Категория: {category}",
-        f"📍 {location}",
-        price_text,
-        f"👥 Кто уже идёт: {going_count}/{limit_str}",
-        "",
-        "<b>Список участников:</b>",
-        going_names,
-        "",
-        "<b>Резерв:</b>",
-        waitlist_names,
-    ])
+    lines.extend(
+        [
+            f"🗓 {date_str} в {time_str}",
+            f"⏱ Длительность: {duration}",
+            f"📂 Категория: {category} {category_tag}".strip(),
+            f"📍 {location}",
+            price_text,
+            f"👥 Кто уже идёт: {going_count}/{limit_str}",
+            "",
+            "<b>Список участников:</b>",
+            going_names,
+            "",
+            "<b>Резерв:</b>",
+            waitlist_names,
+        ]
+    )
 
     if carpool:
         lines.extend(["", carpool])
 
     if event.get("carpool_enabled"):
         from database import get_drivers_with_passengers
+
         drivers = await get_drivers_with_passengers(event["id"])
         if drivers:
             lines.extend(["", "<b>🚗 Водители и пассажиры:</b>"])
             for driver in drivers:
-                driver_mention = mentions_dict.get(driver["user_id"], f"id{driver['user_id']}")
+                driver_mention = mentions_dict.get(
+                    driver["user_id"], f"id{driver['user_id']}"
+                )
                 free_seats = driver["car_seats"] - len(driver["passengers"])
                 lines.append(
                     f"{driver_mention} — мест свободно: {free_seats}/{driver['car_seats']}"
