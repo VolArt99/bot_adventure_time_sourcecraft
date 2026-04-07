@@ -2,6 +2,7 @@
 
 from aiogram import Router, F, Bot
 from aiogram.types import CallbackQuery, Message
+from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 from keyboards import event_actions
 from texts import format_event_message
 from utils.helpers import get_username_by_id
@@ -65,15 +66,18 @@ async def update_event_message(
         topic_name=topic_name,
         organizer_mention=organizer_mention,
     )
-
-    await bot.edit_message_text(
-        chat_id=GROUP_ID,
-        message_id=message_id,
-        text=text,
-        reply_markup=event_actions(event_id, event["carpool_enabled"]),
-        parse_mode="HTML",
-        disable_web_page_preview=True,
-    )
+    try:
+        await bot.edit_message_text(
+            chat_id=GROUP_ID,
+            message_id=message_id,
+            text=text,
+            reply_markup=event_actions(event_id, event["carpool_enabled"]),
+            parse_mode="HTML",
+            disable_web_page_preview=True,
+        )
+    except TelegramBadRequest as e:
+        if "message is not modified" not in str(e):
+            raise
 
 
 @router.callback_query(F.data.startswith("join_"))
@@ -154,9 +158,18 @@ async def become_driver(callback: CallbackQuery, state: FSMContext):
     # Запрашиваем количество мест
     await state.update_data(event_id=event_id)
     await state.set_state(CarpoolState.seats)
-    await callback.message.answer(
-        "Сколько свободных мест в вашей машине (включая вас)? Введите число:"
-    )
+    try:
+        await callback.bot.send_message(
+            user_id,
+            "Сколько свободных мест в вашей машине (включая вас)? Введите число:",
+        )
+    except TelegramForbiddenError:
+        await callback.answer(
+            "Не могу написать в ЛС. Откройте чат с ботом и нажмите Start.",
+            show_alert=True,
+        )
+        await state.clear()
+        return
     await callback.answer()
 
 
@@ -223,9 +236,11 @@ async def become_passenger(callback: CallbackQuery):
         return
     # Формируем клавиатуру выбора водителя
     builder = InlineKeyboardBuilder()
+    has_free_drivers = False
     for driver in drivers:
         free = driver["car_seats"] - len(driver["passengers"])
         if free > 0:
+            has_free_drivers = True
             # Получаем username водителя
             username = await get_username_by_id(driver["user_id"], callback.bot) or str(
                 driver["user_id"]
@@ -234,13 +249,20 @@ async def become_passenger(callback: CallbackQuery):
                 text=f"{username} ({free} мест)",
                 callback_data=f"choose_driver_{event_id}_{driver['user_id']}",
             )
-    if len(builder.buttons) == 0:
+    if not has_free_drivers:
         await callback.answer("Нет свободных мест у водителей", show_alert=True)
         return
     builder.adjust(1)
-    await callback.message.answer(
-        "Выберите водителя:", reply_markup=builder.as_markup()
-    )
+    try:
+        await callback.bot.send_message(
+            user_id, "Выберите водителя:", reply_markup=builder.as_markup()
+        )
+    except TelegramForbiddenError:
+        await callback.answer(
+            "Не могу написать в ЛС. Откройте чат с ботом и нажмите Start.",
+            show_alert=True,
+        )
+        return
     await callback.answer()
 
 
