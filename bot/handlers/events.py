@@ -11,12 +11,17 @@ import logging
 from datetime import datetime
 import pytz
 from config import ADMIN_IDS, GROUP_ID, TIMEZONE
-from database import create_event, update_event_message_id, get_participants
-from utils.topics import get_topics_list_from_db, validate_thread_id
+from database import (
+    create_event,
+    update_event_message_id,
+    get_topic_name_by_thread_id,
+)
+from utils.topics import get_topics_list_from_db
 from keyboards import cancel_keyboard, choose_topic_keyboard, event_actions
 from texts import format_event_message
 from utils.weather import get_weather
-from utils.helpers import get_username_by_id
+from utils.helpers import get_user_mention
+
 
 logger = logging.getLogger(__name__)
 router = Router()
@@ -38,12 +43,18 @@ class CreateEvent(StatesGroup):
 
 @router.message(Command("create_event"))
 async def cmd_create_event(message: Message, state: FSMContext):
-    # ⚠️ ОБНОВЛЕНО: Проверка прав организатора
+    if message.chat.type != "private":
+        await message.answer(
+            "❌ Команду /create_event нужно запускать в личных сообщениях с ботом."
+        )
+        return
+
     if message.from_user.id not in ADMIN_IDS:
         await message.answer(
             "❌ У вас нет прав для создания мероприятий.\nОбратитесь к администратору."
         )
         return
+
     await state.set_state(CreateEvent.title)
     await message.answer(
         "📝 Введите название мероприятия:", reply_markup=cancel_keyboard()
@@ -245,7 +256,6 @@ async def process_category(message: Message, state: FSMContext):
             weather_info = (
                 f"{weather['icon']} {weather['description']}, {weather['temp']}°C"
             )
-
     # Сохраняем в БД
     event_data = {
         "title": data["title"],
@@ -266,14 +276,17 @@ async def process_category(message: Message, state: FSMContext):
 
     # Публикуем сообщение в группе
     bot = message.bot
-    going_list = []
-    waitlist_list = []
-    usernames = {
-        message.from_user.id: message.from_user.username or str(message.from_user.id)
-    }
+    organizer_mention = await get_user_mention(message.from_user.id, bot)
+    mentions = {message.from_user.id: organizer_mention}
+    topic_name = await get_topic_name_by_thread_id(data.get("thread_id"))
 
     event_text = await format_event_message(
-        {**event_data, "id": event_id}, going_list, waitlist_list, usernames
+        {**event_data, "id": event_id},
+        [],
+        [],
+        mentions,
+        topic_name=topic_name,
+        organizer_mention=organizer_mention,
     )
 
     # ⚠️ ОБНОВЛЕНО: Отправка с обработкой ошибок
@@ -283,7 +296,8 @@ async def process_category(message: Message, state: FSMContext):
             text=event_text,
             message_thread_id=data.get("thread_id"),
             reply_markup=event_actions(event_id, data.get("carpool_enabled", False)),
-            parse_mode="Markdown",
+            parse_mode="HTML",
+            disable_web_page_preview=True,
         )
         await update_event_message_id(
             event_id, data.get("thread_id"), sent_msg.message_id
@@ -298,7 +312,11 @@ async def process_category(message: Message, state: FSMContext):
         link = (
             f"https://t.me/c/{str(GROUP_ID).replace('-100', '')}/{sent_msg.message_id}"
         )
-        await message.answer(f"✅ Мероприятие создано!\n🔗 {link}")
+        await message.answer(
+            f"✅ Мероприятие создано!\n"
+            f"🧵 Тема: {topic_name or 'Основной чат'}\n"
+            f"🔗 {link}"
+        )
     except Exception as e:
         logger.error(f"Ошибка публикации: {e}")
-        await message.answer(f"❌ Ошибка публикации: {str(e)[:100]}")
+        await message.answer(f"❌ Ошибка публикации: {str(e)[:200]}")

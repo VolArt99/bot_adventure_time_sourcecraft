@@ -15,9 +15,6 @@ logger = logging.getLogger(__name__)
 router = Router()
 
 
-# ✅ ОБНОВИТЬ ФУНКЦИЮ test_chat() в common.py
-
-
 @router.message(Command("test_chat"))
 async def test_chat(message: Message):
     """Проверяет информацию о группе."""
@@ -25,6 +22,7 @@ async def test_chat(message: Message):
 
     try:
         chat = await message.bot.get_chat(GROUP_ID)
+        members_count = await message.bot.get_chat_member_count(GROUP_ID)
 
         info = (
             f"✅ Информация о группе:\n"
@@ -32,7 +30,7 @@ async def test_chat(message: Message):
             f"ID: {chat.id}\n"
             f"Тип: {chat.type}\n"
             f"Форум (is_forum): {getattr(chat, 'is_forum', False)}\n"
-            f"Общее кол-во участников: {chat.get_member_count()}\n"
+            f"Участников: {members_count}\n"
             f"Описание: {chat.description or '—'}"
         )
         await message.answer(info)
@@ -74,21 +72,17 @@ async def cmd_test_bot_rights(message: Message):
 @router.message(Command("test_topics"))
 async def test_topics(message: Message):
     """Команда для тестирования получения тем."""
-    from utils.topics import get_topics_list
-    from config import GROUP_ID
+    from utils.topics import get_topics_list_from_db
 
-    topics = await get_topics_list(message.bot, GROUP_ID)
+    topics = await get_topics_list_from_db()
 
     if not topics:
-        await message.answer("❌ Темы не найдены или ошибка API")
+        await message.answer("❌ Темы не найдены в БД")
         return
 
     response_text = f"✅ Найдено тем: {len(topics)}\n\n"
-    for topic in topics[:10]:  # Показываем первые 10
-        status = "🔒" if topic.get("is_closed") else "🔓"
-        response_text += (
-            f"{status} '{topic['name']}' (ID: {topic['message_thread_id']})\n"
-        )
+    for topic in topics[:20]:  # Показываем первые 10
+        response_text += f"📁 {topic['name']} (ID: {topic['message_thread_id']})\n"
 
     await message.answer(response_text)
 
@@ -294,13 +288,14 @@ async def check_forum(message: Message):
 
 # ✅ ИСПРАВЛЕННАЯ ФУНКЦИЯ list_topics() в handlers/common.py
 
+
 @router.message(Command("list_topics"))
 async def list_topics(message: Message):
     """Список обнаруженных тем."""
     from utils.topics import get_topics_list_from_db
-    
+
     topics = await get_topics_list_from_db()
-    
+
     if not topics:
         await message.answer(
             "❌ Тем не обнаружено.\n\n"
@@ -312,15 +307,16 @@ async def list_topics(message: Message):
             "5. Используйте /list_topics снова"
         )
         return
-    
+
     response = f"✅ Обнаружено {len(topics)} тем:\n\n"
     for topic in topics:
-        topic_name = topic['name']
-        topic_id = topic['message_thread_id']
+        topic_name = topic["name"]
+        topic_id = topic["message_thread_id"]
         response += f"📁 {topic_name}\n"
         response += f"   ID: {topic_id}\n"
-    
+
     await message.answer(response)
+
 
 # ✅ ДОБАВИТЬ В common.py
 @router.message(Command("update_topic_names"))
@@ -330,35 +326,37 @@ async def update_topic_names(message: Message):
     Сначала бот пытается получить названия из сообщений.
     """
     from config import GROUP_ID
-    
-    if message.from_user.id not in [982802587]:  # Только администраторы
+
+    from config import ADMIN_IDS
+
+    if message.from_user.id not in ADMIN_IDS:
         await message.answer("❌ У вас нет прав")
         return
-    
+
     await message.answer("⏳ Обновляю названия тем...")
-    
+
     try:
         from database import get_all_topics
-        
+
         topics = await get_all_topics()
         updated_count = 0
-        
+
         for topic in topics:
-            thread_id = topic['message_thread_id']
-            current_name = topic['name']
-            
+            thread_id = topic["message_thread_id"]
+            current_name = topic["name"]
+
             # Если название по умолчанию (Тема 123), ищем реальное
-            if current_name.startswith('Тема '):
+            if current_name.startswith("Тема "):
                 logger.info(f"Обновляю название для темы {thread_id}...")
                 # Можно добавить логику получения реального названия
                 updated_count += 1
-        
+
         await message.answer(
-            f"✅ Проверено {len(topics)} тем\n"
-            f"Обновлено: {updated_count}"
+            f"✅ Проверено {len(topics)} тем\n" f"Обновлено: {updated_count}"
         )
     except Exception as e:
         await message.answer(f"❌ Ошибка: {e}")
+
 
 # ✅ ДОБАВИТЬ В common.py
 @router.message(Command("show_config"))
@@ -366,19 +364,19 @@ async def show_config(message: Message):
     """Показывает конфиг тем."""
     try:
         from topics_config import TOPICS_MAPPING
-        
+
         if not TOPICS_MAPPING:
             await message.answer("❌ TOPICS_MAPPING пусто")
             return
-        
+
         response = "📋 Текущий конфиг тем:\n\n"
         for topic_id, topic_name in TOPICS_MAPPING.items():
             response += f"ID: {topic_id} → '{topic_name}'\n"
-        
+
         response += "\n📝 Как обновить:\n"
         response += "Отредактируйте файл bot/topics_config.py\n"
         response += "и перезагрузите бота"
-        
+
         await message.answer(response)
     except ImportError:
-        await message.answer("❌ Файл topics_config.py не найден")        
+        await message.answer("❌ Файл topics_config.py не найден")

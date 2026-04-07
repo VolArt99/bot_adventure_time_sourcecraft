@@ -539,3 +539,40 @@ async def get_topic_by_id(message_thread_id: int) -> dict:
     except Exception as e:
         print(f"Ошибка получения темы: {e}")
         return None
+
+async def sync_topics_from_config() -> None:
+    """Загружает названия тем из topics_config.py в БД."""
+    try:
+        from topics_config import TOPICS_MAPPING
+    except ImportError:
+        return
+
+    if not TOPICS_MAPPING:
+        return
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        for thread_id, name in TOPICS_MAPPING.items():
+            await db.execute(
+                """
+                INSERT INTO forum_topics (message_thread_id, name)
+                VALUES (?, ?)
+                ON CONFLICT(message_thread_id) DO UPDATE SET
+                    name = excluded.name
+                """,
+                (thread_id, name),
+            )
+        await db.commit()
+
+
+async def get_topic_name_by_thread_id(thread_id: int | None) -> str | None:
+    """Возвращает человекочитаемое название темы."""
+    if thread_id is None:
+        return None
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute(
+            "SELECT name FROM forum_topics WHERE message_thread_id = ?",
+            (thread_id,),
+        ) as cursor:
+            row = await cursor.fetchone()
+            return row[0] if row else None

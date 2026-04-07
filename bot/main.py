@@ -12,7 +12,7 @@ import os
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
 from config import BOT_TOKEN, GROUP_ID
-from database import init_db
+from database import init_db, sync_topics_from_config
 from handlers import common, events, participation, digest, reminders, my_events
 from utils.scheduler import scheduler, restore_jobs, start_scheduler
 
@@ -37,6 +37,9 @@ async def main():
     await init_db()
     logger.info("База данных инициализирована")
     
+    await sync_topics_from_config()
+    logger.info("Темы из topics_config.py синхронизированы с БД")
+
     # Инициализация бота
     bot = Bot(token=BOT_TOKEN)
     dp = Dispatcher(storage=MemoryStorage())

@@ -1185,3 +1185,356 @@ KeyError: 'temp'
 2026-04-07 01:52:19,779 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8663379193)
 2026-04-07 01:52:20,033 - aiogram.dispatcher - INFO - Polling stopped for bot @adventur_time_bot id=8663379193 - 'bot_adventure_time'
 2026-04-07 01:52:20,035 - __main__ - INFO - Бот остановлен пользователем
+2026-04-07 13:43:42,375 - __main__ - INFO - Запуск бота...
+2026-04-07 13:43:42,390 - __main__ - INFO - База данных инициализирована
+2026-04-07 13:43:42,595 - __main__ - INFO - Роутеры зарегистрированы
+2026-04-07 13:43:42,617 - apscheduler.scheduler - INFO - Scheduler started
+2026-04-07 13:43:42,617 - utils.scheduler - INFO - Планировщик запущен
+2026-04-07 13:43:42,617 - utils.scheduler - INFO - Восстановление запланированных напоминаний...
+2026-04-07 13:43:42,622 - utils.scheduler - INFO - Восстановлено 2 мероприятий с напоминаниями
+2026-04-07 13:43:42,622 - __main__ - INFO - Напоминания восстановлены
+2026-04-07 13:43:42,623 - __main__ - INFO - Запуск поллинга...
+2026-04-07 13:43:42,623 - aiogram.dispatcher - INFO - Start polling
+2026-04-07 13:43:45,464 - aiogram.dispatcher - INFO - Run polling for bot @adventur_time_bot id=8663379193 - 'bot_adventure_time'
+2026-04-07 13:43:55,628 - utils.topics - INFO - ✅ Загружено 5 тем из БД
+2026-04-07 13:43:58,623 - aiogram.event - INFO - Update id=326878363 is handled. Duration 2997 ms by bot id=8663379193
+2026-04-07 13:44:24,049 - utils.topics - INFO - ✅ Загружено 5 тем из БД
+2026-04-07 13:44:24,154 - aiogram.event - INFO - Update id=326878364 is handled. Duration 107 ms by bot id=8663379193
+2026-04-07 13:48:29,805 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramNetworkError: HTTP Client says - ServerDisconnectedError: Server disconnected
+2026-04-07 13:48:29,805 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8663379193)
+2026-04-07 13:48:57,919 - aiogram.dispatcher - INFO - Connection established (tryings = 1, bot id = 8663379193)
+2026-04-07 13:50:18,150 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramNetworkError: HTTP Client says - ServerDisconnectedError: Server disconnected
+2026-04-07 13:50:18,150 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8663379193)
+2026-04-07 13:50:50,066 - aiogram.dispatcher - INFO - Connection established (tryings = 1, bot id = 8663379193)
+2026-04-07 13:55:34,310 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramNetworkError: HTTP Client says - ServerDisconnectedError: Server disconnected
+2026-04-07 13:55:34,311 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8663379193)
+2026-04-07 13:55:38,752 - aiogram.dispatcher - INFO - Polling stopped
+2026-04-07 13:55:39,007 - aiogram.dispatcher - INFO - Polling stopped for bot @adventur_time_bot id=8663379193 - 'bot_adventure_time'
+2026-04-07 13:55:39,009 - __main__ - INFO - Бот остановлен пользователем
+2026-04-07 14:36:38,376 - __main__ - INFO - Запуск бота...
+2026-04-07 14:36:38,380 - __main__ - INFO - База данных инициализирована
+2026-04-07 14:36:38,394 - __main__ - INFO - Темы из topics_config.py синхронизированы с БД
+2026-04-07 14:36:38,590 - __main__ - INFO - Роутеры зарегистрированы
+2026-04-07 14:36:38,592 - apscheduler.scheduler - INFO - Scheduler started
+2026-04-07 14:36:38,592 - utils.scheduler - INFO - Планировщик запущен
+2026-04-07 14:36:38,592 - utils.scheduler - INFO - Восстановление запланированных напоминаний...
+2026-04-07 14:36:38,596 - utils.scheduler - INFO - Восстановлено 2 мероприятий с напоминаниями
+2026-04-07 14:36:38,596 - __main__ - INFO - Напоминания восстановлены
+2026-04-07 14:36:38,597 - __main__ - INFO - Запуск поллинга...
+2026-04-07 14:36:38,597 - aiogram.dispatcher - INFO - Start polling
+2026-04-07 14:36:39,537 - aiogram.dispatcher - INFO - Run polling for bot @adventur_time_bot id=8663379193 - 'bot_adventure_time'
+2026-04-07 14:37:02,451 - aiogram.event - INFO - Update id=326878365 is handled. Duration 6349 ms by bot id=8663379193
+2026-04-07 14:37:08,616 - aiogram.event - INFO - Update id=326878366 is handled. Duration 154 ms by bot id=8663379193
+2026-04-07 14:37:30,685 - middleware.topic_discoverer - INFO - Используется название из конфига: Болталка
+2026-04-07 14:37:30,699 - middleware.topic_discoverer - INFO - ✅ Обнаружена тема: 'Болталка' (ID: 122)
+2026-04-07 14:37:30,821 - aiogram.event - INFO - Update id=326878367 is handled. Duration 136 ms by bot id=8663379193
+2026-04-07 14:37:38,752 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramNetworkError: HTTP Client says - ServerDisconnectedError: Server disconnected
+2026-04-07 14:37:38,753 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8663379193)
+2026-04-07 14:38:06,832 - aiogram.dispatcher - INFO - Connection established (tryings = 1, bot id = 8663379193)
+2026-04-07 14:38:17,759 - utils.topics - INFO - ✅ Загружено 5 тем из БД
+2026-04-07 14:38:20,640 - aiogram.event - INFO - Update id=326878368 is handled. Duration 2883 ms by bot id=8663379193
+2026-04-07 14:38:26,898 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramNetworkError: HTTP Client says - ServerDisconnectedError: Server disconnected
+2026-04-07 14:38:26,899 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8663379193)
+2026-04-07 14:38:47,677 - aiogram.dispatcher - INFO - Connection established (tryings = 1, bot id = 8663379193)
+2026-04-07 14:38:54,180 - aiogram.event - INFO - Update id=326878369 is handled. Duration 6502 ms by bot id=8663379193
+2026-04-07 14:39:08,005 - utils.topics - INFO - ✅ Загружено 5 тем из БД
+2026-04-07 14:39:08,111 - aiogram.event - INFO - Update id=326878370 is handled. Duration 110 ms by bot id=8663379193
+2026-04-07 14:39:21,876 - aiogram.event - INFO - Update id=326878371 is handled. Duration 152 ms by bot id=8663379193
+2026-04-07 14:39:27,320 - aiogram.event - INFO - Update id=326878372 is handled. Duration 126 ms by bot id=8663379193
+2026-04-07 14:39:35,750 - aiogram.event - INFO - Update id=326878373 is handled. Duration 170 ms by bot id=8663379193
+2026-04-07 14:39:51,607 - aiogram.event - INFO - Update id=326878374 is handled. Duration 173 ms by bot id=8663379193
+2026-04-07 14:39:55,353 - aiogram.event - INFO - Update id=326878375 is handled. Duration 153 ms by bot id=8663379193
+2026-04-07 14:40:04,433 - aiogram.event - INFO - Update id=326878376 is handled. Duration 105 ms by bot id=8663379193
+2026-04-07 14:40:09,376 - aiogram.event - INFO - Update id=326878377 is handled. Duration 183 ms by bot id=8663379193
+2026-04-07 14:40:36,479 - aiogram.event - INFO - Update id=326878378 is handled. Duration 129 ms by bot id=8663379193
+2026-04-07 14:40:38,907 - handlers.events - INFO - Получение тем для выбора...
+2026-04-07 14:40:38,911 - utils.topics - INFO - ✅ Загружено 5 тем из БД
+2026-04-07 14:40:38,912 - handlers.events - INFO - Доступные темы: 5
+2026-04-07 14:40:39,075 - aiogram.event - INFO - Update id=326878379 is handled. Duration 172 ms by bot id=8663379193
+2026-04-07 14:40:43,342 - aiogram.event - INFO - Update id=326878380 is handled. Duration 346 ms by bot id=8663379193
+2026-04-07 14:40:48,046 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-04-07 14:40:48,047 - utils.scheduler - INFO - Запланировано напоминание reminder_3_86400 на 2026-04-07 15:00:00+03:00
+2026-04-07 14:40:48,047 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-04-07 14:40:48,047 - utils.scheduler - INFO - Запланировано напоминание reminder_3_10800 на 2026-04-08 12:00:00+03:00
+2026-04-07 14:40:48,048 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-04-07 14:40:48,048 - utils.scheduler - INFO - Запланировано напоминание reminder_3_7200 на 2026-04-08 13:00:00+03:00
+2026-04-07 14:40:48,048 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-04-07 14:40:48,048 - utils.scheduler - INFO - Запланировано напоминание reminder_3_3600 на 2026-04-08 14:00:00+03:00
+2026-04-07 14:40:48,049 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-04-07 14:40:48,049 - utils.scheduler - INFO - Запланировано напоминание reminder_3_1800 на 2026-04-08 14:30:00+03:00
+2026-04-07 14:40:48,164 - aiogram.event - INFO - Update id=326878381 is handled. Duration 1066 ms by bot id=8663379193
+2026-04-07 14:41:01,948 - aiogram.event - INFO - Update id=326878382 is handled. Duration 514 ms by bot id=8663379193
+2026-04-07 14:41:04,516 - aiogram.event - INFO - Update id=326878383 is handled. Duration 133 ms by bot id=8663379193
+2026-04-07 14:41:08,059 - aiogram.event - INFO - Update id=326878384 is handled. Duration 531 ms by bot id=8663379193
+2026-04-07 14:41:09,360 - aiogram.event - INFO - Update id=326878385 is handled. Duration 438 ms by bot id=8663379193
+2026-04-07 14:41:12,050 - aiogram.event - INFO - Update id=326878386 is handled. Duration 633 ms by bot id=8663379193
+2026-04-07 14:41:14,790 - aiogram.event - INFO - Update id=326878387 is handled. Duration 1027 ms by bot id=8663379193
+2026-04-07 14:41:22,458 - middleware.topic_discoverer - INFO - Используется название из конфига: Активный отдых
+2026-04-07 14:41:22,468 - middleware.topic_discoverer - INFO - ✅ Обнаружена тема: 'Активный отдых' (ID: 5)
+2026-04-07 14:41:23,000 - aiogram.event - INFO - Update id=326878388 is handled. Duration 542 ms by bot id=8663379193
+2026-04-07 14:41:33,527 - aiogram.event - INFO - Update id=326878389 is handled. Duration 98 ms by bot id=8663379193
+2026-04-07 14:41:38,605 - aiogram.event - INFO - Update id=326878390 is handled. Duration 525 ms by bot id=8663379193
+2026-04-07 14:41:44,112 - aiogram.event - INFO - Update id=326878391 is handled. Duration 152 ms by bot id=8663379193
+2026-04-07 14:41:47,917 - aiogram.event - INFO - Update id=326878392 is handled. Duration 797 ms by bot id=8663379193
+2026-04-07 14:41:50,011 - middleware.topic_discoverer - INFO - Используется название из конфига: Активный отдых
+2026-04-07 14:41:50,022 - middleware.topic_discoverer - INFO - ✅ Обнаружена тема: 'Активный отдых' (ID: 5)
+2026-04-07 14:41:50,520 - aiogram.event - INFO - Update id=326878393 is handled. Duration 509 ms by bot id=8663379193
+2026-04-07 14:43:23,152 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramNetworkError: HTTP Client says - ServerDisconnectedError: Server disconnected
+2026-04-07 14:43:23,152 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8663379193)
+2026-04-07 14:43:56,173 - aiogram.dispatcher - INFO - Connection established (tryings = 1, bot id = 8663379193)
+2026-04-07 14:46:08,919 - aiogram.event - INFO - Update id=326878394 is not handled. Duration 4145 ms by bot id=8663379193
+2026-04-07 14:46:08,920 - aiogram.event - ERROR - Cause exception while process update id=326878394 by bot id=8663379193
+TypeError: object of type 'generator' has no len()
+Traceback (most recent call last):
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\dispatcher.py", line 320, in _process_update
+    response = await self.feed_update(bot, update, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\dispatcher.py", line 164, in feed_update
+    response = await self.update.wrap_outer_middleware(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    )
+    ^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\middlewares\error.py", line 27, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\middlewares\user_context.py", line 58, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\fsm\middleware.py", line 43, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\event\telegram.py", line 126, in trigger
+    return await wrapped_inner(event, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\bot\middleware\topic_discoverer.py", line 41, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\event\handler.py", line 71, in call
+    return await wrapped()
+           ^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\dispatcher.py", line 283, in _listen_update
+    return await self.propagate_event(update_type=update_type, event=event, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\router.py", line 163, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\router.py", line 155, in _wrapped
+    return await self._propagate_event(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\router.py", line 191, in _propagate_event
+    response = await router.propagate_event(update_type=update_type, event=event, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\router.py", line 163, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\router.py", line 155, in _wrapped
+    return await self._propagate_event(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\router.py", line 183, in _propagate_event
+    response = await observer.trigger(event, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\event\telegram.py", line 126, in trigger
+    return await wrapped_inner(event, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\event\handler.py", line 71, in call
+    return await wrapped()
+           ^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\bot\handlers\participation.py", line 237, in become_passenger
+    if len(builder.buttons) == 0:
+       ~~~^^^^^^^^^^^^^^^^^
+TypeError: object of type 'generator' has no len()
+2026-04-07 14:46:42,555 - aiogram.event - INFO - Update id=326878395 is handled. Duration 514 ms by bot id=8663379193
+2026-04-07 14:46:45,119 - aiogram.event - INFO - Update id=326878396 is handled. Duration 395 ms by bot id=8663379193
+2026-04-07 14:46:46,683 - aiogram.event - INFO - Update id=326878397 is handled. Duration 478 ms by bot id=8663379193
+2026-04-07 14:46:48,099 - aiogram.event - INFO - Update id=326878398 is handled. Duration 563 ms by bot id=8663379193
+2026-04-07 14:46:49,267 - aiogram.event - INFO - Update id=326878399 is handled. Duration 343 ms by bot id=8663379193
+2026-04-07 14:46:53,419 - aiogram.event - INFO - Update id=326878400 is not handled. Duration 340 ms by bot id=8663379193
+2026-04-07 14:46:53,420 - aiogram.event - ERROR - Cause exception while process update id=326878400 by bot id=8663379193
+TelegramBadRequest: Telegram server says - Bad Request: message is not modified: specified new message content and reply markup are exactly the same as a current content and reply markup of the message
+Traceback (most recent call last):
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\dispatcher.py", line 320, in _process_update
+    response = await self.feed_update(bot, update, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\dispatcher.py", line 164, in feed_update
+    response = await self.update.wrap_outer_middleware(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    )
+    ^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\middlewares\error.py", line 27, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\middlewares\user_context.py", line 58, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\fsm\middleware.py", line 43, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\event\telegram.py", line 126, in trigger
+    return await wrapped_inner(event, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\bot\middleware\topic_discoverer.py", line 41, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\event\handler.py", line 71, in call
+    return await wrapped()
+           ^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\dispatcher.py", line 283, in _listen_update
+    return await self.propagate_event(update_type=update_type, event=event, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\router.py", line 163, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\router.py", line 155, in _wrapped
+    return await self._propagate_event(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\router.py", line 191, in _propagate_event
+    response = await router.propagate_event(update_type=update_type, event=event, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\router.py", line 163, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\router.py", line 155, in _wrapped
+    return await self._propagate_event(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\router.py", line 183, in _propagate_event
+    response = await observer.trigger(event, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\event\telegram.py", line 126, in trigger
+    return await wrapped_inner(event, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\event\handler.py", line 71, in call
+    return await wrapped()
+           ^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\bot\handlers\participation.py", line 297, in decline_event
+    await update_event_message(
+        callback.bot, event_id, event["thread_id"], event["message_id"]
+    )
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\bot\handlers\participation.py", line 69, in update_event_message
+    await bot.edit_message_text(
+    ...<6 lines>...
+    )
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\client\bot.py", line 1527, in edit_message_text
+    return await self(call, request_timeout=request_timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\client\bot.py", line 493, in __call__
+    return await self.session(self, method, timeout=request_timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\client\session\base.py", line 259, in __call__
+    return cast(TelegramType, await middleware(bot, method))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\client\session\aiohttp.py", line 177, in make_request
+    response = self.check_response(
+        bot=bot,
+    ...<2 lines>...
+        content=raw_result,
+    )
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\client\session\base.py", line 121, in check_response
+    raise TelegramBadRequest(method=method, message=description)
+aiogram.exceptions.TelegramBadRequest: Telegram server says - Bad Request: message is not modified: specified new message content and reply markup are exactly the same as a current content and reply markup of the message
+2026-04-07 14:46:58,328 - aiogram.event - INFO - Update id=326878401 is handled. Duration 511 ms by bot id=8663379193
+2026-04-07 14:46:59,582 - aiogram.event - INFO - Update id=326878402 is not handled. Duration 91 ms by bot id=8663379193
+2026-04-07 14:46:59,583 - aiogram.event - ERROR - Cause exception while process update id=326878402 by bot id=8663379193
+TypeError: object of type 'generator' has no len()
+Traceback (most recent call last):
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\dispatcher.py", line 320, in _process_update
+    response = await self.feed_update(bot, update, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\dispatcher.py", line 164, in feed_update
+    response = await self.update.wrap_outer_middleware(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    )
+    ^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\middlewares\error.py", line 27, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\middlewares\user_context.py", line 58, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\fsm\middleware.py", line 43, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\event\telegram.py", line 126, in trigger
+    return await wrapped_inner(event, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\bot\middleware\topic_discoverer.py", line 41, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\event\handler.py", line 71, in call
+    return await wrapped()
+           ^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\dispatcher.py", line 283, in _listen_update
+    return await self.propagate_event(update_type=update_type, event=event, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\router.py", line 163, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\router.py", line 155, in _wrapped
+    return await self._propagate_event(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\router.py", line 191, in _propagate_event
+    response = await router.propagate_event(update_type=update_type, event=event, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\router.py", line 163, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\router.py", line 155, in _wrapped
+    return await self._propagate_event(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\router.py", line 183, in _propagate_event
+    response = await observer.trigger(event, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\event\telegram.py", line 126, in trigger
+    return await wrapped_inner(event, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\event\handler.py", line 71, in call
+    return await wrapped()
+           ^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\bot\handlers\participation.py", line 237, in become_passenger
+    if len(builder.buttons) == 0:
+       ~~~^^^^^^^^^^^^^^^^^
+TypeError: object of type 'generator' has no len()
+2026-04-07 14:47:47,092 - aiogram.event - INFO - Update id=326878403 is handled. Duration 619 ms by bot id=8663379193
+2026-04-07 14:49:27,741 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramNetworkError: HTTP Client says - ServerDisconnectedError: Server disconnected
+2026-04-07 14:49:27,741 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8663379193)
+2026-04-07 14:49:57,421 - aiogram.dispatcher - INFO - Connection established (tryings = 1, bot id = 8663379193)
+2026-04-07 14:50:31,852 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramNetworkError: HTTP Client says - ServerDisconnectedError: Server disconnected
+2026-04-07 14:50:31,853 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8663379193)
+2026-04-07 14:51:02,312 - aiogram.dispatcher - INFO - Connection established (tryings = 1, bot id = 8663379193)
+2026-04-07 14:51:17,802 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramNetworkError: HTTP Client says - ServerDisconnectedError: Server disconnected
+2026-04-07 14:51:17,802 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8663379193)
+2026-04-07 14:51:47,943 - aiogram.dispatcher - INFO - Connection established (tryings = 1, bot id = 8663379193)
+2026-04-07 14:52:43,840 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramNetworkError: HTTP Client says - ServerDisconnectedError: Server disconnected
+2026-04-07 14:52:43,841 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8663379193)
+2026-04-07 14:53:12,716 - aiogram.dispatcher - INFO - Connection established (tryings = 1, bot id = 8663379193)
+2026-04-07 14:57:34,195 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramNetworkError: HTTP Client says - ServerDisconnectedError: Server disconnected
+2026-04-07 14:57:34,195 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8663379193)
+2026-04-07 14:58:16,006 - aiogram.dispatcher - INFO - Connection established (tryings = 1, bot id = 8663379193)
+2026-04-07 15:00:00,003 - apscheduler.scheduler - INFO - Removed job reminder_3_86400
+2026-04-07 15:00:00,003 - apscheduler.executors.default - INFO - Running job "send_reminder (trigger: date[2026-04-07 15:00:00 MSK], next run at: 2026-04-07 15:00:00 MSK)" (scheduled at 2026-04-07 15:00:00+03:00)
+2026-04-07 15:00:00,012 - apscheduler.executors.default - INFO - Job "send_reminder (trigger: date[2026-04-07 15:00:00 MSK], next run at: 2026-04-07 15:00:00 MSK)" executed successfully
+2026-04-07 15:03:42,534 - aiogram.dispatcher - INFO - Polling stopped
+2026-04-07 15:03:42,535 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramNetworkError: HTTP Client says - ServerDisconnectedError: Server disconnected
+2026-04-07 15:03:42,535 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8663379193)
+2026-04-07 15:03:42,798 - aiogram.dispatcher - INFO - Polling stopped for bot @adventur_time_bot id=8663379193 - 'bot_adventure_time'
+2026-04-07 15:03:42,799 - __main__ - INFO - Бот остановлен пользователем
