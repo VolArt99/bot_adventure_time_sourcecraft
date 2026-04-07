@@ -11,6 +11,7 @@ import asyncio
 import logging
 import os
 from aiogram import Bot, Dispatcher
+from aiogram.exceptions import TelegramNetworkError
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.fsm.strategy import FSMStrategy
 from config import BOT_TOKEN, GROUP_ID
@@ -68,10 +69,21 @@ async def main():
     await restore_jobs(bot)
     logger.info("Напоминания восстановлены")
 
-    # Запуск поллинга
+    # Запуск поллинга с повторными попытками при сетевых сбоях
     logger.info("Запуск поллинга...")
-    await dp.start_polling(bot)
-
+    retry_delay = 5
+    max_retry_delay = 60
+    while True:
+        try:
+            await dp.start_polling(bot)
+            break
+        except TelegramNetworkError as e:
+            logger.error(
+                f"Ошибка сети при запуске/работе поллинга: {e}. "
+                f"Повтор через {retry_delay} сек."
+            )
+            await asyncio.sleep(retry_delay)
+            retry_delay = min(retry_delay * 2, max_retry_delay)
 
 if __name__ == "__main__":
     try:

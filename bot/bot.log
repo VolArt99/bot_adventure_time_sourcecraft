@@ -1656,3 +1656,341 @@ TypeError: object of type 'generator' has no len()
 2026-04-07 19:36:05,159 - __main__ - INFO - Запуск поллинга...
 2026-04-07 19:36:05,159 - aiogram.dispatcher - INFO - Start polling
 2026-04-07 19:37:05,185 - aiogram.dispatcher - INFO - Polling stopped
+2026-04-07 19:43:38,071 - __main__ - INFO - Запуск бота...
+2026-04-07 19:43:38,074 - __main__ - INFO - База данных инициализирована
+2026-04-07 19:43:38,076 - __main__ - INFO - Темы из topics_config.py синхронизированы с БД
+2026-04-07 19:43:38,248 - __main__ - INFO - Роутеры зарегистрированы
+2026-04-07 19:43:38,250 - apscheduler.scheduler - INFO - Scheduler started
+2026-04-07 19:43:38,250 - utils.scheduler - INFO - Планировщик запущен
+2026-04-07 19:43:38,250 - utils.scheduler - INFO - Восстановление запланированных напоминаний...
+2026-04-07 19:43:38,258 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-04-07 19:43:38,258 - utils.scheduler - INFO - Запланировано напоминание reminder_3_10800 на 2026-04-08 12:00:00+03:00
+2026-04-07 19:43:38,258 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-04-07 19:43:38,258 - utils.scheduler - INFO - Запланировано напоминание reminder_3_7200 на 2026-04-08 13:00:00+03:00
+2026-04-07 19:43:38,258 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-04-07 19:43:38,259 - utils.scheduler - INFO - Запланировано напоминание reminder_3_3600 на 2026-04-08 14:00:00+03:00
+2026-04-07 19:43:38,259 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-04-07 19:43:38,259 - utils.scheduler - INFO - Запланировано напоминание reminder_3_1800 на 2026-04-08 14:30:00+03:00
+2026-04-07 19:43:38,259 - utils.scheduler - INFO - Восстановлено 4 мероприятий с напоминаниями
+2026-04-07 19:43:38,259 - __main__ - INFO - Напоминания восстановлены
+2026-04-07 19:43:38,259 - __main__ - INFO - Запуск поллинга...
+2026-04-07 19:43:38,259 - aiogram.dispatcher - INFO - Start polling
+2026-04-07 19:43:42,369 - aiogram.dispatcher - INFO - Run polling for bot @adventur_time_bot id=8663379193 - 'bot_adventure_time'
+2026-04-07 19:43:42,527 - aiogram.event - INFO - Update id=326878441 is not handled. Duration 12 ms by bot id=8663379193
+2026-04-07 19:43:42,529 - aiogram.event - INFO - Update id=326878440 is not handled. Duration 14 ms by bot id=8663379193
+2026-04-07 19:43:43,164 - aiogram.event - INFO - Update id=326878444 is handled. Duration 646 ms by bot id=8663379193
+2026-04-07 19:43:43,183 - aiogram.event - INFO - Update id=326878442 is handled. Duration 667 ms by bot id=8663379193
+2026-04-07 19:43:43,211 - aiogram.event - INFO - Update id=326878443 is handled. Duration 693 ms by bot id=8663379193
+2026-04-07 19:43:43,458 - aiogram.event - INFO - Update id=326878445 is handled. Duration 178 ms by bot id=8663379193
+2026-04-07 19:43:50,408 - aiogram.event - INFO - Update id=326878446 is handled. Duration 104 ms by bot id=8663379193
+2026-04-07 19:43:59,146 - aiogram.event - INFO - Update id=326878447 is handled. Duration 2183 ms by bot id=8663379193
+2026-04-07 19:44:03,206 - aiogram.event - INFO - Update id=326878448 is handled. Duration 2512 ms by bot id=8663379193
+2026-04-07 19:44:05,232 - aiogram.event - INFO - Update id=326878449 is handled. Duration 383 ms by bot id=8663379193
+2026-04-07 19:44:16,403 - aiogram.event - INFO - Update id=326878450 is not handled. Duration 254 ms by bot id=8663379193
+2026-04-07 19:44:16,403 - aiogram.event - ERROR - Cause exception while process update id=326878450 by bot id=8663379193
+TelegramBadRequest: Telegram server says - Bad Request: can't parse entities: Can't find end of the entity starting at byte offset 171
+Traceback (most recent call last):
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\dispatcher.py", line 320, in _process_update
+    response = await self.feed_update(bot, update, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\dispatcher.py", line 164, in feed_update
+    response = await self.update.wrap_outer_middleware(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    )
+    ^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\middlewares\error.py", line 27, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\middlewares\user_context.py", line 58, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\fsm\middleware.py", line 43, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\event\telegram.py", line 126, in trigger
+    return await wrapped_inner(event, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\bot\middleware\topic_discoverer.py", line 41, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\event\handler.py", line 71, in call
+    return await wrapped()
+           ^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\dispatcher.py", line 283, in _listen_update
+    return await self.propagate_event(update_type=update_type, event=event, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\router.py", line 163, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\router.py", line 155, in _wrapped
+    return await self._propagate_event(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\router.py", line 191, in _propagate_event
+    response = await router.propagate_event(update_type=update_type, event=event, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\router.py", line 163, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\router.py", line 155, in _wrapped
+    return await self._propagate_event(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\router.py", line 183, in _propagate_event
+    response = await observer.trigger(event, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\event\telegram.py", line 126, in trigger
+    return await wrapped_inner(event, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\event\handler.py", line 71, in call
+    return await wrapped()
+           ^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\bot\handlers\digest.py", line 36, in cmd_digest
+    await message.answer(text, parse_mode="Markdown")
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\methods\base.py", line 82, in emit
+    return await bot(self)
+           ^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\client\bot.py", line 493, in __call__
+    return await self.session(self, method, timeout=request_timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\client\session\base.py", line 259, in __call__
+    return cast(TelegramType, await middleware(bot, method))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\client\session\aiohttp.py", line 177, in make_request
+    response = self.check_response(
+        bot=bot,
+    ...<2 lines>...
+        content=raw_result,
+    )
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\client\session\base.py", line 121, in check_response
+    raise TelegramBadRequest(method=method, message=description)
+aiogram.exceptions.TelegramBadRequest: Telegram server says - Bad Request: can't parse entities: Can't find end of the entity starting at byte offset 171
+2026-04-07 19:44:40,501 - aiogram.event - INFO - Update id=326878451 is handled. Duration 169 ms by bot id=8663379193
+2026-04-07 19:44:45,284 - aiogram.event - INFO - Update id=326878452 is not handled. Duration 313 ms by bot id=8663379193
+2026-04-07 19:44:45,284 - aiogram.event - ERROR - Cause exception while process update id=326878452 by bot id=8663379193
+TelegramBadRequest: Telegram server says - Bad Request: can't parse entities: Can't find end of the entity starting at byte offset 171
+Traceback (most recent call last):
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\dispatcher.py", line 320, in _process_update
+    response = await self.feed_update(bot, update, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\dispatcher.py", line 164, in feed_update
+    response = await self.update.wrap_outer_middleware(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    )
+    ^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\middlewares\error.py", line 27, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\middlewares\user_context.py", line 58, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\fsm\middleware.py", line 43, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\event\telegram.py", line 126, in trigger
+    return await wrapped_inner(event, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\bot\middleware\topic_discoverer.py", line 41, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\event\handler.py", line 71, in call
+    return await wrapped()
+           ^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\dispatcher.py", line 283, in _listen_update
+    return await self.propagate_event(update_type=update_type, event=event, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\router.py", line 163, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\router.py", line 155, in _wrapped
+    return await self._propagate_event(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\router.py", line 191, in _propagate_event
+    response = await router.propagate_event(update_type=update_type, event=event, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\router.py", line 163, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\router.py", line 155, in _wrapped
+    return await self._propagate_event(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\router.py", line 183, in _propagate_event
+    response = await observer.trigger(event, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\event\telegram.py", line 126, in trigger
+    return await wrapped_inner(event, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\event\handler.py", line 71, in call
+    return await wrapped()
+           ^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\bot\handlers\digest.py", line 36, in cmd_digest
+    await message.answer(text, parse_mode="Markdown")
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\methods\base.py", line 82, in emit
+    return await bot(self)
+           ^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\client\bot.py", line 493, in __call__
+    return await self.session(self, method, timeout=request_timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\client\session\base.py", line 259, in __call__
+    return cast(TelegramType, await middleware(bot, method))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\client\session\aiohttp.py", line 177, in make_request
+    response = self.check_response(
+        bot=bot,
+    ...<2 lines>...
+        content=raw_result,
+    )
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\client\session\base.py", line 121, in check_response
+    raise TelegramBadRequest(method=method, message=description)
+aiogram.exceptions.TelegramBadRequest: Telegram server says - Bad Request: can't parse entities: Can't find end of the entity starting at byte offset 171
+2026-04-07 19:44:59,737 - aiogram.event - INFO - Update id=326878453 is handled. Duration 192 ms by bot id=8663379193
+2026-04-07 19:45:14,107 - aiogram.event - INFO - Update id=326878454 is handled. Duration 339 ms by bot id=8663379193
+2026-04-07 19:45:17,887 - aiogram.event - INFO - Update id=326878455 is handled. Duration 119 ms by bot id=8663379193
+2026-04-07 19:45:31,465 - aiogram.event - INFO - Update id=326878456 is handled. Duration 119 ms by bot id=8663379193
+2026-04-07 19:45:33,518 - aiogram.event - INFO - Update id=326878457 is handled. Duration 108 ms by bot id=8663379193
+2026-04-07 19:45:38,218 - aiogram.event - INFO - Update id=326878458 is handled. Duration 125 ms by bot id=8663379193
+2026-04-07 19:45:40,780 - aiogram.event - INFO - Update id=326878459 is handled. Duration 109 ms by bot id=8663379193
+2026-04-07 19:45:44,717 - aiogram.event - INFO - Update id=326878460 is handled. Duration 118 ms by bot id=8663379193
+2026-04-07 19:45:46,908 - handlers.events - INFO - Получение тем для выбора...
+2026-04-07 19:45:46,911 - utils.topics - INFO - ✅ Загружено 5 тем из БД
+2026-04-07 19:45:46,911 - handlers.events - INFO - Доступные темы: 5
+2026-04-07 19:45:47,080 - aiogram.event - INFO - Update id=326878461 is handled. Duration 174 ms by bot id=8663379193
+2026-04-07 19:45:51,675 - aiogram.event - INFO - Update id=326878462 is handled. Duration 483 ms by bot id=8663379193
+2026-04-07 19:46:07,446 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-04-07 19:46:07,446 - utils.scheduler - INFO - Запланировано напоминание reminder_5_3600 на 2026-04-07 20:00:00+03:00
+2026-04-07 19:46:07,446 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-04-07 19:46:07,447 - utils.scheduler - INFO - Запланировано напоминание reminder_5_1800 на 2026-04-07 20:30:00+03:00
+2026-04-07 19:46:07,646 - aiogram.event - INFO - Update id=326878463 is handled. Duration 10267 ms by bot id=8663379193
+2026-04-07 19:46:16,795 - aiogram.event - INFO - Update id=326878464 is handled. Duration 324 ms by bot id=8663379193
+2026-04-07 19:46:21,540 - aiogram.event - INFO - Update id=326878465 is handled. Duration 944 ms by bot id=8663379193
+2026-04-07 19:46:33,924 - aiogram.event - INFO - Update id=326878466 is handled. Duration 1101 ms by bot id=8663379193
+2026-04-07 19:46:41,583 - aiogram.event - INFO - Update id=326878467 is handled. Duration 788 ms by bot id=8663379193
+2026-04-07 19:46:45,952 - aiogram.event - INFO - Update id=326878468 is handled. Duration 1189 ms by bot id=8663379193
+2026-04-07 19:46:48,213 - aiogram.event - INFO - Update id=326878469 is handled. Duration 969 ms by bot id=8663379193
+2026-04-07 19:46:50,331 - aiogram.event - INFO - Update id=326878470 is handled. Duration 169 ms by bot id=8663379193
+2026-04-07 19:46:53,320 - aiogram.event - INFO - Update id=326878471 is handled. Duration 484 ms by bot id=8663379193
+2026-04-07 19:46:55,325 - aiogram.event - INFO - Update id=326878472 is handled. Duration 217 ms by bot id=8663379193
+2026-04-07 19:47:04,629 - aiogram.event - INFO - Update id=326878473 is handled. Duration 1244 ms by bot id=8663379193
+2026-04-07 19:47:32,265 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramNetworkError: HTTP Client says - ServerDisconnectedError: Server disconnected
+2026-04-07 19:47:32,266 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8663379193)
+2026-04-07 19:48:03,603 - aiogram.dispatcher - INFO - Connection established (tryings = 1, bot id = 8663379193)
+2026-04-07 19:49:00,525 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramNetworkError: HTTP Client says - ServerDisconnectedError: Server disconnected
+2026-04-07 19:49:00,526 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8663379193)
+2026-04-07 19:49:35,836 - aiogram.dispatcher - INFO - Connection established (tryings = 1, bot id = 8663379193)
+2026-04-07 19:50:16,263 - aiogram.event - INFO - Update id=326878474 is handled. Duration 3302 ms by bot id=8663379193
+2026-04-07 19:50:19,896 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramNetworkError: HTTP Client says - ServerDisconnectedError: Server disconnected
+2026-04-07 19:50:19,896 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8663379193)
+2026-04-07 19:50:43,371 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramNetworkError: HTTP Client says - ClientConnectorError: Cannot connect to host api.telegram.org:443 ssl:default [None]
+2026-04-07 19:50:43,371 - aiogram.dispatcher - WARNING - Sleep for 1.140324 seconds and try again... (tryings = 1, bot id = 8663379193)
+2026-04-07 19:50:58,528 - aiogram.dispatcher - INFO - Connection established (tryings = 2, bot id = 8663379193)
+2026-04-07 19:51:05,539 - aiogram.event - INFO - Update id=326878476 is handled. Duration 4430 ms by bot id=8663379193
+2026-04-07 19:51:10,132 - aiogram.event - INFO - Update id=326878477 is handled. Duration 463 ms by bot id=8663379193
+2026-04-07 19:51:14,158 - aiogram.event - INFO - Update id=326878478 is handled. Duration 261 ms by bot id=8663379193
+2026-04-07 19:51:16,500 - aiogram.event - INFO - Update id=326878479 is handled. Duration 595 ms by bot id=8663379193
+2026-04-07 19:51:18,576 - aiogram.event - INFO - Update id=326878480 is handled. Duration 898 ms by bot id=8663379193
+2026-04-07 19:51:25,913 - aiogram.event - INFO - Update id=326878481 is handled. Duration 541 ms by bot id=8663379193
+2026-04-07 19:51:27,728 - aiogram.event - INFO - Update id=326878482 is handled. Duration 937 ms by bot id=8663379193
+2026-04-07 19:51:30,241 - aiogram.event - INFO - Update id=326878483 is handled. Duration 537 ms by bot id=8663379193
+2026-04-07 19:51:31,464 - aiogram.event - INFO - Update id=326878484 is handled. Duration 393 ms by bot id=8663379193
+2026-04-07 19:51:32,914 - aiogram.event - INFO - Update id=326878475 is not handled. Duration 34383 ms by bot id=8663379193
+2026-04-07 19:51:32,914 - aiogram.event - ERROR - Cause exception while process update id=326878475 by bot id=8663379193
+TelegramBadRequest: Telegram server says - Bad Request: query is too old and response timeout expired or query ID is invalid
+Traceback (most recent call last):
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\dispatcher.py", line 320, in _process_update
+    response = await self.feed_update(bot, update, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\dispatcher.py", line 164, in feed_update
+    response = await self.update.wrap_outer_middleware(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    )
+    ^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\middlewares\error.py", line 27, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\middlewares\user_context.py", line 58, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\fsm\middleware.py", line 43, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\event\telegram.py", line 126, in trigger
+    return await wrapped_inner(event, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\bot\middleware\topic_discoverer.py", line 41, in __call__
+    return await handler(event, data)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\event\handler.py", line 71, in call
+    return await wrapped()
+           ^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\dispatcher.py", line 283, in _listen_update
+    return await self.propagate_event(update_type=update_type, event=event, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\router.py", line 163, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\router.py", line 155, in _wrapped
+    return await self._propagate_event(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\router.py", line 191, in _propagate_event
+    response = await router.propagate_event(update_type=update_type, event=event, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\router.py", line 163, in propagate_event
+    return await observer.wrap_outer_middleware(_wrapped, event=event, data=kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\router.py", line 155, in _wrapped
+    return await self._propagate_event(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\router.py", line 183, in _propagate_event
+    response = await observer.trigger(event, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\event\telegram.py", line 126, in trigger
+    return await wrapped_inner(event, kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\dispatcher\event\handler.py", line 71, in call
+    return await wrapped()
+           ^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\bot\handlers\participation.py", line 322, in decline_event
+    await callback.answer("Вы отказались от участия")
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\methods\base.py", line 82, in emit
+    return await bot(self)
+           ^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\client\bot.py", line 493, in __call__
+    return await self.session(self, method, timeout=request_timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\client\session\base.py", line 259, in __call__
+    return cast(TelegramType, await middleware(bot, method))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\client\session\aiohttp.py", line 177, in make_request
+    response = self.check_response(
+        bot=bot,
+    ...<2 lines>...
+        content=raw_result,
+    )
+  File "C:\Users\Artem.Volynec\Desktop\bot_for_group\bot_adventure_time\venv\Lib\site-packages\aiogram\client\session\base.py", line 121, in check_response
+    raise TelegramBadRequest(method=method, message=description)
+aiogram.exceptions.TelegramBadRequest: Telegram server says - Bad Request: query is too old and response timeout expired or query ID is invalid
+2026-04-07 19:51:36,930 - aiogram.event - INFO - Update id=326878485 is handled. Duration 909 ms by bot id=8663379193
+2026-04-07 19:53:47,884 - aiogram.dispatcher - INFO - Polling stopped
+2026-04-07 19:53:47,885 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramNetworkError: HTTP Client says - ServerDisconnectedError: Server disconnected
+2026-04-07 19:53:47,885 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8663379193)
+2026-04-07 19:53:48,145 - aiogram.dispatcher - INFO - Polling stopped for bot @adventur_time_bot id=8663379193 - 'bot_adventure_time'
+2026-04-07 19:53:48,148 - __main__ - INFO - Бот остановлен пользователем
