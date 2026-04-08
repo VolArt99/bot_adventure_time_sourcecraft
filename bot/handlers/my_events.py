@@ -6,12 +6,18 @@ from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery
 
-from config import TIMEZONE
-from database import get_user_events, get_event, get_participants, get_main_participants
+from config import TIMEZONE, GROUP_ID
+from database import (
+    get_user_events,
+    get_event,
+    get_participants,
+    get_main_participants,
+    get_topic_name_by_thread_id,
+)
 from keyboards import event_actions, period_keyboard
 
 from texts import format_event_message
-from utils.helpers import get_user_mention
+from utils.helpers import get_user_mention, build_event_message_link
 
 router = Router()
 TZ = pytz.timezone(TIMEZONE)
@@ -60,10 +66,21 @@ async def my_events_with_period(callback: CallbackQuery):
     for event in filtered:
         dt = datetime.fromisoformat(event["date_time"]).astimezone(TZ)
         date_str = dt.strftime("%d.%m.%Y %H:%M")
+        topic_name = await get_topic_name_by_thread_id(event.get("thread_id"))
+        topic_title = topic_name or "Основной чат"
+        event_link = build_event_message_link(GROUP_ID, event.get("message_id"))
+        link_text = (
+            f'<a href="{event_link}">открыть сообщение</a>'
+            if event_link
+            else "недоступна"
+        )
+
         text_lines.append(
             f"\n<b>{event['title']}</b>\n"
             f"🗓 {date_str}\n"
-            f"📍 {event.get('location') or 'не указано'}"
+            f"🧵 Тема: {topic_title}\n"
+            f"📍 {event.get('location') or 'не указано'}\n"
+            f"🔗 Ссылка: {link_text}"
         )
 
     await callback.message.answer("\n".join(text_lines), parse_mode="HTML")

@@ -1,6 +1,23 @@
 from aiogram import Bot
 from html import escape
 
+
+def build_event_message_link(chat_id: int, message_id: int | None) -> str | None:
+    """Строит ссылку на сообщение в супергруппе/форуме Telegram."""
+    if not message_id:
+        return None
+
+    chat_str = str(chat_id)
+    if chat_str.startswith("-100"):
+        chat_part = chat_str[4:]
+    elif chat_str.startswith("-"):
+        chat_part = chat_str[1:]
+    else:
+        chat_part = chat_str
+
+    return f"https://t.me/c/{chat_part}/{message_id}"
+
+
 async def get_username_by_id(user_id: int, bot: Bot) -> str | None:
     """Возвращает username или имя пользователя."""
     try:
@@ -11,6 +28,7 @@ async def get_username_by_id(user_id: int, bot: Bot) -> str | None:
         return full_name or None
     except Exception:
         return None
+
 
 async def get_user_mention(user_id: int, bot: Bot) -> str:
     """Возвращает HTML-mention для Telegram."""

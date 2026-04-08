@@ -3214,3 +3214,43 @@ aiogram.exceptions.TelegramBadRequest: Telegram server says - Bad Request: query
 2026-04-08 21:45:56,019 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8663379193)
 2026-04-08 21:45:56,272 - aiogram.dispatcher - INFO - Polling stopped for bot @adventur_time_bot id=8663379193 - 'bot_adventure_time'
 2026-04-08 21:45:56,274 - __main__ - INFO - Бот остановлен пользователем
+2026-04-08 22:54:58,572 - __main__ - INFO - Запуск бота...
+2026-04-08 22:54:58,574 - __main__ - INFO - База данных инициализирована
+2026-04-08 22:54:58,576 - __main__ - INFO - Темы из topics_config.py синхронизированы с БД
+2026-04-08 22:54:58,760 - __main__ - INFO - Роутеры зарегистрированы
+2026-04-08 22:54:58,762 - apscheduler.scheduler - INFO - Scheduler started
+2026-04-08 22:54:58,762 - utils.scheduler - INFO - Планировщик запущен
+2026-04-08 22:54:58,763 - utils.scheduler - INFO - Восстановление запланированных напоминаний...
+2026-04-08 22:54:58,775 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-04-08 22:54:58,776 - utils.scheduler - INFO - Запланировано напоминание reminder_9_10800 на 2026-04-09 11:00:00+03:00
+2026-04-08 22:54:58,776 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-04-08 22:54:58,776 - utils.scheduler - INFO - Запланировано напоминание reminder_9_7200 на 2026-04-09 12:00:00+03:00
+2026-04-08 22:54:58,776 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-04-08 22:54:58,776 - utils.scheduler - INFO - Запланировано напоминание reminder_9_3600 на 2026-04-09 13:00:00+03:00
+2026-04-08 22:54:58,776 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-04-08 22:54:58,776 - utils.scheduler - INFO - Запланировано напоминание reminder_9_1800 на 2026-04-09 13:30:00+03:00
+2026-04-08 22:54:58,777 - utils.scheduler - INFO - Восстановлено 9 мероприятий с напоминаниями
+2026-04-08 22:54:58,777 - __main__ - INFO - Напоминания восстановлены
+2026-04-08 22:54:58,777 - __main__ - INFO - Запуск поллинга...
+2026-04-08 22:54:58,777 - aiogram.dispatcher - INFO - Start polling
+2026-04-08 22:54:59,386 - aiogram.dispatcher - INFO - Run polling for bot @adventur_time_bot id=8663379193 - 'bot_adventure_time'
+2026-04-08 22:55:16,944 - aiogram.event - INFO - Update id=326878756 is handled. Duration 1384 ms by bot id=8663379193
+2026-04-08 22:55:22,637 - aiogram.event - INFO - Update id=326878757 is handled. Duration 103 ms by bot id=8663379193
+2026-04-08 22:55:24,521 - aiogram.event - INFO - Update id=326878758 is handled. Duration 198 ms by bot id=8663379193
+2026-04-08 22:55:33,219 - aiogram.event - INFO - Update id=326878759 is handled. Duration 189 ms by bot id=8663379193
+2026-04-08 22:55:37,297 - aiogram.event - INFO - Update id=326878760 is handled. Duration 93 ms by bot id=8663379193
+2026-04-08 22:55:39,034 - aiogram.event - INFO - Update id=326878761 is handled. Duration 293 ms by bot id=8663379193
+2026-04-08 22:56:25,690 - aiogram.event - INFO - Update id=326878762 is handled. Duration 99 ms by bot id=8663379193
+2026-04-08 22:56:34,458 - aiogram.event - INFO - Update id=326878763 is handled. Duration 99 ms by bot id=8663379193
+2026-04-08 22:56:36,144 - aiogram.event - INFO - Update id=326878764 is handled. Duration 264 ms by bot id=8663379193
+2026-04-08 22:56:39,634 - aiogram.event - INFO - Update id=326878765 is handled. Duration 100 ms by bot id=8663379193
+2026-04-08 22:56:41,953 - utils.topics - INFO - ✅ Загружено 5 тем из БД
+2026-04-08 22:56:42,051 - aiogram.event - INFO - Update id=326878766 is handled. Duration 374 ms by bot id=8663379193
+2026-04-08 22:56:46,345 - aiogram.event - INFO - Update id=326878767 is handled. Duration 103 ms by bot id=8663379193
+2026-04-08 22:56:49,751 - utils.topics - INFO - ✅ Загружено 5 тем из БД
+2026-04-08 22:56:49,862 - aiogram.event - INFO - Update id=326878768 is handled. Duration 113 ms by bot id=8663379193
+2026-04-08 22:57:03,644 - aiogram.dispatcher - INFO - Polling stopped
+2026-04-08 22:57:03,645 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramNetworkError: HTTP Client says - ServerDisconnectedError: Server disconnected
+2026-04-08 22:57:03,645 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8663379193)
+2026-04-08 22:57:03,909 - aiogram.dispatcher - INFO - Polling stopped for bot @adventur_time_bot id=8663379193 - 'bot_adventure_time'
+2026-04-08 22:57:03,911 - __main__ - INFO - Бот остановлен пользователем

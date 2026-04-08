@@ -1,18 +1,29 @@
-# дайджест, команда /digest
-
-# ⚠️ ОБНОВЛЕНО: Улучшенный дайджест
-
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command
 import logging
-from database import get_events_for_digest
+
+from config import GROUP_ID
+from database import get_events_for_digest, get_topic_name_by_thread_id
 from keyboards import period_keyboard
 from texts import format_digest_text
-from utils.helpers import get_username_by_id
+from utils.helpers import get_username_by_id, build_event_message_link
 
 logger = logging.getLogger(__name__)
 router = Router()
+
+
+async def enrich_events_with_topic_and_links(events: list[dict]) -> list[dict]:
+    enriched_events = []
+    for event in events:
+        prepared = dict(event)
+        prepared["topic_name"] = (
+            await get_topic_name_by_thread_id(event.get("thread_id"))
+            or "Основной чат"
+        )
+        prepared["event_link"] = build_event_message_link(GROUP_ID, event.get("message_id"))
+        enriched_events.append(prepared)
+    return enriched_events
 
 
 @router.message(Command("digest"))
@@ -39,13 +50,14 @@ async def digest_with_period(callback: CallbackQuery):
     for cid in creator_ids:
         usernames[cid] = await get_username_by_id(cid, callback.bot) or str(cid)
 
-    text = format_digest_text(events, usernames, period=period)
+    enriched_events = await enrich_events_with_topic_and_links(events)
+    text = format_digest_text(enriched_events, usernames, period=period)
     await callback.message.answer(text, parse_mode="HTML")
     await callback.answer()
 
 
 async def send_digest(bot, chat_id: int, thread_id: int = None):
-    """⚠️ НОВОЕ: Автоматическая отправка дайджеста."""
+    """Автоматическая отправка дайджеста."""
     try:
         events = await get_events_for_digest(period="week")
         if not events:
@@ -56,7 +68,8 @@ async def send_digest(bot, chat_id: int, thread_id: int = None):
         for cid in creator_ids:
             usernames[cid] = await get_username_by_id(cid, bot) or str(cid)
 
-        text = format_digest_text(events, usernames, period="week")
+        enriched_events = await enrich_events_with_topic_and_links(events)
+        text = format_digest_text(enriched_events, usernames, period="week")
 
         await bot.send_message(
             chat_id=chat_id, message_thread_id=thread_id, text=text, parse_mode="HTML"

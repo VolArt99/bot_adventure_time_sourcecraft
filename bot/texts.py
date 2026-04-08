@@ -167,12 +167,21 @@ def format_digest_text(
         org_name = escape(usernames_dict.get(e["creator_id"], f"id{e['creator_id']}"))
         title = escape(e["title"])
         location = escape(e.get("location") or "не указано")
+        topic_name = escape(e.get("topic_name") or "Основной чат")
+        event_link = e.get("event_link")
+        link_text = (
+            f'<a href="{event_link}">открыть сообщение</a>'
+            if event_link
+            else "недоступна"
+        )        
 
         lines.append(
             f"<b>🔥 {title}</b>\n"
             f"🗺 Где: {location}\n"
             f"🗓 Когда: {date_str}\n"
+            f"🧵 Тема: {topic_name}\n"
             f"👤 Организатор: {org_name}\n"
+            f"🔗 Ссылка: {link_text}\n"
         )
 
     return "\n".join(lines)
