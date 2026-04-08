@@ -3102,3 +3102,115 @@ aiogram.exceptions.TelegramBadRequest: Telegram server says - Bad Request: query
 2026-04-08 19:16:49,416 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8663379193)
 2026-04-08 19:16:49,678 - aiogram.dispatcher - INFO - Polling stopped for bot @adventur_time_bot id=8663379193 - 'bot_adventure_time'
 2026-04-08 19:16:49,680 - __main__ - INFO - Бот остановлен пользователем
+2026-04-08 21:16:31,799 - __main__ - INFO - Запуск бота...
+2026-04-08 21:16:31,802 - __main__ - INFO - База данных инициализирована
+2026-04-08 21:16:31,804 - __main__ - INFO - Темы из topics_config.py синхронизированы с БД
+2026-04-08 21:16:31,979 - __main__ - INFO - Роутеры зарегистрированы
+2026-04-08 21:16:31,981 - apscheduler.scheduler - INFO - Scheduler started
+2026-04-08 21:16:31,981 - utils.scheduler - INFO - Планировщик запущен
+2026-04-08 21:16:31,981 - utils.scheduler - INFO - Восстановление запланированных напоминаний...
+2026-04-08 21:16:32,005 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-04-08 21:16:32,005 - utils.scheduler - INFO - Запланировано напоминание reminder_9_10800 на 2026-04-09 11:00:00+03:00
+2026-04-08 21:16:32,005 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-04-08 21:16:32,006 - utils.scheduler - INFO - Запланировано напоминание reminder_9_7200 на 2026-04-09 12:00:00+03:00
+2026-04-08 21:16:32,006 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-04-08 21:16:32,006 - utils.scheduler - INFO - Запланировано напоминание reminder_9_3600 на 2026-04-09 13:00:00+03:00
+2026-04-08 21:16:32,007 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-04-08 21:16:32,007 - utils.scheduler - INFO - Запланировано напоминание reminder_9_1800 на 2026-04-09 13:30:00+03:00
+2026-04-08 21:16:32,007 - utils.scheduler - INFO - Восстановлено 9 мероприятий с напоминаниями
+2026-04-08 21:16:32,007 - __main__ - INFO - Напоминания восстановлены
+2026-04-08 21:16:32,008 - __main__ - INFO - Запуск поллинга...
+2026-04-08 21:16:32,008 - aiogram.dispatcher - INFO - Start polling
+2026-04-08 21:16:35,054 - aiogram.dispatcher - INFO - Run polling for bot @adventur_time_bot id=8663379193 - 'bot_adventure_time'
+2026-04-08 21:16:44,140 - middleware.topic_discoverer - INFO - Используется название из конфига: Обсуждение
+2026-04-08 21:16:44,156 - middleware.topic_discoverer - INFO - ✅ Обнаружена тема: 'Обсуждение' (ID: 2)
+2026-04-08 21:16:44,156 - aiogram.event - INFO - Update id=326878710 is not handled. Duration 16 ms by bot id=8663379193
+2026-04-08 21:16:48,143 - middleware.topic_discoverer - INFO - Используется название из конфига: Обсуждение
+2026-04-08 21:16:48,168 - middleware.topic_discoverer - INFO - ✅ Обнаружена тема: 'Обсуждение' (ID: 2)
+2026-04-08 21:16:48,169 - aiogram.event - INFO - Update id=326878711 is not handled. Duration 26 ms by bot id=8663379193
+2026-04-08 21:16:51,485 - middleware.topic_discoverer - INFO - Используется название из конфига: Обсуждение
+2026-04-08 21:16:51,497 - middleware.topic_discoverer - INFO - ✅ Обнаружена тема: 'Обсуждение' (ID: 2)
+2026-04-08 21:16:51,497 - aiogram.event - INFO - Update id=326878712 is not handled. Duration 13 ms by bot id=8663379193
+2026-04-08 21:16:56,481 - middleware.topic_discoverer - INFO - Используется название из конфига: Обсуждение
+2026-04-08 21:16:56,497 - middleware.topic_discoverer - INFO - ✅ Обнаружена тема: 'Обсуждение' (ID: 2)
+2026-04-08 21:16:56,498 - aiogram.event - INFO - Update id=326878713 is not handled. Duration 16 ms by bot id=8663379193
+2026-04-08 21:17:00,018 - middleware.topic_discoverer - INFO - Используется название из конфига: Обсуждение
+2026-04-08 21:17:00,035 - middleware.topic_discoverer - INFO - ✅ Обнаружена тема: 'Обсуждение' (ID: 2)
+2026-04-08 21:17:00,036 - aiogram.event - INFO - Update id=326878714 is not handled. Duration 18 ms by bot id=8663379193
+2026-04-08 21:17:11,006 - aiogram.event - INFO - Update id=326878715 is handled. Duration 808 ms by bot id=8663379193
+2026-04-08 21:17:25,466 - aiogram.event - INFO - Update id=326878716 is handled. Duration 117 ms by bot id=8663379193
+2026-04-08 21:17:26,807 - aiogram.event - INFO - Update id=326878717 is handled. Duration 232 ms by bot id=8663379193
+2026-04-08 21:17:33,769 - aiogram.event - INFO - Update id=326878718 is handled. Duration 156 ms by bot id=8663379193
+2026-04-08 21:17:35,297 - aiogram.event - INFO - Update id=326878719 is handled. Duration 213 ms by bot id=8663379193
+2026-04-08 21:17:37,782 - aiogram.event - INFO - Update id=326878720 is handled. Duration 224 ms by bot id=8663379193
+2026-04-08 21:17:39,599 - aiogram.event - INFO - Update id=326878721 is handled. Duration 266 ms by bot id=8663379193
+2026-04-08 21:17:57,268 - aiogram.event - INFO - Update id=326878722 is handled. Duration 127 ms by bot id=8663379193
+2026-04-08 21:18:00,603 - aiogram.event - INFO - Update id=326878723 is handled. Duration 363 ms by bot id=8663379193
+2026-04-08 21:18:02,207 - aiogram.event - INFO - Update id=326878724 is handled. Duration 334 ms by bot id=8663379193
+2026-04-08 21:18:05,679 - aiogram.event - INFO - Update id=326878725 is handled. Duration 323 ms by bot id=8663379193
+2026-04-08 21:18:21,257 - aiogram.event - INFO - Update id=326878726 is handled. Duration 376 ms by bot id=8663379193
+2026-04-08 21:18:24,176 - aiogram.event - INFO - Update id=326878727 is handled. Duration 309 ms by bot id=8663379193
+2026-04-08 21:18:26,362 - aiogram.event - INFO - Update id=326878728 is handled. Duration 347 ms by bot id=8663379193
+2026-04-08 21:18:30,826 - utils.topics - INFO - ✅ Загружено 5 тем из БД
+2026-04-08 21:18:30,946 - aiogram.event - INFO - Update id=326878729 is handled. Duration 123 ms by bot id=8663379193
+2026-04-08 21:18:34,354 - aiogram.event - INFO - Update id=326878730 is handled. Duration 123 ms by bot id=8663379193
+2026-04-08 21:18:37,346 - aiogram.event - INFO - Update id=326878731 is handled. Duration 123 ms by bot id=8663379193
+2026-04-08 21:18:43,532 - aiogram.event - INFO - Update id=326878732 is handled. Duration 319 ms by bot id=8663379193
+2026-04-08 21:18:49,412 - handlers.common - INFO - 🔍 Отладка тем для группы -1003835922454
+2026-04-08 21:18:49,914 - handlers.common - INFO - 📡 API ответ: {'ok': False, 'error_code': 404, 'description': 'Not Found'}
+2026-04-08 21:18:50,034 - aiogram.event - INFO - Update id=326878733 is handled. Duration 622 ms by bot id=8663379193
+2026-04-08 21:18:54,097 - aiogram.event - INFO - Update id=326878734 is handled. Duration 302 ms by bot id=8663379193
+2026-04-08 21:19:00,023 - aiogram.event - INFO - Update id=326878735 is handled. Duration 882 ms by bot id=8663379193
+2026-04-08 21:19:05,675 - utils.topics - INFO - ✅ Загружено 5 тем из БД
+2026-04-08 21:19:05,878 - aiogram.event - INFO - Update id=326878736 is handled. Duration 206 ms by bot id=8663379193
+2026-04-08 21:19:09,364 - aiogram.event - INFO - Update id=326878737 is handled. Duration 281 ms by bot id=8663379193
+2026-04-08 21:19:12,729 - aiogram.event - INFO - Update id=326878738 is handled. Duration 121 ms by bot id=8663379193
+2026-04-08 21:19:20,483 - aiogram.event - INFO - Update id=326878739 is not handled. Duration 1 ms by bot id=8663379193
+2026-04-08 21:19:24,515 - aiogram.event - INFO - Update id=326878740 is not handled. Duration 9 ms by bot id=8663379193
+2026-04-08 21:19:30,485 - aiogram.event - INFO - Update id=326878741 is not handled. Duration 7 ms by bot id=8663379193
+2026-04-08 21:19:34,622 - aiogram.event - INFO - Update id=326878742 is not handled. Duration 3 ms by bot id=8663379193
+2026-04-08 21:19:37,891 - aiogram.event - INFO - Update id=326878743 is not handled. Duration 2 ms by bot id=8663379193
+2026-04-08 21:25:50,599 - aiogram.dispatcher - INFO - Polling stopped
+2026-04-08 21:25:50,600 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramNetworkError: HTTP Client says - ServerDisconnectedError: Server disconnected
+2026-04-08 21:25:50,600 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8663379193)
+2026-04-08 21:25:50,862 - aiogram.dispatcher - INFO - Polling stopped for bot @adventur_time_bot id=8663379193 - 'bot_adventure_time'
+2026-04-08 21:25:50,864 - __main__ - INFO - Бот остановлен пользователем
+2026-04-08 21:42:17,122 - __main__ - INFO - Запуск бота...
+2026-04-08 21:42:17,126 - __main__ - INFO - База данных инициализирована
+2026-04-08 21:42:17,128 - __main__ - INFO - Темы из topics_config.py синхронизированы с БД
+2026-04-08 21:42:17,302 - __main__ - INFO - Роутеры зарегистрированы
+2026-04-08 21:42:17,304 - apscheduler.scheduler - INFO - Scheduler started
+2026-04-08 21:42:17,304 - utils.scheduler - INFO - Планировщик запущен
+2026-04-08 21:42:17,304 - utils.scheduler - INFO - Восстановление запланированных напоминаний...
+2026-04-08 21:42:17,320 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-04-08 21:42:17,321 - utils.scheduler - INFO - Запланировано напоминание reminder_9_10800 на 2026-04-09 11:00:00+03:00
+2026-04-08 21:42:17,321 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-04-08 21:42:17,321 - utils.scheduler - INFO - Запланировано напоминание reminder_9_7200 на 2026-04-09 12:00:00+03:00
+2026-04-08 21:42:17,321 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-04-08 21:42:17,321 - utils.scheduler - INFO - Запланировано напоминание reminder_9_3600 на 2026-04-09 13:00:00+03:00
+2026-04-08 21:42:17,322 - apscheduler.scheduler - INFO - Added job "send_reminder" to job store "default"
+2026-04-08 21:42:17,322 - utils.scheduler - INFO - Запланировано напоминание reminder_9_1800 на 2026-04-09 13:30:00+03:00
+2026-04-08 21:42:17,322 - utils.scheduler - INFO - Восстановлено 9 мероприятий с напоминаниями
+2026-04-08 21:42:17,322 - __main__ - INFO - Напоминания восстановлены
+2026-04-08 21:42:17,322 - __main__ - INFO - Запуск поллинга...
+2026-04-08 21:42:17,322 - aiogram.dispatcher - INFO - Start polling
+2026-04-08 21:42:21,092 - aiogram.dispatcher - INFO - Run polling for bot @adventur_time_bot id=8663379193 - 'bot_adventure_time'
+2026-04-08 21:42:25,701 - aiogram.event - INFO - Update id=326878744 is handled. Duration 792 ms by bot id=8663379193
+2026-04-08 21:42:40,249 - aiogram.event - INFO - Update id=326878745 is handled. Duration 204 ms by bot id=8663379193
+2026-04-08 21:42:42,357 - aiogram.event - INFO - Update id=326878746 is handled. Duration 291 ms by bot id=8663379193
+2026-04-08 21:42:44,488 - aiogram.event - INFO - Update id=326878747 is handled. Duration 131 ms by bot id=8663379193
+2026-04-08 21:42:50,410 - aiogram.event - INFO - Update id=326878748 is handled. Duration 547 ms by bot id=8663379193
+2026-04-08 21:43:01,544 - aiogram.event - INFO - Update id=326878749 is handled. Duration 409 ms by bot id=8663379193
+2026-04-08 21:43:55,014 - aiogram.event - INFO - Update id=326878750 is handled. Duration 107 ms by bot id=8663379193
+2026-04-08 21:44:06,814 - aiogram.event - INFO - Update id=326878751 is handled. Duration 280 ms by bot id=8663379193
+2026-04-08 21:44:53,224 - utils.topics - INFO - ✅ Загружено 5 тем из БД
+2026-04-08 21:44:53,466 - aiogram.event - INFO - Update id=326878752 is handled. Duration 1058 ms by bot id=8663379193
+2026-04-08 21:45:14,208 - aiogram.event - INFO - Update id=326878753 is handled. Duration 95 ms by bot id=8663379193
+2026-04-08 21:45:18,612 - utils.topics - INFO - ✅ Загружено 5 тем из БД
+2026-04-08 21:45:18,771 - aiogram.event - INFO - Update id=326878754 is handled. Duration 162 ms by bot id=8663379193
+2026-04-08 21:45:21,644 - aiogram.event - INFO - Update id=326878755 is handled. Duration 198 ms by bot id=8663379193
+2026-04-08 21:45:56,018 - aiogram.dispatcher - INFO - Polling stopped
+2026-04-08 21:45:56,019 - aiogram.dispatcher - ERROR - Failed to fetch updates - TelegramNetworkError: HTTP Client says - ServerDisconnectedError: Server disconnected
+2026-04-08 21:45:56,019 - aiogram.dispatcher - WARNING - Sleep for 1.000000 seconds and try again... (tryings = 0, bot id = 8663379193)
+2026-04-08 21:45:56,272 - aiogram.dispatcher - INFO - Polling stopped for bot @adventur_time_bot id=8663379193 - 'bot_adventure_time'
+2026-04-08 21:45:56,274 - __main__ - INFO - Бот остановлен пользователем

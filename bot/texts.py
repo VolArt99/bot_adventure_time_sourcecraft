@@ -148,11 +148,19 @@ async def format_event_message(
     return "\n".join(lines)
 
 
-def format_digest_text(events: List[Dict], usernames_dict: Dict[int, str]) -> str:
+def format_digest_text(
+    events: List[Dict], usernames_dict: Dict[int, str], period: str = "week"
+) -> str:
     if not events:
-        return "📅 На ближайшую неделю мероприятий не запланировано."
+        return "📅 На выбранный период мероприятий не запланировано."
 
-    lines = ["<b>📅 Афиша на неделю</b>\n"]
+    period_title = {
+        "week": "на неделю",
+        "month": "на месяц",
+        "all": "за всё время",
+    }.get(period, "на выбранный период")
+
+    lines = [f"<b>📅 Афиша {period_title}</b>\n"]
     for e in events:
         dt = datetime.fromisoformat(e["date_time"]).astimezone(TZ)
         date_str = dt.strftime("%d.%m.%Y %H:%M")

@@ -112,15 +112,68 @@ async def cmd_start(message: Message):
 @router.message(Command("help"))
 async def cmd_help(message: Message):
     help_text = (
-        "Доступные команды:\n"
-        "/create_event - создать мероприятие (только для организаторов)\n"
-        "/my_events - мои мероприятия\n"
-        "/digest - дайджест мероприятий на неделю\n"
-        "/help - это сообщение"
+        "ℹ️ <b>Все команды работают только в личных сообщениях с ботом.</b>\n\n"
+        "<b>Текущие команды:</b>\n"
+        "/start — регистрация и запуск бота\n"
+        "/help — список команд и возможностей\n"
+        "/create_event — создать мероприятие (для организаторов)\n"
+        "/my_events — мои мероприятия (период: неделя/месяц/всё время)\n"
+        "/digest — дайджест мероприятий (период: неделя/месяц/всё время)\n"
+        "/my_stats — ваша статистика посещений\n"
+        "/top — топ-3 участников за 30 дней\n"
+        "/find_events — поиск активных событий по тексту\n\n"
+        "<b>Сервисные/диагностические команды:</b>\n"
+        "/debug_info — единая диагностика (бот, группа, права, темы)\n"
+        "/health — быстрая проверка работоспособности\n"
+        "/list_topics — список обнаруженных тем\n"
+        "/update_topic_names — обновить названия тем (для админов)\n\n"
+        "<b>Устаревшие команды:</b>\n"
+        "/test_chat, /test_bot_rights, /test_topics, /test_version,\n"
+        "/debug, /check_admin, /debug_topics, /api_version,\n"
+        "/check_forum, /show_config\n"
+        "➡️ Используйте <b>/debug_info</b>."
     )
-    await message.answer(help_text)
+    await message.answer(help_text, parse_mode="HTML")
 
 
+@router.message(Command("health"))
+async def cmd_health(message: Message):
+    """Быстрый health-check."""
+    await message.answer("✅ Бот запущен и отвечает. Используйте /debug_info для подробной диагностики.")
+
+
+@router.message(Command("debug_info"))
+async def cmd_debug_info(message: Message):
+    """Единая диагностическая команда вместо множества отдельных."""
+    from config import ADMIN_IDS
+    from utils.topics import get_topics_list_from_db
+    import sys
+
+    try:
+        me = await message.bot.get_me()
+        chat = await message.bot.get_chat(GROUP_ID)
+        member = await message.bot.get_chat_member(GROUP_ID, me.id)
+        topics = await get_topics_list_from_db()
+        is_admin = member.status in ["administrator", "creator"]
+        is_forum = getattr(chat, "is_forum", False)
+
+        text = (
+            "🔎 <b>Диагностика бота</b>\n\n"
+            f"🤖 Бот: @{me.username} (id: <code>{me.id}</code>)\n"
+            f"🐍 Python: <code>{sys.version.split()[0]}</code>\n"
+            f"📦 aiogram: <code>{aiogram.__version__}</code>\n\n"
+            f"👥 Группа: <b>{chat.title}</b> (<code>{chat.id}</code>)\n"
+            f"🧵 Форум включён: {'✅' if is_forum else '❌'}\n"
+            f"🔐 Права админа у бота: {'✅' if is_admin else '❌'}\n"
+            f"📚 Тем в БД: <b>{len(topics)}</b>\n\n"
+            f"👤 Ваш id: <code>{message.from_user.id}</code>\n"
+            f"🛡 Вы в ADMIN_IDS: {'✅' if message.from_user.id in ADMIN_IDS else '❌'}"
+        )
+        await message.answer(text, parse_mode="HTML")
+    except Exception as e:
+        await message.answer(f"❌ Ошибка диагностики: {e}")
+
+        
 @router.callback_query(F.data == "cancel_create")
 async def cancel_create(callback: CallbackQuery, state: FSMContext):
     await state.clear()

@@ -133,6 +133,16 @@ def my_events_keyboard(events: list) -> InlineKeyboardMarkup:
     return builder.as_markup()
 
 
+def period_keyboard(prefix: str) -> InlineKeyboardMarkup:
+    """Универсальная клавиатура выбора периода."""
+    builder = InlineKeyboardBuilder()
+    builder.button(text="📆 За неделю", callback_data=f"{prefix}_week")
+    builder.button(text="🗓 За месяц", callback_data=f"{prefix}_month")
+    builder.button(text="🧾 За всё время", callback_data=f"{prefix}_all")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
 # ⚠️ НОВОЕ: Клавиатура настроек уведомлений
 def notification_settings_keyboard(current: str) -> InlineKeyboardMarkup:
     """Клавиатура настроек уведомлений."""

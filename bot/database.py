@@ -140,6 +140,84 @@ async def get_user_stats(user_id: int) -> Dict:
             return dict(row) if row else {"events_count": 0, "total_participations": 0}
 
 
+async def get_top_participants(days: int = 30, limit: int = 3) -> List[Dict]:
+    """Топ участников по количеству участий за период."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            """
+            SELECT p.user_id, COUNT(*) as participations
+            FROM participants p
+            JOIN events e ON e.id = p.event_id
+            WHERE p.status IN ('going', 'driver', 'passenger')
+              AND e.date_time >= datetime('now', ?)
+            GROUP BY p.user_id
+            ORDER BY participations DESC, p.user_id ASC
+            LIMIT ?
+            """,
+            (f"-{days} days", limit),
+        ) as cursor:
+            rows = await cursor.fetchall()
+            return [dict(row) for row in rows]
+
+
+async def find_events(query: str, period: str = "month", limit: int = 20) -> List[Dict]:
+    """Поиск предстоящих активных мероприятий по названию/месту/категории."""
+    from datetime import datetime, timedelta
+
+    normalized = f"%{query.strip().lower()}%"
+    now = datetime.now()
+
+    if period == "week":
+        end = now + timedelta(days=7)
+    elif period == "month":
+        end = now + timedelta(days=30)
+    else:
+        end = None
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        if end is None:
+            sql = """
+                SELECT * FROM events
+                WHERE status = 'active'
+                  AND date_time >= ?
+                  AND (
+                    lower(title) LIKE ?
+                    OR lower(COALESCE(location, '')) LIKE ?
+                    OR lower(COALESCE(category, '')) LIKE ?
+                  )
+                ORDER BY date_time ASC
+                LIMIT ?
+            """
+            params = (now.isoformat(), normalized, normalized, normalized, limit)
+        else:
+            sql = """
+                SELECT * FROM events
+                WHERE status = 'active'
+                  AND date_time BETWEEN ? AND ?
+                  AND (
+                    lower(title) LIKE ?
+                    OR lower(COALESCE(location, '')) LIKE ?
+                    OR lower(COALESCE(category, '')) LIKE ?
+                  )
+                ORDER BY date_time ASC
+                LIMIT ?
+            """
+            params = (
+                now.isoformat(),
+                end.isoformat(),
+                normalized,
+                normalized,
+                normalized,
+                limit,
+            )
+
+        async with db.execute(sql, params) as cursor:
+            rows = await cursor.fetchall()
+            return [dict(row) for row in rows]
+        
+        
 # ----- Функции для мероприятий -----
 async def create_event(event_data: Dict[str, Any]) -> int:
     """Создаёт мероприятие и возвращает его ID."""
@@ -500,22 +578,39 @@ async def cancel_event(event_id: int) -> None:
         await db.commit()
         
 
-async def get_events_for_digest(days: int = 7) -> List[Dict]:
-    """⚠️ НОВОЕ: Получение мероприятий для дайджеста."""
+async def get_events_for_digest(period: str = "week") -> List[Dict]:
+    """Получение предстоящих активных мероприятий для дайджеста."""
     from datetime import datetime, timedelta
 
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
-        now = datetime.now()
-        future = now + timedelta(days=days)
-        async with db.execute(
+        now = datetime.now().isoformat()
+
+        if period == "week":
+            end = (datetime.now() + timedelta(days=7)).isoformat()
+            query = """
+                SELECT * FROM events
+                WHERE status = 'active' AND date_time BETWEEN ? AND ?
+                ORDER BY date_time ASC
             """
-            SELECT * FROM events 
-            WHERE status = 'active' AND date_time BETWEEN ? AND ?
-            ORDER BY date_time ASC
-        """,
-            (now.isoformat(), future.isoformat()),
-        ) as cursor:
+            params = (now, end)
+        elif period == "month":
+            end = (datetime.now() + timedelta(days=30)).isoformat()
+            query = """
+                SELECT * FROM events
+                WHERE status = 'active' AND date_time BETWEEN ? AND ?
+                ORDER BY date_time ASC
+            """
+            params = (now, end)
+        else:
+            query = """
+                SELECT * FROM events
+                WHERE status = 'active' AND date_time >= ?
+                ORDER BY date_time ASC
+            """
+            params = (now,)
+
+        async with db.execute(query, params) as cursor:
             rows = await cursor.fetchall()
             return [dict(row) for row in rows]
 

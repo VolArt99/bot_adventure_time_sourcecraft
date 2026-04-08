@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pytz
 
@@ -8,7 +8,7 @@ from aiogram.types import Message, CallbackQuery
 
 from config import TIMEZONE
 from database import get_user_events, get_event, get_participants, get_main_participants
-from keyboards import event_actions
+from keyboards import event_actions, period_keyboard
 
 from texts import format_event_message
 from utils.helpers import get_user_mention
@@ -19,23 +19,45 @@ TZ = pytz.timezone(TIMEZONE)
 
 @router.message(Command("my_events"))
 async def cmd_my_events(message: Message):
-    """Показывает только активные/будущие мероприятия пользователя."""
-    user_id = message.from_user.id
+    """Показывает список мероприятий пользователя с выбором периода."""
+    await message.answer(
+        "Выберите период для списка ваших мероприятий:",
+        reply_markup=period_keyboard("my_events_period"),
+    )
+
+
+@router.callback_query(F.data.startswith("my_events_period_"))
+async def my_events_with_period(callback: CallbackQuery):
+    period = callback.data.removeprefix("my_events_period_")
+    user_id = callback.from_user.id
     events = await get_user_events(user_id, status="active")
 
     now = datetime.now(TZ)
-    upcoming = []
-    for event in events:
-        event_dt = datetime.fromisoformat(event["date_time"]).astimezone(TZ)
-        if event_dt >= now:
-            upcoming.append(event)
+    period_days = {"week": 7, "month": 30}.get(period)
+    future_border = now.replace(microsecond=0)
+    future_limit = None if period_days is None else now + timedelta(days=period_days)
 
-    if not upcoming:
-        await message.answer("📭 У вас нет активных мероприятий в будущем.")
+    filtered = []
+    for event in events:
+        dt = datetime.fromisoformat(event["date_time"]).astimezone(TZ)
+        if dt < future_border:
+            continue
+        if future_limit is not None and dt > future_limit:
+            continue
+        filtered.append(event)
+
+    if not filtered:
+        await callback.message.answer("📭 На выбранный период у вас нет активных мероприятий.")
+        await callback.answer()
         return
 
-    text_lines = ["<b>📅 Ваши активные мероприятия:</b>"]
-    for event in upcoming:
+    title_map = {
+        "week": "за неделю",
+        "month": "за месяц",
+        "all": "за всё время",
+    }
+    text_lines = [f"<b>📅 Ваши активные мероприятия {title_map.get(period, '')}:</b>"]
+    for event in filtered:
         dt = datetime.fromisoformat(event["date_time"]).astimezone(TZ)
         date_str = dt.strftime("%d.%m.%Y %H:%M")
         text_lines.append(
@@ -44,7 +66,8 @@ async def cmd_my_events(message: Message):
             f"📍 {event.get('location') or 'не указано'}"
         )
 
-    await message.answer("\n".join(text_lines), parse_mode="HTML")
+    await callback.message.answer("\n".join(text_lines), parse_mode="HTML")
+    await callback.answer()
 
 
 @router.callback_query(F.data.startswith("myevent_"))
