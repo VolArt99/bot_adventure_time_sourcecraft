@@ -9,14 +9,16 @@ import logging
 from datetime import datetime
 import pytz
 from config import ADMIN_IDS, GROUP_ID, TIMEZONE
-from constants import EVENT_CATEGORIES, CARPOOL_HELP_TEXT
+from constants import EVENT_CATEGORIES, EVENT_CATEGORY_GROUPS, CARPOOL_HELP_TEXT
 from database import create_event, update_event_message_id, get_topic_name_by_thread_id
 from keyboards import (
     cancel_keyboard,
     choose_topic_keyboard,
     event_actions,
     skip_field_keyboard,
-    category_keyboard,
+    carpool_keyboard,
+    category_groups_keyboard,
+    category_subgroups_keyboard,
 )
 from texts import format_event_message
 from utils.helpers import get_user_mention
@@ -169,7 +171,9 @@ async def skip_limit(callback: CallbackQuery, state: FSMContext):
     await state.update_data(participant_limit=None)
     await state.set_state(CreateEvent.carpool)
     await callback.answer("Лимит пропущен")
-    await callback.message.answer(CARPOOL_HELP_TEXT, reply_markup=cancel_keyboard(), parse_mode="HTML")
+    await callback.message.answer(
+        CARPOOL_HELP_TEXT, reply_markup=carpool_keyboard(), parse_mode="HTML"
+    )
 
 @router.message(CreateEvent.limit)
 async def process_limit(message: Message, state: FSMContext):
@@ -184,8 +188,9 @@ async def process_limit(message: Message, state: FSMContext):
         
     await state.update_data(participant_limit=participant_limit)
     await state.set_state(CreateEvent.carpool)
-    await message.answer(CARPOOL_HELP_TEXT, reply_markup=cancel_keyboard(), parse_mode="HTML")
-
+    await message.answer(
+        CARPOOL_HELP_TEXT, reply_markup=carpool_keyboard(), parse_mode="HTML"
+    )
 
 
 # ✅ ИСПРАВЛЕННАЯ ФУНКЦИЯ process_carpool() в handlers/events.py
@@ -193,7 +198,27 @@ async def process_limit(message: Message, state: FSMContext):
 
 @router.message(CreateEvent.carpool)
 async def process_carpool(message: Message, state: FSMContext):
-    carpool = message.text.lower() in ["да", "yes", "y", "1", "true"]
+    if not message.text:
+        await message.answer("Выберите вариант кнопкой ниже.", reply_markup=carpool_keyboard())
+        return
+
+    normalized = message.text.lower().strip()
+    if normalized not in {"да", "нет", "yes", "no", "y", "n", "1", "0", "true", "false"}:
+        await message.answer("Нажмите одну из кнопок: «Да» или «Нет».", reply_markup=carpool_keyboard())
+        return
+
+    carpool = normalized in {"да", "yes", "y", "1", "true"}
+    await process_carpool_choice(message, state, carpool)
+
+
+@router.callback_query(CreateEvent.carpool, F.data.in_(["carpool_yes", "carpool_no"]))
+async def process_carpool_callback(callback: CallbackQuery, state: FSMContext):
+    carpool = callback.data == "carpool_yes"
+    await callback.answer("Выбор сохранён")
+    await process_carpool_choice(callback.message, state, carpool)
+
+
+async def process_carpool_choice(message: Message, state: FSMContext, carpool: bool):
     await state.update_data(carpool_enabled=carpool)
 
     topics = await get_topics_list_from_db()
@@ -209,8 +234,10 @@ async def process_carpool(message: Message, state: FSMContext):
     )
     await state.update_data(thread_id=None)
     await state.set_state(CreateEvent.category)
-    await message.answer("📂 Выберите категорию мероприятия:", reply_markup=category_keyboard(EVENT_CATEGORIES))
-
+    await message.answer(
+        "📂 Выберите группу категории:",
+        reply_markup=category_groups_keyboard(EVENT_CATEGORY_GROUPS),
+    )
 
 @router.callback_query(CreateEvent.thread, F.data.startswith("topic_"))
 async def process_topic(callback: CallbackQuery, state: FSMContext):
@@ -222,7 +249,10 @@ async def process_topic(callback: CallbackQuery, state: FSMContext):
         await callback.answer("✅ Тема выбрана!")
 
         await state.set_state(CreateEvent.category)
-        await callback.message.answer("📂 Выберите категорию мероприятия:", reply_markup=category_keyboard(EVENT_CATEGORIES))
+        await callback.message.answer(
+            "📂 Выберите группу категории:",
+            reply_markup=category_groups_keyboard(EVENT_CATEGORY_GROUPS),
+        )
     except Exception as exc:
         logger.error(f"Ошибка при обработке темы: {exc}")
         await callback.answer("❌ Ошибка! Попробуйте снова.", show_alert=True)
@@ -230,26 +260,92 @@ async def process_topic(callback: CallbackQuery, state: FSMContext):
 
 @router.message(CreateEvent.category)
 async def process_category(message: Message, state: FSMContext):
-    category_text = (message.text or "").strip().lower()
-    if category_text not in EVENT_CATEGORIES:
-        await message.answer("❌ Выберите категорию из кнопок ниже.", reply_markup=category_keyboard(EVENT_CATEGORIES))
+    await message.answer(
+        "❌ Выбор категорий теперь только через кнопки ниже.",
+        reply_markup=category_groups_keyboard(EVENT_CATEGORY_GROUPS),
+    )
+
+
+@router.callback_query(CreateEvent.category, F.data.startswith("category_group_"))
+async def open_category_group(callback: CallbackQuery, state: FSMContext):
+    group_key = callback.data.replace("category_group_", "", 1)
+    if group_key not in EVENT_CATEGORY_GROUPS:
+        await callback.answer("Группа недоступна", show_alert=True)
         return
 
-    await finalize_event_creation(message, state, category_text)
+    data = await state.get_data()
+    selected_categories = data.get("selected_categories", [])
+    await state.update_data(active_category_group=group_key)
+    await callback.answer("Группа открыта")
+    await callback.message.answer(
+        f"Выберите подкатегории в группе «{EVENT_CATEGORY_GROUPS[group_key]['title']}». "
+        f"Можно выбрать несколько.",
+        reply_markup=category_subgroups_keyboard(
+            group_key, EVENT_CATEGORY_GROUPS, selected_categories
+        ),
+    )
 
 
-@router.callback_query(CreateEvent.category, F.data.startswith("category_"))
-async def process_category_callback(callback: CallbackQuery, state: FSMContext):
-    category_text = callback.data.replace("category_", "", 1)
-    if category_text not in EVENT_CATEGORIES:
-        await callback.answer("Категория недоступна", show_alert=True)
+@router.callback_query(CreateEvent.category, F.data.startswith("category_toggle_"))
+async def toggle_category(callback: CallbackQuery, state: FSMContext):
+    category_value = callback.data.replace("category_toggle_", "", 1)
+    if category_value not in EVENT_CATEGORIES:
+        await callback.answer("Подкатегория недоступна", show_alert=True)
         return
 
-    await callback.answer("Категория выбрана")
-    await finalize_event_creation(callback.message, state, category_text)
+    data = await state.get_data()
+    active_group = data.get("active_category_group")
+    if not active_group:
+        await callback.answer("Сначала выберите группу", show_alert=True)
+        return
+
+    selected_categories = data.get("selected_categories", [])
+    if category_value in selected_categories:
+        selected_categories.remove(category_value)
+    else:
+        selected_categories.append(category_value)
+
+    await state.update_data(selected_categories=selected_categories)
+    await callback.answer("Список обновлён")
+    await callback.message.edit_reply_markup(
+        reply_markup=category_subgroups_keyboard(
+            active_group, EVENT_CATEGORY_GROUPS, selected_categories
+        )
+    )
 
 
-async def finalize_event_creation(message: Message, state: FSMContext, category_value: str):
+@router.callback_query(CreateEvent.category, F.data == "category_back")
+async def back_to_category_groups(callback: CallbackQuery):
+    await callback.answer()
+    await callback.message.answer(
+        "📂 Выберите группу категории:",
+        reply_markup=category_groups_keyboard(EVENT_CATEGORY_GROUPS),
+    )
+
+
+@router.callback_query(CreateEvent.category, F.data == "category_done")
+async def finish_categories(callback: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    selected_categories = data.get("selected_categories", [])
+    if not selected_categories:
+        await callback.answer("Выберите хотя бы одну подкатегорию", show_alert=True)
+        return
+
+    await callback.answer("Категории сохранены")
+    await finalize_event_creation(
+        callback.message,
+        state,
+        ",".join(selected_categories),
+        creator_user_id=callback.from_user.id,
+    )
+
+
+async def finalize_event_creation(
+    message: Message,
+    state: FSMContext,
+    category_value: str,
+    creator_user_id: int,
+):
     await state.update_data(category=category_value)
     data = await state.get_data()
 
@@ -269,7 +365,7 @@ async def finalize_event_creation(message: Message, state: FSMContext, category_
         "price_per_person": data.get("price_per_person"),
         "participant_limit": data.get("participant_limit"),
         "thread_id": data.get("thread_id"),
-        "creator_id": message.from_user.id,
+        "creator_id": creator_user_id,
         "weather_info": weather_info,
         "carpool_enabled": data.get("carpool_enabled", False),
         "category": category_value,
@@ -278,8 +374,8 @@ async def finalize_event_creation(message: Message, state: FSMContext, category_
 
     
     bot = message.bot
-    organizer_mention = await get_user_mention(message.from_user.id, bot)
-    mentions = {message.from_user.id: organizer_mention}
+    organizer_mention = await get_user_mention(creator_user_id, bot)
+    mentions = {creator_user_id: organizer_mention}
     topic_name = await get_topic_name_by_thread_id(data.get("thread_id"))
 
     event_text = await format_event_message(

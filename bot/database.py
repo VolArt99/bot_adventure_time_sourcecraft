@@ -492,6 +492,14 @@ async def update_event_status(event_id: int, status: str):
         await db.commit()
 
 
+async def cancel_event(event_id: int) -> None:
+    """Помечает мероприятие как отменённое и очищает участников."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("UPDATE events SET status = 'cancelled' WHERE id = ?", (event_id,))
+        await db.execute("DELETE FROM participants WHERE event_id = ?", (event_id,))
+        await db.commit()
+        
+
 async def get_events_for_digest(days: int = 7) -> List[Dict]:
     """⚠️ НОВОЕ: Получение мероприятий для дайджеста."""
     from datetime import datetime, timedelta

@@ -6,7 +6,7 @@ from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 from keyboards import event_actions
 from texts import format_event_message
 from utils.helpers import get_username_by_id
-from config import GROUP_ID
+from config import GROUP_ID, ADMIN_IDS
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.context import FSMContext
 from aiogram.utils.keyboard import InlineKeyboardBuilder
@@ -20,6 +20,7 @@ from database import (
     add_driver,
     add_passenger,
     get_drivers_with_passengers,
+    cancel_event,
 )
 
 
@@ -321,3 +322,38 @@ async def decline_event(callback: CallbackQuery):
         callback.bot, event_id, event["thread_id"], event["message_id"]
     )
     await callback.answer("Вы отказались от участия")
+
+
+@router.callback_query(F.data.startswith("delete_"))
+async def delete_event(callback: CallbackQuery):
+    event_id = int(callback.data.split("_")[1])
+    event = await get_event(event_id)
+    if not event:
+        await callback.answer("Мероприятие не найдено", show_alert=True)
+        return
+
+    user_id = callback.from_user.id
+    is_creator = user_id == event["creator_id"]
+    is_admin = user_id in ADMIN_IDS
+    if not is_creator and not is_admin:
+        await callback.answer(
+            "Удалять мероприятие может только организатор или администратор.",
+            show_alert=True,
+        )
+        return
+
+    await cancel_event(event_id)
+
+    try:
+        await callback.bot.delete_message(
+            chat_id=GROUP_ID,
+            message_id=event["message_id"],
+        )
+    except Exception:
+        await callback.bot.edit_message_text(
+            chat_id=GROUP_ID,
+            message_id=event["message_id"],
+            text="❌ Мероприятие удалено организатором/администратором.",
+        )
+
+    await callback.answer("Мероприятие удалено")

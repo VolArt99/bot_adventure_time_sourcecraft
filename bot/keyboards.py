@@ -24,7 +24,8 @@ def event_actions(event_id: int, carpool_enabled: bool = False) -> InlineKeyboar
     if carpool_enabled:
         builder.button(text="🚗 Еду на машине", callback_data=f"driver_{event_id}")
         builder.button(text="👥 Ищу попутку", callback_data=f"passenger_{event_id}")
-    builder.adjust(2, 2)
+    builder.button(text="🗑 Удалить мероприятие", callback_data=f"delete_{event_id}")
+    builder.adjust(2, 2, 1)
     return builder.as_markup()
 
 
@@ -68,6 +69,56 @@ def category_keyboard(categories: list[str]) -> InlineKeyboardMarkup:
         builder.button(text=f"📂 {category.title()}", callback_data=f"category_{category}")
     builder.button(text="❌ Отмена", callback_data="cancel_create")
     builder.adjust(2, 2, 2, 2, 1)
+    return builder.as_markup()
+
+
+def carpool_keyboard() -> InlineKeyboardMarkup:
+    """Кнопки выбора карпулинга."""
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="✅ Да", callback_data="carpool_yes"),
+                InlineKeyboardButton(text="❌ Нет", callback_data="carpool_no"),
+            ],
+            [InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_create")],
+        ]
+    )
+
+
+def category_groups_keyboard(category_groups: dict[str, dict]) -> InlineKeyboardMarkup:
+    """Клавиатура с группами категорий."""
+    builder = InlineKeyboardBuilder()
+    for group_key, group_data in category_groups.items():
+        builder.button(
+            text=str(group_data["title"]),
+            callback_data=f"category_group_{group_key}",
+        )
+    builder.button(text="❌ Отмена", callback_data="cancel_create")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def category_subgroups_keyboard(
+    group_key: str,
+    category_groups: dict[str, dict],
+    selected_categories: list[str],
+) -> InlineKeyboardMarkup:
+    """Клавиатура выбора подкатегорий (множественный выбор)."""
+    builder = InlineKeyboardBuilder()
+    group = category_groups[group_key]
+    subcategories = group["subcategories"]
+
+    for category in subcategories:
+        marker = "✅ " if category in selected_categories else ""
+        builder.button(
+            text=f"{marker}{category.title()}",
+            callback_data=f"category_toggle_{category}",
+        )
+
+    builder.button(text="↩️ К группам", callback_data="category_back")
+    builder.button(text="✅ Готово", callback_data="category_done")
+    builder.button(text="❌ Отмена", callback_data="cancel_create")
+    builder.adjust(1, 1, 1, 1, 1, 1)
     return builder.as_markup()
 
 

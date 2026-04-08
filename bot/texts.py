@@ -28,6 +28,16 @@ def category_to_hashtag(category: str | None) -> str:
     return f"#{safe}"
 
 
+def category_to_hashtags(categories_raw: str | None) -> str:
+    if not categories_raw:
+        return "не указана"
+
+    categories = [item.strip() for item in categories_raw.split(",") if item.strip()]
+    if not categories:
+        return "не указана"
+    return " ".join(category_to_hashtag(category) for category in categories)
+
+
 async def format_event_message(
     event: Dict,
     going_list: List[int],
@@ -45,11 +55,7 @@ async def format_event_message(
     location = escape(event.get("location") or "не указано")
     title = escape(event["title"])
     description = escape(event.get("description") or "")
-    category_raw = event.get("category") or "не указана"
-    category = escape(category_raw)
-    category_tag = (
-        escape(category_to_hashtag(category_raw)) if event.get("category") else ""
-    )
+    category = escape(category_to_hashtags(event.get("category")))
 
     price_total = event.get("price_total") or 0
     price_per_person = event.get("price_per_person") or 0
@@ -103,7 +109,7 @@ async def format_event_message(
         [
             f"🗓 {date_str} в {time_str}",
             f"⏱ Длительность: {duration}",
-            f"📂 Категория: {category} {category_tag}".strip(),
+            f"📂 Категория: {category}",
             f"📍 {location}",
             price_text,
             f"👥 Кто уже идёт: {going_count}/{limit_str}",
