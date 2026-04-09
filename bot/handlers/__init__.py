@@ -7,5 +7,7 @@ from . import digest
 from . import reminders
 from . import my_events
 from . import roadmap
+from . import subscriptions
+from . import admin
 
-__all__ = ['common', 'events', 'participation', 'digest', 'reminders', 'my_events', 'roadmap']
+__all__ = ['common', 'events', 'participation', 'digest', 'reminders', 'my_events', 'roadmap', 'subscriptions', 'admin']

@@ -7,6 +7,7 @@ import aiogram
 
 from config import GROUP_ID
 from database import get_or_create_user
+from filters.admin import admin_only
 
 logger = logging.getLogger(__name__)
 router = Router()
@@ -30,6 +31,8 @@ async def cmd_help(message: Message):
         "/create_event — создать мероприятие (для организаторов)\n"
         "/my_events — мои мероприятия (неделя/месяц/всё время)\n"
         "/digest — дайджест мероприятий (неделя/месяц/всё время)\n"
+        "/subscriptions — подписки на категории\n"
+        "/my_digest — персональный дайджест по подпискам\n"
         "/my_stats — ваша статистика посещений\n"
         "/top — топ-3 участников за 30 дней\n"
         "/find_events — поиск активных событий по тексту\n\n"
@@ -37,7 +40,8 @@ async def cmd_help(message: Message):
         "/debug_info — единая диагностика (бот, группа, права, темы)\n"
         "/health — быстрая проверка работоспособности\n"
         "/list_topics — список обнаруженных тем\n"
-        "/update_topic_names — обновить названия тем (для админов)"
+        "/update_topic_names — обновить названия тем (для админов)\n"
+        "/admin_report — сводный отчёт по событиям (для админов)"
     )
     await message.answer(help_text, parse_mode="HTML")
 
@@ -108,15 +112,11 @@ async def list_topics(message: Message):
 
 
 @router.message(Command("update_topic_names"))
+@admin_only
 async def update_topic_names(message: Message):
     """Обновляет названия тем из контекста группы."""
 
-    from config import ADMIN_IDS
     from database import get_all_topics
-
-    if message.from_user.id not in ADMIN_IDS:
-        await message.answer("❌ У вас нет прав")
-        return
 
     await message.answer("⏳ Обновляю названия тем...")
 

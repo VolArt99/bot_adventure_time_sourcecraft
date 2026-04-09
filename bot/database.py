@@ -104,6 +104,17 @@ async def init_db():
             )
         """
         )
+        await db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS user_category_subscriptions (
+                user_id INTEGER NOT NULL,
+                category TEXT NOT NULL,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (user_id, category),
+                FOREIGN KEY(user_id) REFERENCES users(id)
+            )
+            """
+        )        
         await db.commit()
 
 
@@ -613,6 +624,131 @@ async def get_events_for_digest(period: str = "week") -> List[Dict]:
         async with db.execute(query, params) as cursor:
             rows = await cursor.fetchall()
             return [dict(row) for row in rows]
+
+
+async def set_user_category_subscriptions(user_id: int, categories: list[str]) -> None:
+    """Перезаписывает список подписок пользователя по категориям."""
+    unique_categories = sorted({category.strip().lower() for category in categories if category.strip()})
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("DELETE FROM user_category_subscriptions WHERE user_id = ?", (user_id,))
+        for category in unique_categories:
+            await db.execute(
+                """
+                INSERT INTO user_category_subscriptions (user_id, category)
+                VALUES (?, ?)
+                """,
+                (user_id, category),
+            )
+        await db.commit()
+
+
+async def get_user_category_subscriptions(user_id: int) -> list[str]:
+    """Возвращает категории, на которые подписан пользователь."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute(
+            """
+            SELECT category
+            FROM user_category_subscriptions
+            WHERE user_id = ?
+            ORDER BY category
+            """,
+            (user_id,),
+        ) as cursor:
+            rows = await cursor.fetchall()
+            return [row[0] for row in rows]
+
+
+async def get_events_for_user_subscriptions(user_id: int, period: str = "week") -> List[Dict]:
+    """Возвращает активные события, которые совпадают с подписками пользователя."""
+    from datetime import datetime, timedelta
+
+    categories = await get_user_category_subscriptions(user_id)
+    if not categories:
+        return []
+
+    now_iso = datetime.now().isoformat()
+    end_iso = None
+    if period == "week":
+        end_iso = (datetime.now() + timedelta(days=7)).isoformat()
+    elif period == "month":
+        end_iso = (datetime.now() + timedelta(days=30)).isoformat()
+
+    like_clauses = " OR ".join("lower(COALESCE(category, '')) LIKE ?" for _ in categories)
+    like_params = [f"%{category}%" for category in categories]
+
+    if end_iso:
+        query = f"""
+            SELECT * FROM events
+            WHERE status = 'active'
+              AND date_time BETWEEN ? AND ?
+              AND ({like_clauses})
+            ORDER BY date_time ASC
+        """
+        params = [now_iso, end_iso, *like_params]
+    else:
+        query = f"""
+            SELECT * FROM events
+            WHERE status = 'active'
+              AND date_time >= ?
+              AND ({like_clauses})
+            ORDER BY date_time ASC
+        """
+        params = [now_iso, *like_params]
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(query, params) as cursor:
+            rows = await cursor.fetchall()
+            return [dict(row) for row in rows]
+
+
+async def get_admin_report_metrics() -> Dict[str, Any]:
+    """Метрики для /admin_report: активные события, средняя посещаемость, no-show, топ категорий."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+
+        async with db.execute(
+            "SELECT COUNT(*) as total FROM events WHERE status = 'active'"
+        ) as cursor:
+            active_events = (await cursor.fetchone())["total"]
+
+        async with db.execute(
+            """
+            SELECT
+                COUNT(*) AS participants_total,
+                COUNT(DISTINCT event_id) AS events_with_participants
+            FROM participants
+            WHERE status IN ('going', 'driver', 'passenger')
+            """
+        ) as cursor:
+            row = await cursor.fetchone()
+            participants_total = row["participants_total"] or 0
+            events_with_participants = row["events_with_participants"] or 0
+            avg_attendance = round(participants_total / events_with_participants, 2) if events_with_participants else 0
+
+        async with db.execute(
+            "SELECT COUNT(*) as total FROM participants WHERE status = 'no_show'"
+        ) as cursor:
+            no_show = (await cursor.fetchone())["total"]
+
+        async with db.execute(
+            """
+            SELECT category, COUNT(*) AS cnt
+            FROM events
+            WHERE status = 'active' AND category IS NOT NULL AND category != ''
+            GROUP BY category
+            ORDER BY cnt DESC
+            LIMIT 5
+            """
+        ) as cursor:
+            top_categories = [dict(row) for row in await cursor.fetchall()]
+
+    return {
+        "active_events": active_events,
+        "avg_attendance": avg_attendance,
+        "no_show": no_show,
+        "top_categories": top_categories,
+    }
 
 
 async def save_forum_topic(message_thread_id: int, name: str) -> bool:

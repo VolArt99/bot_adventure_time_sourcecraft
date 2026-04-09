@@ -16,7 +16,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.fsm.strategy import FSMStrategy
 from config import BOT_TOKEN, GROUP_ID
 from database import init_db, sync_topics_from_config
-from handlers import common, events, participation, digest, reminders, my_events, roadmap
+from handlers import common, events, participation, digest, reminders, my_events, roadmap, subscriptions, admin
 from utils.scheduler import scheduler, restore_jobs, start_scheduler
 
 # Настройка логирования
@@ -57,6 +57,8 @@ async def main():
     dp.include_router(reminders.router)
     dp.include_router(my_events.router)
     dp.include_router(roadmap.router)
+    dp.include_router(subscriptions.router)
+    dp.include_router(admin.router)
     logger.info("Роутеры зарегистрированы")
 
     # Регистрируем middleware на основной dispatcher
