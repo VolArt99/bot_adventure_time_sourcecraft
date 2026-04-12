@@ -9,7 +9,6 @@ load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 WEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
-BOT_PROXY_URL = os.getenv("BOT_PROXY_URL", "").strip() or None
 
 # ⚠️ ВАЖНО: GROUP_ID должен быть числом (например, -1001234567890)
 # Для получения ID группы отправьте боту команду /test_chat

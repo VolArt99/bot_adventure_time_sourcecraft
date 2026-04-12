@@ -11,11 +11,10 @@ import asyncio
 import logging
 import os
 from aiogram import Bot, Dispatcher, F
-from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.exceptions import TelegramNetworkError
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.fsm.strategy import FSMStrategy
-from config import BOT_TOKEN, GROUP_ID, BOT_PROXY_URL
+from config import BOT_TOKEN, GROUP_ID
 from database import init_db, sync_topics_from_config
 from handlers import common, events, participation, digest, reminders, my_events, roadmap, subscriptions, admin
 from utils.scheduler import scheduler, restore_jobs, start_scheduler
@@ -46,10 +45,7 @@ async def main():
     logger.info("Темы из topics_config.py синхронизированы с БД")
 
     # Инициализация бота
-    session = AiohttpSession(proxy=BOT_PROXY_URL) if BOT_PROXY_URL else None
-    if BOT_PROXY_URL:
-        logger.info("Используется прокси для Telegram API")
-    bot = Bot(token=BOT_TOKEN, session=session) if session else Bot(token=BOT_TOKEN)
+    bot = Bot(token=BOT_TOKEN)
     dp = Dispatcher(storage=MemoryStorage(), fsm_strategy=FSMStrategy.GLOBAL_USER)
     dp.message.filter(F.chat.type == "private")
     
