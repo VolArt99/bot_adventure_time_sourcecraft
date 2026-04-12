@@ -47,7 +47,10 @@ async def handler(event: dict, context):
 
     return {"statusCode": 200, "body": ""}
 
-
+@dp.message(Command("start"))
+async def handle_start(message: Message):
+    await message.answer("Привет!")
+    
 async def main():
     logger.info("Запуск бота...")
 
