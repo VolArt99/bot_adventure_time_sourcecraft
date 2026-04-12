@@ -88,13 +88,19 @@ async def ensure_initialized(*, for_polling: bool = False) -> None:
 async def handler(event: dict, context):
     await ensure_initialized(for_polling=False)
 
-    body = event.get("body", "")
-    if not body:
+    body = event.get("body")
+    if body is None or body == "":
         logger.warning("Пустое тело запроса")
         return {"statusCode": 400, "body": "Empty request body"}
 
     if event.get("isBase64Encoded"):
         body = base64.b64decode(body).decode("utf-8")
+    elif isinstance(body, bytes):
+        body = body.decode("utf-8")
+
+    if not isinstance(body, str):
+        logger.warning("Некорректный тип body: %s", type(body).__name__)
+        return {"statusCode": 400, "body": "Request body must be a string"}
 
     try:
         update_data = json.loads(body)
