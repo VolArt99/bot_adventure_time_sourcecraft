@@ -31,6 +31,18 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+async def handler(event: dict, context):
+    body: str = event["body"]
+    update_data = json.loads(body) if body else {}
+
+    await dp.feed_update(
+        bot,
+        Update.model_validate(update_data),
+    )
+
+    return {"statusCode": 200, "body": ""}
+
+
 async def main():
     logger.info("Запуск бота...")
 
