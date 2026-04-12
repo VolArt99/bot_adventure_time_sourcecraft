@@ -36,6 +36,7 @@ logger = logging.getLogger(__name__)
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(storage=MemoryStorage(), fsm_strategy=FSMStrategy.GLOBAL_USER)
 _is_initialized = False
+_polling_initialized = False
 _init_lock = asyncio.Lock()
 
 
@@ -59,38 +60,47 @@ def _register_handlers() -> None:
 
 async def ensure_initialized(*, for_polling: bool = False) -> None:
     """Ленивая инициализация для polling/webhook режимов."""
-    global _is_initialized
+    global _is_initialized, _polling_initialized
 
-    if _is_initialized:
+    if _is_initialized and (not for_polling or _polling_initialized):
         return
 
     async with _init_lock:
-        if _is_initialized:
+        if _is_initialized and (not for_polling or _polling_initialized):
             return
 
-        logger.info("Инициализация бота...")
-        os.makedirs("data", exist_ok=True)
-        await init_db()
-        await sync_topics_from_config()
-        _register_handlers()
-        logger.info("База, темы и роутеры инициализированы")
+        if not _is_initialized:
+            logger.info("Инициализация бота...")
+            os.makedirs("data", exist_ok=True)
+            await init_db()
+            await sync_topics_from_config()
+            _register_handlers()
+            logger.info("База, темы и роутеры инициализированы")
+            _is_initialized = True
 
         # Планировщик нужен только для long-running polling режима.
-        if for_polling:
+        if for_polling and not _polling_initialized:
             start_scheduler()
             await restore_jobs(bot)
             logger.info("Планировщик и напоминания восстановлены")
-
-        _is_initialized = True
+            _polling_initialized = True
 
 async def handler(event: dict, context):
     await ensure_initialized(for_polling=False)
 
     body = event.get("body", "")
+    if not body:
+        logger.warning("Пустое тело запроса")
+        return {"statusCode": 400, "body": "Empty request body"}
+
     if event.get("isBase64Encoded"):
         body = base64.b64decode(body).decode("utf-8")
 
-    update_data = json.loads(body) if body else event
+    try:
+        update_data = json.loads(body)
+    except json.JSONDecodeError:
+        logger.exception("Не удалось распарсить JSON тела запроса")
+        return {"statusCode": 400, "body": "Invalid JSON in request body"}
 
     try:
         await dp.feed_update(
@@ -111,7 +121,6 @@ async def main():
     logger.info("Запуск бота...")
     await ensure_initialized(for_polling=True)
 
-    
     # Запуск поллинга с повторными попытками при сетевых сбоях
     logger.info("Запуск поллинга...")
     retry_delay = 5
