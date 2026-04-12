@@ -5,20 +5,20 @@
 import sys
 import os
 import json
+import base64
 
 sys.path.insert(0, os.path.dirname(__file__))
 
 import asyncio
 import logging
-import os
 from aiogram import Bot, Dispatcher, F
 from aiogram.exceptions import TelegramNetworkError
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.fsm.strategy import FSMStrategy
-from config import BOT_TOKEN, GROUP_ID
+from config import BOT_TOKEN
 from database import init_db, sync_topics_from_config
 from handlers import common, events, participation, digest, reminders, my_events, roadmap, subscriptions, admin
-from utils.scheduler import scheduler, restore_jobs, start_scheduler
+from utils.scheduler import restore_jobs, start_scheduler
 from aiogram.types import Message, Update
 from aiogram.filters import Command
 
@@ -35,39 +35,14 @@ logger = logging.getLogger(__name__)
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(storage=MemoryStorage(), fsm_strategy=FSMStrategy.GLOBAL_USER)
+_is_initialized = False
+_init_lock = asyncio.Lock()
 
-async def handler(event: dict, context):
-    body: str = event["body"]
-    update_data = json.loads(body) if body else {}
 
-    await dp.feed_update(
-        bot,
-        Update.model_validate(update_data),
-    )
-
-    return {"statusCode": 200, "body": ""}
-
-@dp.message(Command("start"))
-async def handle_start(message: Message):
-    await message.answer("Привет!")
-    
-async def main():
-    logger.info("Запуск бота...")
-
-    # Создаём папку для БД
-    os.makedirs("data", exist_ok=True)
-
-    # Инициализация БД
-    await init_db()
-    logger.info("База данных инициализирована")
-
-    await sync_topics_from_config()
-    logger.info("Темы из topics_config.py синхронизированы с БД")
-
-    # Инициализация бота
+def _register_handlers() -> None:
+    """Регистрирует роутеры и middleware один раз."""
     dp.message.filter(F.chat.type == "private")
     
-    # Регистрация роутеров
     dp.include_router(common.router)
     dp.include_router(events.router)
     dp.include_router(participation.router)
@@ -77,20 +52,66 @@ async def main():
     dp.include_router(roadmap.router)
     dp.include_router(subscriptions.router)
     dp.include_router(admin.router)
-    logger.info("Роутеры зарегистрированы")
 
-    # Регистрируем middleware на основной dispatcher
     from middleware.topic_discoverer import TopicDiscovererMiddleware
 
     dp.update.middleware(TopicDiscovererMiddleware())
 
-    # Запуск планировщика
-    start_scheduler()
+async def ensure_initialized(*, for_polling: bool = False) -> None:
+    """Ленивая инициализация для polling/webhook режимов."""
+    global _is_initialized
 
-    # Восстановление напоминаний
-    await restore_jobs(bot)
-    logger.info("Напоминания восстановлены")
+    if _is_initialized:
+        return
 
+    async with _init_lock:
+        if _is_initialized:
+            return
+
+        logger.info("Инициализация бота...")
+        os.makedirs("data", exist_ok=True)
+        await init_db()
+        await sync_topics_from_config()
+        _register_handlers()
+        logger.info("База, темы и роутеры инициализированы")
+
+        # Планировщик нужен только для long-running polling режима.
+        if for_polling:
+            start_scheduler()
+            await restore_jobs(bot)
+            logger.info("Планировщик и напоминания восстановлены")
+
+        _is_initialized = True
+
+async def handler(event: dict, context):
+    await ensure_initialized(for_polling=False)
+
+    body = event.get("body", "")
+    if event.get("isBase64Encoded"):
+        body = base64.b64decode(body).decode("utf-8")
+
+    update_data = json.loads(body) if body else event
+
+    try:
+        await dp.feed_update(
+            bot,
+            Update.model_validate(update_data),
+        )
+    except Exception:
+        logger.exception("Не удалось обработать update")
+        return {"statusCode": 400, "body": "Bad update payload"}
+
+    return {"statusCode": 200, "body": ""}
+
+@dp.message(Command("start"))
+async def handle_start(message: Message):
+    await message.answer("Привет!")
+    
+async def main():
+    logger.info("Запуск бота...")
+    await ensure_initialized(for_polling=True)
+
+    
     # Запуск поллинга с повторными попытками при сетевых сбоях
     logger.info("Запуск поллинга...")
     retry_delay = 5
