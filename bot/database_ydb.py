@@ -230,8 +230,6 @@ async def create_event(event_data: Dict[str, Any]) -> int:
     pool = await get_pool()
     
     # Генерируем ID для мероприятия
-    # В YDB можно использовать CurrentUtcTimestamp() для генерации уникального ID
-    # или использовать sequence, но для простоты будем генерировать на основе времени
     import time
     event_id = int(time.time() * 1000)  # Используем timestamp в миллисекундах
     
@@ -552,79 +550,504 @@ async def cancel_event(event_id: int) -> None:
     )
 
 
-# Остальные функции будут добавлены по мере необходимости
-# Для простоты оставим заглушки для остальных функций
-
 async def get_user_stats(user_id: int) -> Dict:
     """⚠️ НОВОЕ: Возвращает статистику пользователя."""
-    # Заглушка - нужно реализовать
-    return {"events_count": 0, "total_participations": 0}
+    pool = await get_pool()
+    
+    # Получаем количество мероприятий, где пользователь был организатором
+    result_creator = await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            SELECT COUNT(*) as events_count FROM events 
+            WHERE creator_id = $user_id AND status = 'active'
+            """,
+            parameters={
+                "user_id": user_id,
+            },
+            commit_tx=True,
+        )
+    )
+    
+    events_count = result_creator[0].rows[0].events_count if result_creator[0].rows else 0
+    
+    # Получаем общее количество участий
+    result_participations = await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            SELECT COUNT(DISTINCT event_id) as total_participations FROM participants 
+            WHERE user_id = $user_id
+            """,
+            parameters={
+                "user_id": user_id,
+            },
+            commit_tx=True,
+        )
+    )
+    
+    total_participations = result_participations[0].rows[0].total_participations if result_participations[0].rows else 0
+    
+    return {
+        "events_count": events_count,
+        "total_participations": total_participations,
+    }
 
 
 async def get_top_participants(days: int = 30, limit: int = 3) -> List[Dict]:
     """Топ участников по количеству участий за период."""
-    # Заглушка - нужно реализовать
-    return []
+    pool = await get_pool()
+    
+    # Получаем топ участников за последние N дней
+    result = await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            SELECT 
+                p.user_id,
+                u.username,
+                COUNT(DISTINCT p.event_id) as participation_count
+            FROM participants p
+            LEFT JOIN users u ON p.user_id = u.id
+            WHERE p.joined_at >= CurrentUtcTimestamp() - Interval("PT" || CAST($days AS Utf8) || "H")
+            GROUP BY p.user_id, u.username
+            ORDER BY participation_count DESC
+            LIMIT $limit
+            """,
+            parameters={
+                "days": str(days * 24),  # Конвертируем дни в часы
+                "limit": limit,
+            },
+            commit_tx=True,
+        )
+    )
+    
+    top_participants = []
+    for row in result[0].rows:
+        top_participants.append({
+            "user_id": row.user_id,
+            "username": row.username or f"User {row.user_id}",
+            "participation_count": row.participation_count,
+        })
+    
+    return top_participants
 
 
 async def find_events(query: str, period: str = "month", limit: int = 20) -> List[Dict]:
     """Поиск предстоящих активных мероприятий по названию/месту/категории."""
-    # Заглушка - нужно реализовать
-    return []
+    pool = await get_pool()
+    
+    # Определяем период для фильтрации
+    period_days = {
+        "week": 7,
+        "month": 30,
+        "all": 365 * 10,  # 10 лет
+    }.get(period, 30)
+    
+    result = await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            SELECT * FROM events 
+            WHERE status = 'active' 
+            AND date_time >= CurrentUtcTimestamp()
+            AND date_time <= CurrentUtcTimestamp() + Interval("PT" || CAST($days AS Utf8) || "H")
+            AND (
+                title LIKE '%' || $query || '%' 
+                OR location LIKE '%' || $query || '%'
+                OR category LIKE '%' || $query || '%'
+                OR description LIKE '%' || $query || '%'
+            )
+            ORDER BY date_time
+            LIMIT $limit
+            """,
+            parameters={
+                "days": str(period_days * 24),
+                "query": query,
+                "limit": limit,
+            },
+            commit_tx=True,
+        )
+    )
+    
+    events = []
+    for row in result[0].rows:
+        event_dict = {}
+        for column in row.__fields__:
+            value = getattr(row, column)
+            if hasattr(value, 'isoformat'):
+                value = value.isoformat()
+            elif isinstance(value, ydb.Decimal):
+                value = float(value)
+            event_dict[column] = value
+        events.append(event_dict)
+    
+    return events
 
 
 async def get_user_events(user_id: int, status: str = None) -> List[Dict]:
     """Возвращает мероприятия пользователя: как участника и/или организатора."""
-    # Заглушка - нужно реализовать
-    return []
+    pool = await get_pool()
+    
+    if status == "organizer":
+        # Мероприятия, где пользователь организатор
+        query = """
+            SELECT e.* FROM events e
+            WHERE e.creator_id = $user_id AND e.status = 'active'
+            ORDER BY e.date_time
+        """
+        params = {"user_id": user_id}
+    elif status == "participant":
+        # Мероприятия, где пользователь участник
+        query = """
+            SELECT DISTINCT e.* FROM events e
+            JOIN participants p ON e.id = p.event_id
+            WHERE p.user_id = $user_id AND e.status = 'active'
+            ORDER BY e.date_time
+        """
+        params = {"user_id": user_id}
+    else:
+        # Все мероприятия пользователя (и как организатор, и как участник)
+        query = """
+            SELECT DISTINCT e.* FROM events e
+            LEFT JOIN participants p ON e.id = p.event_id AND p.user_id = $user_id
+            WHERE (e.creator_id = $user_id OR p.user_id = $user_id) 
+            AND e.status = 'active'
+            ORDER BY e.date_time
+        """
+        params = {"user_id": user_id}
+    
+    result = await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            query,
+            parameters=params,
+            commit_tx=True,
+        )
+    )
+    
+    events = []
+    for row in result[0].rows:
+        event_dict = {}
+        for column in row.__fields__:
+            value = getattr(row, column)
+            if hasattr(value, 'isoformat'):
+                value = value.isoformat()
+            elif isinstance(value, ydb.Decimal):
+                value = float(value)
+            event_dict[column] = value
+        events.append(event_dict)
+    
+    return events
 
 
 async def move_from_waitlist(event_id: int) -> Optional[int]:
     """Перемещает первого из резерва в основной список."""
-    # Заглушка - нужно реализовать
-    return None
+    pool = await get_pool()
+    
+    # Получаем первого участника из резерва
+    result = await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            SELECT user_id FROM participants 
+            WHERE event_id = $event_id AND status = 'waitlist'
+            ORDER BY joined_at
+            LIMIT 1
+            """,
+            parameters={
+                "event_id": event_id,
+            },
+            commit_tx=True,
+        )
+    )
+    
+    if not result[0].rows:
+        return None
+    
+    user_id = result[0].rows[0].user_id
+    
+    # Обновляем статус на 'going'
+    await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            UPDATE participants 
+            SET status = 'going' 
+            WHERE event_id = $event_id AND user_id = $user_id
+            """,
+            parameters={
+                "event_id": event_id,
+                "user_id": user_id,
+            },
+            commit_tx=True,
+        )
+    )
+    
+    return user_id
 
 
 async def get_drivers_with_passengers(event_id: int) -> List[Dict]:
     """Возвращает список водителей с их пассажирами."""
-    # Заглушка - нужно реализовать
-    return []
+    pool = await get_pool()
+    
+    # Получаем всех водителей
+    result_drivers = await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            SELECT user_id, car_seats FROM participants 
+            WHERE event_id = $event_id AND status = 'driver'
+            """,
+            parameters={
+                "event_id": event_id,
+            },
+            commit_tx=True,
+        )
+    )
+    
+    drivers = []
+    for row in result_drivers[0].rows:
+        driver_id = row.user_id
+        car_seats = row.car_seats
+        
+        # Получаем пассажиров этого водителя
+        result_passengers = await pool.retry_operation(
+            lambda session: session.transaction().execute(
+                """
+                SELECT user_id FROM participants 
+                WHERE event_id = $event_id AND status = 'passenger' AND passenger_of = $driver_id
+                """,
+                parameters={
+                    "event_id": event_id,
+                    "driver_id": driver_id,
+                },
+                commit_tx=True,
+            )
+        )
+        
+        passengers = [row_passenger.user_id for row_passenger in result_passengers[0].rows]
+        
+        drivers.append({
+            "user_id": driver_id,
+            "car_seats": car_seats,
+            "passengers": passengers,
+        })
+    
+    return drivers
 
 
 async def get_driver_free_seats(driver_id: int, event_id: int) -> int:
     """Возвращает количество свободных мест у водителя."""
-    # Заглушка - нужно реализовать
-    return 0
+    pool = await get_pool()
+    
+    # Получаем информацию о водителе
+    result_driver = await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            SELECT car_seats FROM participants 
+            WHERE event_id = $event_id AND user_id = $driver_id AND status = 'driver'
+            """,
+            parameters={
+                "event_id": event_id,
+                "driver_id": driver_id,
+            },
+            commit_tx=True,
+        )
+    )
+    
+    if not result_driver[0].rows:
+        return 0
+    
+    car_seats = result_driver[0].rows[0].car_seats
+    
+    # Получаем количество пассажиров
+    result_passengers = await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            SELECT COUNT(*) as passenger_count FROM participants 
+            WHERE event_id = $event_id AND status = 'passenger' AND passenger_of = $driver_id
+            """,
+            parameters={
+                "event_id": event_id,
+                "driver_id": driver_id,
+            },
+            commit_tx=True,
+        )
+    )
+    
+    passenger_count = result_passengers[0].rows[0].passenger_count if result_passengers[0].rows else 0
+    
+    # Свободные места = общие места - пассажиры - 1 (сам водитель)
+    free_seats = car_seats - passenger_count - 1
+    return max(0, free_seats)
 
 
 async def add_driver(event_id: int, user_id: int, car_seats: int) -> bool:
     """Добавляет водителя."""
-    # Заглушка - нужно реализовать
+    pool = await get_pool()
+    
+    # Проверяем, не является ли уже участником
+    result = await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            SELECT id FROM participants 
+            WHERE event_id = $event_id AND user_id = $user_id
+            """,
+            parameters={
+                "event_id": event_id,
+                "user_id": user_id,
+            },
+            commit_tx=True,
+        )
+    )
+    
+    if result[0].rows:
+        return False
+    
+    # Генерируем ID для участника
+    import time
+    participant_id = int(time.time() * 1000) + user_id
+    
+    await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            INSERT INTO participants (id, event_id, user_id, status, car_seats)
+            VALUES ($id, $event_id, $user_id, 'driver', $car_seats)
+            """,
+            parameters={
+                "id": participant_id,
+                "event_id": event_id,
+                "user_id": user_id,
+                "car_seats": car_seats,
+            },
+            commit_tx=True,
+        )
+    )
+    
     return True
 
 
 async def add_passenger(event_id: int, user_id: int, driver_id: int) -> bool:
     """Добавляет пассажира к водителю."""
-    # Заглушка - нужно реализовать
+    pool = await get_pool()
+    
+    # Проверяем, есть ли свободные места у водителя
+    free_seats = await get_driver_free_seats(driver_id, event_id)
+    if free_seats <= 0:
+        return False
+    
+    # Проверяем, не является ли уже участником
+    result = await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            SELECT id FROM participants 
+            WHERE event_id = $event_id AND user_id = $user_id
+            """,
+            parameters={
+                "event_id": event_id,
+                "user_id": user_id,
+            },
+            commit_tx=True,
+        )
+    )
+    
+    if result[0].rows:
+        return False
+    
+    # Генерируем ID для участника
+    import time
+    participant_id = int(time.time() * 1000) + user_id
+    
+    await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            INSERT INTO participants (id, event_id, user_id, status, passenger_of)
+            VALUES ($id, $event_id, $user_id, 'passenger', $driver_id)
+            """,
+            parameters={
+                "id": participant_id,
+                "event_id": event_id,
+                "user_id": user_id,
+                "driver_id": driver_id,
+            },
+            commit_tx=True,
+        )
+    )
+    
     return True
 
 
 async def get_forum_topics_raw(bot, chat_id: int):
     """Возвращает список тем форума в виде словарей."""
-    # Заглушка - нужно реализовать
-    return []
+    try:
+        # Получаем информацию о чате
+        chat = await bot.get_chat(chat_id)
+        
+        # Проверяем, является ли чат форумом
+        if not getattr(chat, "is_forum", False):
+            return []
+        
+        # Получаем список тем форума
+        # В aiogram нет прямого метода для получения тем форума,
+        # поэтому возвращаем пустой список
+        # В реальной реализации нужно использовать get_forum_topic_icon_stickers или другие методы
+        return []
+    except Exception as e:
+        logger.error(f"Ошибка при получении тем форума: {e}")
+        return []
 
 
 async def update_event_status(event_id: int, status: str):
     """Обновляет статус мероприятия."""
-    # Заглушка - нужно реализовать
-    pass
+    pool = await get_pool()
+    
+    await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            UPDATE events SET status = $status WHERE id = $event_id
+            """,
+            parameters={
+                "event_id": event_id,
+                "status": status,
+            },
+            commit_tx=True,
+        )
+    )
 
 
 async def get_events_for_digest(period: str = "week") -> List[Dict]:
     """Получение предстоящих активных мероприятий для дайджеста."""
-    # Заглушка - нужно реализовать
-    return []
+    pool = await get_pool()
+    
+    # Определяем период для фильтрации
+    period_days = {
+        "week": 7,
+        "month": 30,
+        "all": 365 * 10,  # 10 лет
+    }.get(period, 7)
+    
+    result = await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            SELECT * FROM events 
+            WHERE status = 'active' 
+            AND date_time >= CurrentUtcTimestamp()
+            AND date_time <= CurrentUtcTimestamp() + Interval("PT" || CAST($days AS Utf8) || "H")
+            ORDER BY date_time
+            """,
+            parameters={
+                "days": str(period_days * 24),
+            },
+            commit_tx=True,
+        )
+    )
+    
+    events = []
+    for row in result[0].rows:
+        event_dict = {}
+        for column in row.__fields__:
+            value = getattr(row, column)
+            if hasattr(value, 'isoformat'):
+                value = value.isoformat()
+            elif isinstance(value, ydb.Decimal):
+                value = float(value)
+            event_dict[column] = value
+        events.append(event_dict)
+    
+    return events
 
 
 async def set_user_category_subscriptions(user_id: int, categories: list[str]) -> None:
@@ -687,46 +1110,44 @@ async def get_user_category_subscriptions(user_id: int) -> list[str]:
 
 async def get_events_for_user_subscriptions(user_id: int, period: str = "week") -> List[Dict]:
     """Возвращает активные события, которые совпадают с подписками пользователя."""
-    # Заглушка - нужно реализовать
-    return []
-
-
-async def get_admin_report_metrics() -> Dict[str, Any]:
-    """Метрики для /admin_report: активные события, средняя посещаемость, no-show, топ категорий."""
-    # Заглушка - нужно реализовать
-    return {
-        "active_events": 0,
-        "avg_attendance": 0,
-        "no_show": 0,
-        "top_categories": [],
-    }
-
-
-async def save_forum_topic(message_thread_id: int, name: str) -> bool:
-    """Сохраняет тему форума в БД."""
-    # Заглушка - нужно реализовать
-    return True
-
-
-async def get_all_topics() -> list:
-    """Возвращает все известные темы."""
-    # Заглушка - нужно реализовать
-    return []
-
-
-async def get_topic_by_id(message_thread_id: int) -> dict:
-    """Получает тему по ID."""
-    # Заглушка - нужно реализовать
-    return None
-
-
-async def sync_topics_from_config() -> None:
-    """Загружает названия тем из topics_config.py в БД."""
-    # Заглушка - нужно реализовать
-    pass
-
-
-async def get_topic_name_by_thread_id(thread_id: int | None) -> str | None:
-    """Возвращает человекочитаемое название темы."""
-    # Заглушка - нужно реализовать
-    return None
+    pool = await get_pool()
+    
+    # Получаем подписки пользователя
+    subscriptions = await get_user_category_subscriptions(user_id)
+    if not subscriptions:
+        return []
+    
+    # Определяем период для фильтрации
+    period_days = {
+        "week": 7,
+        "month": 30,
+        "all": 365 * 10,  # 10 лет
+    }.get(period, 7)
+    
+    # Создаем условие для категорий
+    categories_condition = " OR ".join([f"category = '{cat}'" for cat in subscriptions])
+    
+    result = await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            f"""
+            SELECT * FROM events 
+            WHERE status = 'active' 
+            AND date_time >= CurrentUtcTimestamp()
+            AND date_time <= CurrentUtcTimestamp() + Interval("PT" || CAST($days AS Utf8) || "H")
+            AND ({categories_condition})
+            ORDER BY date_time
+            """,
+            parameters={
+                "days": str(period_days * 24),
+            },
+            commit_tx=True,
+        )
+    )
+    
+    events = []
+    for row in result[0].rows:
+        event_dict = {}
+        for column in row.__fields__:
+            value = getattr(row, column)
+            if hasattr(value, 'isoformat'):
+                value = value.iso*
