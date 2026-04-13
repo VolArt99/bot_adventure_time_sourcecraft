@@ -3,15 +3,25 @@
 # ⚠️ ОБНОВЛЕНО: Добавлены новые функции и улучшена обработка ошибок
 
 import aiosqlite
+import os
+import logging
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from aiogram import Bot
 
-DB_PATH = "data/events.db"
+# Используем временную директорию для serverless-окружения
+# В Yandex Cloud Functions есть /tmp директория для записи
+TMP_DIR = "/tmp"
+DB_PATH = os.path.join(TMP_DIR, "events.db")
+
+logger = logging.getLogger(__name__)
 
 
 async def init_db():
     """Создаёт таблицы при первом запуске."""
+    # Создаем временную директорию, если она не существует
+    os.makedirs(TMP_DIR, exist_ok=True)
+    
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(
             """
@@ -567,7 +577,7 @@ async def get_forum_topics_raw(bot, chat_id: int):
             return response.topics  # Если объект
         return response or []  # Если список
     except Exception as e:
-        print(f"Ошибка при получении тем: {e}")
+        logger.error(f"Ошибка при получении тем: {e}")
         return []
 
 
@@ -762,7 +772,7 @@ async def save_forum_topic(message_thread_id: int, name: str) -> bool:
             await db.commit()
         return True
     except Exception as e:
-        print(f"Ошибка сохранения темы: {e}")
+        logger.error(f"Ошибка сохранения темы: {e}")
         return False
 
 
@@ -775,7 +785,7 @@ async def get_all_topics() -> list:
                 rows = await cursor.fetchall()
                 return [dict(row) for row in rows]
     except Exception as e:
-        print(f"Ошибка получения тем: {e}")
+        logger.error(f"Ошибка получения тем: {e}")
         return []
 
 
@@ -791,7 +801,7 @@ async def get_topic_by_id(message_thread_id: int) -> dict:
                 row = await cursor.fetchone()
                 return dict(row) if row else None
     except Exception as e:
-        print(f"Ошибка получения темы: {e}")
+        logger.error(f"Ошибка получения темы: {e}")
         return None
 
 
