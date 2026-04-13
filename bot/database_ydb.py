@@ -629,14 +629,60 @@ async def get_events_for_digest(period: str = "week") -> List[Dict]:
 
 async def set_user_category_subscriptions(user_id: int, categories: list[str]) -> None:
     """Перезаписывает список подписок пользователя по категориям."""
-    # Заглушка - нужно реализовать
-    pass
+    pool = await get_pool()
+    
+    # Удаляем существующие подписки пользователя
+    await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            DELETE FROM user_category_subscriptions WHERE user_id = $user_id
+            """,
+            parameters={
+                "user_id": user_id,
+            },
+            commit_tx=True,
+        )
+    )
+    
+    # Добавляем новые подписки
+    for category in categories:
+        if category.strip():  # Пропускаем пустые категории
+            await pool.retry_operation(
+                lambda session: session.transaction().execute(
+                    """
+                    INSERT INTO user_category_subscriptions (user_id, category)
+                    VALUES ($user_id, $category)
+                    """,
+                    parameters={
+                        "user_id": user_id,
+                        "category": category.strip(),
+                    },
+                    commit_tx=True,
+                )
+            )
+    
+    logger.info(f"Обновлены подписки пользователя {user_id}: {categories}")
 
 
 async def get_user_category_subscriptions(user_id: int) -> list[str]:
     """Возвращает категории, на которые подписан пользователь."""
-    # Заглушка - нужно реализовать
-    return []
+    pool = await get_pool()
+    
+    result = await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            SELECT category FROM user_category_subscriptions 
+            WHERE user_id = $user_id 
+            ORDER BY category
+            """,
+            parameters={
+                "user_id": user_id,
+            },
+            commit_tx=True,
+        )
+    )
+    
+    return [row.category for row in result[0].rows]
 
 
 async def get_events_for_user_subscriptions(user_id: int, period: str = "week") -> List[Dict]:
