@@ -8,6 +8,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+if not BOT_TOKEN:
+    raise ValueError("BOT_TOKEN не установлен. Убедитесь, что переменная окружения BOT_TOKEN установлена.")
+
 WEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
 
 # ⚠️ ВАЖНО: GROUP_ID должен быть числом (например, -1001234567890)
