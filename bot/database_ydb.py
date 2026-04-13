@@ -1026,10 +1026,12 @@ async def get_events_for_digest(period: str = "week") -> List[Dict]:
             WHERE status = 'active' 
             AND date_time >= CurrentUtcTimestamp()
             AND date_time <= CurrentUtcTimestamp() + Interval("PT" || CAST($days AS Utf8) || "H")
+            AND ($categories_condition)
             ORDER BY date_time
             """,
             parameters={
                 "days": str(period_days * 24),
+                "categories_condition": categories_condition,
             },
             commit_tx=True,
         )
