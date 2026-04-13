@@ -28,6 +28,11 @@ workflows:
     env:
       YC_BOT_NAME: ${{ inputs.bot-username }}
       TG_BOT_TOKEN: ${{ inputs.bot-token }}
+      WEATHER_API_KEY: ${{ secrets.WEATHER_API_KEY }}
+      GROUP_ID: ${{ secrets.GROUP_ID }}
+      ADMIN_IDS: ${{ secrets.ADMIN_IDS }}
+      YDB_ENDPOINT: ${{ secrets.YDB_ENDPOINT }}
+      YDB_DATABASE: ${{ secrets.YDB_DATABASE }}
     tasks:
       - name: deploy-tg-backend-task
         cubes: 
