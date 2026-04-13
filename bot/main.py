@@ -27,7 +27,6 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.FileHandler("bot.log", encoding="utf-8"),
         logging.StreamHandler(),
     ],
 )
@@ -71,7 +70,6 @@ async def ensure_initialized(*, for_polling: bool = False) -> None:
 
         if not _is_initialized:
             logger.info("Инициализация бота...")
-            os.makedirs("data", exist_ok=True)
             await init_db()
             await sync_topics_from_config()
             _register_handlers()
