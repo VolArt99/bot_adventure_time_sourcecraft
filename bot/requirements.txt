@@ -9,4 +9,3 @@ aiohttp>=3.9.1
 pytz>=2024.1
 ydb>=3.0.0
 ydb[aio]>=3.0.0
-redis>=5.0.0

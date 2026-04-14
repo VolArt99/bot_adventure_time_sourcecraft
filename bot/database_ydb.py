@@ -220,6 +220,25 @@ async def init_db():
     await pool.retry_operation(
         lambda session: session.execute_scheme(
             """
+            CREATE TABLE IF NOT EXISTS fsm_states (
+                bot_id Int64 NOT NULL,
+                chat_id Int64 NOT NULL,
+                user_id Int64 NOT NULL,
+                thread_id Int64,
+                business_connection_id Utf8,
+                destiny Utf8 NOT NULL,
+                state Utf8,
+                data_json Utf8,
+                updated_at Timestamp DEFAULT CurrentUtcTimestamp(),
+                PRIMARY KEY (bot_id, chat_id, user_id, thread_id, business_connection_id, destiny)
+            )
+            """
+        )
+    )
+    
+    await pool.retry_operation(
+        lambda session: session.execute_scheme(
+            """
             CREATE TABLE IF NOT EXISTS approved_members (
                 user_id Int64 NOT NULL,
                 username Utf8,

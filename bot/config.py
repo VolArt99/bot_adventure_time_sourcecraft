@@ -63,6 +63,3 @@ if not 1 <= DIGEST_DAY_OF_WEEK <= 7:
     raise ValueError("DIGEST_DAY_OF_WEEK должен быть в диапазоне 1..7 (1=Пн, 7=Вс).")
 if not 0 <= DIGEST_HOUR <= 23:
     raise ValueError("DIGEST_HOUR должен быть в диапазоне 0..23.")
-
-# FSM storage (персистентное, чтобы не терять состояния после рестарта)
-REDIS_DSN = os.getenv("REDIS_DSN", "")

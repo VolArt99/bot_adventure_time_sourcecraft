@@ -7,11 +7,9 @@ import asyncio
 import logging
 from aiogram import Bot, Dispatcher, F
 from aiogram.exceptions import TelegramNetworkError
-from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.fsm.storage.redis import RedisStorage
 from aiogram.fsm.strategy import FSMStrategy
 
-from bot.config import BOT_TOKEN, REDIS_DSN
+from bot.config import BOT_TOKEN
 from bot.database import init_db, sync_topics_from_config
 import bot.handlers.common as common
 import bot.handlers.events as events
@@ -23,6 +21,7 @@ import bot.handlers.roadmap as roadmap
 import bot.handlers.subscriptions as subscriptions
 import bot.handlers.admin as admin
 from bot.utils.scheduler import restore_jobs, start_scheduler
+from bot.fsm_storage_ydb import YdbStorage
 
 from aiogram.types import Update
 
@@ -37,11 +36,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 bot = Bot(token=BOT_TOKEN)
-if REDIS_DSN:
-    storage = RedisStorage.from_url(REDIS_DSN)
-else:
-    logger.warning("REDIS_DSN не задан. Используется MemoryStorage (неперсистентно).")
-    storage = MemoryStorage()
+storage = YdbStorage()
 
 dp = Dispatcher(storage=storage, fsm_strategy=FSMStrategy.GLOBAL_USER)
 _is_initialized = False
