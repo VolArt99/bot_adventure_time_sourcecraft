@@ -20,6 +20,22 @@ GROUP_ID = int(os.getenv("GROUP_ID")) if os.getenv("GROUP_ID") else 0
 # ⚠️ ОБНОВЛЕНО: ADMIN_IDS теперь список организаторов (не только админы)
 ADMIN_IDS = list(map(int, os.getenv("ADMIN_IDS", "").split(","))) if os.getenv("ADMIN_IDS") else []
 OWNER_CHAT_ID = int(os.getenv("OWNER_CHAT_ID")) if os.getenv("OWNER_CHAT_ID") else 0
+OWNER_ID = int(os.getenv("OWNER_ID")) if os.getenv("OWNER_ID") else OWNER_CHAT_ID
+
+# Дневные лимиты по отправке команд
+ADMIN_DAILY_COMMAND_LIMIT = int(os.getenv("ADMIN_DAILY_COMMAND_LIMIT", "150"))
+MEMBER_DAILY_COMMAND_LIMIT = int(os.getenv("MEMBER_DAILY_COMMAND_LIMIT", "60"))
+OUTSIDER_START_DAILY_LIMIT = int(os.getenv("OUTSIDER_START_DAILY_LIMIT", "5"))
+
+# Команды, доступные участнику группы
+MEMBER_ALLOWED_COMMANDS = {
+    cmd.strip().lower()
+    for cmd in os.getenv(
+        "MEMBER_ALLOWED_COMMANDS",
+        "start,help,my_events,digest,subscriptions,my_digest,my_stats,top,find_events,random_optin,random_optout",
+    ).split(",")
+    if cmd.strip()
+}
 
 # Команды, которые могут выполнять только админы (ADMIN_IDS).
 # Нужны для ограничения сервисных операций обычным участникам.

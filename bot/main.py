@@ -41,7 +41,10 @@ _init_lock = asyncio.Lock()
 def _register_handlers() -> None:
     """Регистрирует роутеры и middleware один раз."""
     dp.message.filter(F.chat.type == "private")
-    
+
+    from middleware.command_access import CommandAccessMiddleware
+    dp.message.middleware(CommandAccessMiddleware())
+
     dp.include_router(common.router)
     dp.include_router(events.router)
     dp.include_router(participation.router)

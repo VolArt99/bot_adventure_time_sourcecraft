@@ -7,7 +7,15 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
 
-from config import GROUP_ID, OWNER_CHAT_ID
+from config import (
+    ADMIN_DAILY_COMMAND_LIMIT,
+    GROUP_ID,
+    MEMBER_ALLOWED_COMMANDS,
+    MEMBER_DAILY_COMMAND_LIMIT,
+    OUTSIDER_START_DAILY_LIMIT,
+    OWNER_CHAT_ID,
+    OWNER_ID,
+)
 from database import (
     get_or_create_user,
     add_pending_user,
@@ -231,8 +239,15 @@ async def intro_toggle(callback: CallbackQuery):
 
 @router.message(Command("help"))
 async def cmd_help(message: Message):
+    member_commands = ", ".join(f"/{cmd}" for cmd in sorted(MEMBER_ALLOWED_COMMANDS))
     help_text = (
         "ℹ️ <b>Все команды работают только в личных сообщениях с ботом.</b>\n\n"
+        "<b>Роли и доступ:</b>\n"
+        f"• Владелец (OWNER_ID={OWNER_ID}) — доступ ко всем командам, без лимита.\n"
+        f"• Админ (ADMIN_IDS) — доступ ко всем командам, лимит: {ADMIN_DAILY_COMMAND_LIMIT} команд/сутки.\n"
+        f"• Участник группы — доступ только к пользовательским командам, лимит: {MEMBER_DAILY_COMMAND_LIMIT} команд/сутки.\n"
+        f"• Не участник группы — доступна только /start, лимит: {OUTSIDER_START_DAILY_LIMIT} запусков/сутки.\n\n"
+        f"<b>Команды участника:</b> {member_commands}\n\n"        
         "<b>Основные команды:</b>\n"
         "/start — регистрация и запуск бота\n"
         "/help — список команд и возможностей\n"
