@@ -13,6 +13,7 @@ WEATHER_EMOJI = {
     "50d": "🌫", "50n": "🌫",
 }
 
+
 async def get_weather(city: str = None, lat: float = None, lon: float = None) -> dict:
     """Возвращает погоду в удобном для бота формате."""
     if not WEATHER_API_KEY:
@@ -32,21 +33,30 @@ async def get_weather(city: str = None, lat: float = None, lon: float = None) ->
     else:
         return {}
 
-    async with aiohttp.ClientSession() as session:
-        async with session.get(
-            "https://api.openweathermap.org/data/2.5/weather",
-            params=params
-        ) as resp:
-            if resp.status != 200:
-                return {}
+    timeout = aiohttp.ClientTimeout(total=8)
+    try:
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.get(
+                "https://api.openweathermap.org/data/2.5/weather",
+                params=params,
+            ) as resp:
+                if resp.status != 200:
+                    return {}
 
-            data = await resp.json()
-            weather = data["weather"][0]
-            temp = round(data["main"]["temp"])
-            icon_code = weather["icon"]
+                data = await resp.json()
+                weather_list = data.get("weather") or []
+                main = data.get("main") or {}
+                if not weather_list or "temp" not in main:
+                    return {}
 
-            return {
-                "icon": WEATHER_EMOJI.get(icon_code, "🌤"),
-                "description": weather["description"].capitalize(),
-                "temp": temp,
-            }
+                weather = weather_list[0]
+                temp = round(float(main["temp"]))
+                icon_code = weather.get("icon", "")
+
+                return {
+                    "icon": WEATHER_EMOJI.get(icon_code, "🌤"),
+                    "description": str(weather.get("description", "")).capitalize(),
+                    "temp": temp,
+                }
+    except (aiohttp.ClientError, TimeoutError, ValueError, TypeError):
+        return {}
