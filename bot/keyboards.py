@@ -158,3 +158,41 @@ def notification_settings_keyboard(current: str) -> InlineKeyboardMarkup:
         builder.button(text="✅ Текущее: Отключено", callback_data="notify_current")
     builder.adjust(1)
     return builder.as_markup()
+
+
+def onboarding_start_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="Старт", callback_data="onboarding_start")]
+        ]
+    )
+
+
+def rules_ack_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="Правила изучил(а) ❤️", callback_data="rules_ack")]
+        ]
+    )
+
+
+def owner_approval_keyboard(user_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="✅ Принять в группу", callback_data=f"approve_user_{user_id}"),
+                InlineKeyboardButton(text="❌ Отказать", callback_data=f"reject_user_{user_id}"),
+            ]
+        ]
+    )
+
+
+def intro_status_keyboard(user_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="✅ Выполнено", callback_data=f"intro_done_{user_id}"),
+                InlineKeyboardButton(text="✏️ Изменить статус", callback_data=f"intro_toggle_{user_id}"),
+            ]
+        ]
+    )

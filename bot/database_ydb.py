@@ -202,6 +202,36 @@ async def init_db():
         )
     )
 
+    await pool.retry_operation(
+        lambda session: session.execute_scheme(
+            """
+            CREATE TABLE IF NOT EXISTS pending_users (
+                user_id Int64 NOT NULL,
+                username Utf8,
+                full_name Utf8,
+                status Utf8,
+                created_at Timestamp DEFAULT CurrentUtcTimestamp(),
+                PRIMARY KEY (user_id)
+            )
+            """
+        )
+    )
+
+    await pool.retry_operation(
+        lambda session: session.execute_scheme(
+            """
+            CREATE TABLE IF NOT EXISTS approved_members (
+                user_id Int64 NOT NULL,
+                username Utf8,
+                full_name Utf8,
+                join_date Timestamp DEFAULT CurrentUtcTimestamp(),
+                intro_status Utf8 DEFAULT 'pending',
+                PRIMARY KEY (user_id)
+            )
+            """
+        )
+    )
+
     logger.info("Таблицы YDB созданы или уже существуют")
 
 
@@ -238,6 +268,142 @@ async def get_or_create_user(user_id: int, username: str = None) -> int:
         )
 
     return user_id
+
+
+async def add_pending_user(user_id: int, username: str | None, full_name: str | None) -> None:
+    pool = await get_pool()
+    await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            UPSERT INTO pending_users (user_id, username, full_name, status)
+            VALUES ($user_id, $username, $full_name, $status)
+            """,
+            parameters={
+                "user_id": int(user_id),
+                "username": username or "",
+                "full_name": full_name or "",
+                "status": "waiting_approval",
+            },
+            commit_tx=True,
+        )
+    )
+
+
+async def get_pending_user(user_id: int) -> Optional[Dict[str, Any]]:
+    pool = await get_pool()
+    result = await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            SELECT user_id, username, full_name, status, created_at
+            FROM pending_users
+            WHERE user_id = $user_id
+            """,
+            parameters={"user_id": int(user_id)},
+            commit_tx=True,
+        )
+    )
+    if not result[0].rows:
+        return None
+    return _normalize_row(result[0].rows[0])
+
+
+async def delete_pending_user(user_id: int) -> None:
+    pool = await get_pool()
+    await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            DELETE FROM pending_users WHERE user_id = $user_id
+            """,
+            parameters={"user_id": int(user_id)},
+            commit_tx=True,
+        )
+    )
+
+
+async def is_member_approved(user_id: int) -> bool:
+    pool = await get_pool()
+    result = await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            SELECT user_id FROM approved_members WHERE user_id = $user_id
+            """,
+            parameters={"user_id": int(user_id)},
+            commit_tx=True,
+        )
+    )
+    return bool(result[0].rows)
+
+
+async def approve_pending_user(user_id: int) -> Optional[Dict[str, Any]]:
+    pending = await get_pending_user(user_id)
+    if not pending:
+        return None
+    pool = await get_pool()
+    await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            UPSERT INTO approved_members (user_id, username, full_name, intro_status)
+            VALUES ($user_id, $username, $full_name, $intro_status)
+            """,
+            parameters={
+                "user_id": int(user_id),
+                "username": str(pending.get("username") or ""),
+                "full_name": str(pending.get("full_name") or ""),
+                "intro_status": "pending",
+            },
+            commit_tx=True,
+        )
+    )
+    await delete_pending_user(user_id)
+    return pending
+
+
+async def get_pending_intro_members() -> list[Dict[str, Any]]:
+    pool = await get_pool()
+    result = await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            SELECT user_id, username, full_name, join_date, intro_status
+            FROM approved_members
+            WHERE intro_status = 'pending'
+            ORDER BY join_date
+            """,
+            commit_tx=True,
+        )
+    )
+    return [_normalize_row(row) for row in result[0].rows]
+
+
+async def get_intro_members_statuses() -> list[Dict[str, Any]]:
+    pool = await get_pool()
+    result = await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            SELECT user_id, username, full_name, join_date, intro_status
+            FROM approved_members
+            ORDER BY join_date
+            """,
+            commit_tx=True,
+        )
+    )
+    return [_normalize_row(row) for row in result[0].rows]
+
+
+async def update_intro_status(user_id: int, intro_status: str) -> None:
+    pool = await get_pool()
+    await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            UPDATE approved_members SET intro_status = $intro_status
+            WHERE user_id = $user_id
+            """,
+            parameters={
+                "user_id": int(user_id),
+                "intro_status": intro_status,
+            },
+            commit_tx=True,
+        )
+    )
 
 
 async def create_event(event_data: Dict[str, Any]) -> int:

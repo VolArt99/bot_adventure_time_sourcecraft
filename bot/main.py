@@ -19,8 +19,7 @@ from config import BOT_TOKEN
 from database import init_db, sync_topics_from_config
 from handlers import common, events, participation, digest, reminders, my_events, roadmap, subscriptions, admin
 from utils.scheduler import restore_jobs, start_scheduler
-from aiogram.types import Message, Update
-from aiogram.filters import Command
+from aiogram.types import Update
 
 # Настройка логирования
 logging.basicConfig(
@@ -117,9 +116,6 @@ async def handler(event: dict, context):
 
     return {"statusCode": 200, "body": ""}
 
-@dp.message(Command("start"))
-async def handle_start(message: Message):
-    await message.answer("Привет!")
     
 async def main():
     logger.info("Запуск бота...")

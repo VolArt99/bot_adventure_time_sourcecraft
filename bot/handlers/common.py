@@ -1,17 +1,62 @@
+from datetime import datetime, timezone
+import logging
+
+import aiogram
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
-import logging
-import aiogram
 
-from config import GROUP_ID
-from database import get_or_create_user
+from config import GROUP_ID, OWNER_CHAT_ID
+from database import (
+    get_or_create_user,
+    add_pending_user,
+    get_pending_user,
+    is_member_approved,
+    approve_pending_user,
+    delete_pending_user,
+    get_pending_intro_members,
+    get_intro_members_statuses,
+    update_intro_status,
+)
+
 from filters.admin import admin_only
 from filters.command_access import restricted_command
 
+from keyboards import (
+    onboarding_start_keyboard,
+    rules_ack_keyboard,
+    owner_approval_keyboard,
+    intro_status_keyboard,
+)
+from texts import ONBOARDING_WELCOME_TEXT, GROUP_RULES_TEXT
+
 logger = logging.getLogger(__name__)
 router = Router()
+
+
+async def _notify_owner_about_request(callback: CallbackQuery) -> None:
+    user = callback.from_user
+    if OWNER_CHAT_ID <= 0:
+        logger.warning("OWNER_CHAT_ID не настроен: невозможно отправить заявку владельцу")
+        return
+
+    full_name = " ".join(filter(None, [user.first_name, user.last_name])).strip()
+    username = f"@{user.username}" if user.username else "—"
+    owner_text = (
+        "🆕 Запрос на вступление:\n"
+        f"• ID: {user.id}\n"
+        f"• Имя: {full_name or '—'}\n"
+        f"• Username: {username}\n"
+        f"• Ссылка: <a href=\"tg://user?id={user.id}\">Перейти в чат</a>"
+    )
+
+    await callback.bot.send_message(
+        chat_id=OWNER_CHAT_ID,
+        text=owner_text,
+        parse_mode="HTML",
+        reply_markup=owner_approval_keyboard(user.id),
+    )
 
 
 @router.message(CommandStart())
@@ -19,7 +64,169 @@ async def cmd_start(message: Message):
     user_id = message.from_user.id
     username = message.from_user.username
     await get_or_create_user(user_id, username)
-    await message.answer("Привет! Я бот для управления мероприятиями в группе.")
+    await message.answer(ONBOARDING_WELCOME_TEXT, reply_markup=onboarding_start_keyboard())
+
+
+@router.callback_query(F.data == "onboarding_start")
+async def onboarding_start(callback: CallbackQuery):
+    await callback.message.answer(GROUP_RULES_TEXT, reply_markup=rules_ack_keyboard())
+    await callback.answer()
+
+
+@router.callback_query(F.data == "rules_ack")
+async def rules_ack(callback: CallbackQuery):
+    user = callback.from_user
+    full_name = " ".join(filter(None, [user.first_name, user.last_name])).strip()
+    await add_pending_user(user.id, user.username, full_name)
+    await _notify_owner_about_request(callback)
+    await callback.message.answer("✅ Правила приняты. Заявка отправлена владельцу на проверку.")
+    await callback.answer()
+
+
+@router.message(F.chat.type == "private")
+async def onboarding_guard(message: Message):
+    approved = await is_member_approved(message.from_user.id)
+    if approved:
+        return
+
+    pending = await get_pending_user(message.from_user.id)
+    if pending:
+        await message.answer("⏳ Ваша заявка уже ожидает решения владельца.")
+        return
+
+    await message.answer(
+        "Чтобы продолжить, нажмите «Старт», затем «Правила изучил(а) ❤️».\n"
+        "Любые другие сообщения до этого шага недоступны.",
+        reply_markup=onboarding_start_keyboard(),
+    )
+
+
+@router.callback_query(F.data.startswith("approve_user_"))
+async def owner_approve_user(callback: CallbackQuery):
+    if callback.from_user.id != OWNER_CHAT_ID:
+        await callback.answer("Недостаточно прав", show_alert=True)
+        return
+
+    user_id = int(callback.data.rsplit("_", 1)[-1])
+    pending = await approve_pending_user(user_id)
+    if not pending:
+        await callback.answer("Заявка не найдена", show_alert=True)
+        return
+
+    try:
+        invite = await callback.bot.create_chat_invite_link(chat_id=GROUP_ID, member_limit=1)
+        await callback.bot.send_message(
+            user_id,
+            f"✅ Ваша заявка одобрена. Ссылка для входа в группу:\n{invite.invite_link}",
+        )
+    except Exception as e:
+        logger.exception("Ошибка отправки инвайта пользователю %s: %s", user_id, e)
+
+    await callback.message.edit_text(f"✅ Пользователь {user_id} одобрен и перенесён в контроль "
+                                     f"«Рассказа о себе»." )
+    await callback.answer("Одобрено")
+
+
+@router.callback_query(F.data.startswith("reject_user_"))
+async def owner_reject_user(callback: CallbackQuery):
+    if callback.from_user.id != OWNER_CHAT_ID:
+        await callback.answer("Недостаточно прав", show_alert=True)
+        return
+
+    user_id = int(callback.data.rsplit("_", 1)[-1])
+    await delete_pending_user(user_id)
+    try:
+        await callback.bot.send_message(user_id, "❌ К сожалению, заявка на вступление отклонена.")
+    except Exception:
+        logger.info("Не удалось уведомить пользователя %s об отклонении", user_id)
+
+    await callback.message.edit_text(f"❌ Заявка пользователя {user_id} отклонена.")
+    await callback.answer("Отклонено")
+
+
+@router.message(Command("pending_intro"))
+async def cmd_pending_intro(message: Message):
+    if message.from_user.id != OWNER_CHAT_ID:
+        await message.answer("❌ Эта команда доступна только владельцу.")
+        return
+
+    pending_members = await get_pending_intro_members()
+    if not pending_members:
+        await message.answer("✅ Нет участников с незавершённым «Рассказом о себе».")
+        return
+
+    await message.answer(f"📋 В ожидании «Рассказа о себе»: {len(pending_members)}")
+    for member in pending_members:
+        username = f"@{member['username']}" if member.get("username") else "—"
+        full_name = member.get("full_name") or "—"
+        await message.answer(
+            f"• ID: {member['user_id']}\n• Имя: {full_name}\n• Username: {username}",
+            reply_markup=intro_status_keyboard(member["user_id"]),
+        )
+
+
+@router.message(Command("list_intro"))
+async def cmd_list_intro(message: Message):
+    if message.from_user.id != OWNER_CHAT_ID:
+        await message.answer("❌ Эта команда доступна только владельцу.")
+        return
+
+    members = await get_intro_members_statuses()
+    if not members:
+        await message.answer("Пока нет одобренных участников.")
+        return
+
+    now = datetime.now(timezone.utc)
+    lines = ["📊 Контроль «Рассказа о себе»:"]
+    for m in members:
+        join_date = m.get("join_date")
+        if isinstance(join_date, str):
+            join_dt = datetime.fromisoformat(join_date.replace("Z", "+00:00"))
+        else:
+            join_dt = join_date
+        days_passed = (now - join_dt).days if join_dt else 0
+        days_left = max(0, 7 - days_passed)
+        if days_passed <= 7:
+            state = f"🟢 Всё хорошо (Осталось {days_left} дн.)"
+        elif m.get("intro_status") == "pending":
+            state = "🔴 Просрочено! Требуется проверка."
+        else:
+            state = "✅ Выполнено"
+
+        username = f"@{m['username']}" if m.get("username") else "—"
+        lines.append(f"• {m.get('full_name') or '—'} ({username}, id={m['user_id']}) — {state}")
+
+    await message.answer("\n".join(lines))
+
+
+@router.callback_query(F.data.startswith("intro_done_"))
+async def intro_done(callback: CallbackQuery):
+    if callback.from_user.id != OWNER_CHAT_ID:
+        await callback.answer("Недостаточно прав", show_alert=True)
+        return
+
+    user_id = int(callback.data.rsplit("_", 1)[-1])
+    await update_intro_status(user_id, "completed")
+    await callback.answer("Статус обновлён")
+    await callback.message.edit_reply_markup(reply_markup=None)
+
+
+@router.callback_query(F.data.startswith("intro_toggle_"))
+async def intro_toggle(callback: CallbackQuery):
+    if callback.from_user.id != OWNER_CHAT_ID:
+        await callback.answer("Недостаточно прав", show_alert=True)
+        return
+
+    user_id = int(callback.data.rsplit("_", 1)[-1])
+    members = await get_intro_members_statuses()
+    current = next((m for m in members if int(m["user_id"]) == user_id), None)
+    if not current:
+        await callback.answer("Пользователь не найден", show_alert=True)
+        return
+
+    new_status = "pending" if current.get("intro_status") == "completed" else "completed"
+    await update_intro_status(user_id, new_status)
+    await callback.answer(f"Статус: {new_status}")
 
 
 @router.message(Command("help"))
@@ -45,7 +252,9 @@ async def cmd_help(message: Message):
         "/list_topics — список обнаруженных тем\n"
         "/update_topic_names — обновить названия тем (для админов)\n"
         "/admin_report — сводный отчёт по событиям (для админов)\n"
-        "/random_pairs — сформировать пары 1:1 (для админов)"
+        "/random_pairs — сформировать пары 1:1 (для админов)\n"
+        "/pending_intro — контроль не завершивших «Рассказ о себе» (владелец)\n"
+        "/list_intro — статусы дедлайнов «Рассказа о себе» (владелец)"
     )
     await message.answer(help_text, parse_mode="HTML")
 
