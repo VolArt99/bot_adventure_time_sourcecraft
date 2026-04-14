@@ -11,10 +11,8 @@ from aiogram import Bot
 logger = logging.getLogger(__name__)
 
 # Конфигурация подключения к YDB
-YDB_ENDPOINT = os.getenv("YDB_ENDPOINT", "grpcs://ydb.serverless.yandexcloud.net:2135")
-YDB_DATABASE = os.getenv(
-    "YDB_DATABASE", "/ru-central1/b1gburmf2sv6jdb39qi4/etnnggcnvg783q3fj957"
-)
+YDB_ENDPOINT = os.getenv("YDB_ENDPOINT")
+YDB_DATABASE = os.getenv("YDB_DATABASE")
 
 # Глобальные переменные для драйвера и пула сессий
 _driver = None
@@ -25,6 +23,8 @@ async def get_driver():
     """Возвращает инициализированный драйвер YDB."""
     global _driver
     if _driver is None:
+        if not YDB_ENDPOINT or not YDB_DATABASE:
+            raise ValueError("YDB_ENDPOINT и YDB_DATABASE должны быть явно заданы в переменных окружения.")        
         driver_config = ydb.DriverConfig(
             YDB_ENDPOINT,
             YDB_DATABASE,

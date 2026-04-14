@@ -5,7 +5,8 @@ from apscheduler.jobstores.memory import MemoryJobStore
 from datetime import datetime, timedelta
 import pytz
 import logging
-from config import TIMEZONE, REMINDER_INTERVALS, GROUP_ID
+from html import escape
+from config import TIMEZONE, REMINDER_INTERVALS, GROUP_ID, DIGEST_DAY_OF_WEEK, DIGEST_HOUR
 from database import get_active_events, get_participants, get_event
 
 logger = logging.getLogger(__name__)
@@ -66,7 +67,7 @@ async def send_reminder(event_id: int, interval: int, bot):
         # Отправка в ЛС
         for uid in participants:
             try:
-                await bot.send_message(uid, text, parse_mode="Markdown")
+                await bot.send_message(uid, text, parse_mode="HTML")
             except Exception as e:
                 logger.warning(f"Не удалось отправить ЛС пользователю {uid}: {e}")
 
@@ -75,8 +76,8 @@ async def send_reminder(event_id: int, interval: int, bot):
             await bot.send_message(
                 chat_id=GROUP_ID,
                 message_thread_id=event["thread_id"],
-                text=f"🔔 Напоминание: **{event['title']}** начнётся через {minutes_until} мин",
-                parse_mode="Markdown",
+                text=f"🔔 Напоминание: <b>{escape(event['title'])}</b> начнётся через {minutes_until} мин",
+                parse_mode="HTML",
             )
 
         logger.info(f"Напоминание отправлено для мероприятия {event_id}")
@@ -102,8 +103,8 @@ async def schedule_digest(bot, chat_id: int, thread_id: int = None):
     scheduler.add_job(
         send_digest,
         trigger="cron",
-        day_of_week=0,  # Понедельник
-        hour=10,
+        day_of_week=max(0, DIGEST_DAY_OF_WEEK - 1),  # APScheduler: 0=Пн, 6=Вс
+        hour=DIGEST_HOUR,
         args=[bot, chat_id, thread_id],
         id="weekly_digest",
         replace_existing=True,

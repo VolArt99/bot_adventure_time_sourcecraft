@@ -20,7 +20,7 @@ GROUP_ID = int(os.getenv("GROUP_ID")) if os.getenv("GROUP_ID") else 0
 # ⚠️ ОБНОВЛЕНО: ADMIN_IDS теперь список организаторов (не только админы)
 ADMIN_IDS = list(map(int, os.getenv("ADMIN_IDS", "").split(","))) if os.getenv("ADMIN_IDS") else []
 OWNER_CHAT_ID = int(os.getenv("OWNER_CHAT_ID")) if os.getenv("OWNER_CHAT_ID") else 0
-OWNER_ID = int(os.getenv("OWNER_ID")) if os.getenv("OWNER_ID") else OWNER_CHAT_ID
+OWNER_ID = int(os.getenv("OWNER_ID")) if os.getenv("OWNER_ID") else 0
 
 # Дневные лимиты по отправке команд
 ADMIN_DAILY_COMMAND_LIMIT = int(os.getenv("ADMIN_DAILY_COMMAND_LIMIT", "150"))
@@ -55,5 +55,12 @@ TIMEZONE = os.getenv("TIMEZONE", "Europe/Moscow")  # Москва = СПб
 REMINDER_INTERVALS = [86400, 10800, 7200, 3600, 1800]  # 1 день, 3ч, 2ч, 1ч, 30мин
 
 # Настройки дайджеста
-DIGEST_DAY_OF_WEEK = 1  # Понедельник (0=Пн, 6=Вс)
-DIGEST_HOUR = 10  # 10:00
+DIGEST_DAY_OF_WEEK = int(os.getenv("DIGEST_DAY_OF_WEEK", "1"))  # Понедельник (1=Пн, 7=Вс)
+DIGEST_HOUR = int(os.getenv("DIGEST_HOUR", "10"))  # 10:00
+if not 1 <= DIGEST_DAY_OF_WEEK <= 7:
+    raise ValueError("DIGEST_DAY_OF_WEEK должен быть в диапазоне 1..7 (1=Пн, 7=Вс).")
+if not 0 <= DIGEST_HOUR <= 23:
+    raise ValueError("DIGEST_HOUR должен быть в диапазоне 0..23.")
+
+# FSM storage (персистентное, чтобы не терять состояния после рестарта)
+REDIS_DSN = os.getenv("REDIS_DSN", "")

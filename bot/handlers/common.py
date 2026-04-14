@@ -13,7 +13,6 @@ from config import (
     MEMBER_ALLOWED_COMMANDS,
     MEMBER_DAILY_COMMAND_LIMIT,
     OUTSIDER_START_DAILY_LIMIT,
-    OWNER_CHAT_ID,
     OWNER_ID,
 )
 from database import (
@@ -45,8 +44,8 @@ router = Router()
 
 async def _notify_owner_about_request(callback: CallbackQuery) -> None:
     user = callback.from_user
-    if OWNER_CHAT_ID <= 0:
-        logger.warning("OWNER_CHAT_ID не настроен: невозможно отправить заявку владельцу")
+    if OWNER_ID <= 0:
+        logger.warning("OWNER_ID не настроен: невозможно отправить заявку владельцу")
         return
 
     full_name = " ".join(filter(None, [user.first_name, user.last_name])).strip()
@@ -60,7 +59,7 @@ async def _notify_owner_about_request(callback: CallbackQuery) -> None:
     )
 
     await callback.bot.send_message(
-        chat_id=OWNER_CHAT_ID,
+        chat_id=OWNER_ID,
         text=owner_text,
         parse_mode="HTML",
         reply_markup=owner_approval_keyboard(user.id),
@@ -111,7 +110,7 @@ async def onboarding_guard(message: Message):
 
 @router.callback_query(F.data.startswith("approve_user_"))
 async def owner_approve_user(callback: CallbackQuery):
-    if callback.from_user.id != OWNER_CHAT_ID:
+    if callback.from_user.id != OWNER_ID:
         await callback.answer("Недостаточно прав", show_alert=True)
         return
 
@@ -137,7 +136,7 @@ async def owner_approve_user(callback: CallbackQuery):
 
 @router.callback_query(F.data.startswith("reject_user_"))
 async def owner_reject_user(callback: CallbackQuery):
-    if callback.from_user.id != OWNER_CHAT_ID:
+    if callback.from_user.id != OWNER_ID:
         await callback.answer("Недостаточно прав", show_alert=True)
         return
 
@@ -154,7 +153,7 @@ async def owner_reject_user(callback: CallbackQuery):
 
 @router.message(Command("pending_intro"))
 async def cmd_pending_intro(message: Message):
-    if message.from_user.id != OWNER_CHAT_ID:
+    if message.from_user.id != OWNER_ID:
         await message.answer("❌ Эта команда доступна только владельцу.")
         return
 
@@ -175,7 +174,7 @@ async def cmd_pending_intro(message: Message):
 
 @router.message(Command("list_intro"))
 async def cmd_list_intro(message: Message):
-    if message.from_user.id != OWNER_CHAT_ID:
+    if message.from_user.id != OWNER_ID:
         await message.answer("❌ Эта команда доступна только владельцу.")
         return
 
@@ -209,7 +208,7 @@ async def cmd_list_intro(message: Message):
 
 @router.callback_query(F.data.startswith("intro_done_"))
 async def intro_done(callback: CallbackQuery):
-    if callback.from_user.id != OWNER_CHAT_ID:
+    if callback.from_user.id != OWNER_ID:
         await callback.answer("Недостаточно прав", show_alert=True)
         return
 
@@ -221,7 +220,7 @@ async def intro_done(callback: CallbackQuery):
 
 @router.callback_query(F.data.startswith("intro_toggle_"))
 async def intro_toggle(callback: CallbackQuery):
-    if callback.from_user.id != OWNER_CHAT_ID:
+    if callback.from_user.id != OWNER_ID:
         await callback.answer("Недостаточно прав", show_alert=True)
         return
 
