@@ -4,7 +4,7 @@ import os
 import logging
 import ydb
 import ydb.aio
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Any
 from aiogram import Bot
 
@@ -360,6 +360,42 @@ async def get_active_events() -> List[Dict]:
     return events
 
 
+def _normalize_row(row) -> Dict[str, Any]:
+    """Преобразует строку YDB в обычный словарь python-типов."""
+    event_dict: Dict[str, Any] = {}
+    for column in row.__fields__:
+        value = getattr(row, column)
+        if hasattr(value, "isoformat"):
+            value = value.isoformat()
+        elif isinstance(value, ydb.Decimal):
+            value = float(value)
+        event_dict[column] = value
+    return event_dict
+
+
+def _period_to_days(period: str, default_days: int = 7) -> int:
+    return {
+        "week": 7,
+        "month": 30,
+        "all": 365 * 10,
+    }.get(period, default_days)
+
+
+def _parse_event_datetime(value: Any) -> Optional[datetime]:
+    """Пытается распарсить дату события из строки/объекта datetime."""
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value
+    if isinstance(value, str):
+        normalized = value.replace("Z", "+00:00")
+        try:
+            return datetime.fromisoformat(normalized)
+        except ValueError:
+            return None
+    return None
+
+
 async def add_participant(
     event_id: int,
     user_id: int,
@@ -634,20 +670,12 @@ async def find_events(query: str, period: str = "month", limit: int = 20) -> Lis
     """Поиск предстоящих активных мероприятий по названию/месту/категории."""
     pool = await get_pool()
     
-    # Определяем период для фильтрации
-    period_days = {
-        "week": 7,
-        "month": 30,
-        "all": 365 * 10,  # 10 лет
-    }.get(period, 30)
-    
+    period_days = _period_to_days(period, default_days=30)
     result = await pool.retry_operation(
         lambda session: session.transaction().execute(
             """
             SELECT * FROM events 
             WHERE status = 'active' 
-            AND date_time >= CurrentUtcTimestamp()
-            AND date_time <= CurrentUtcTimestamp() + Interval("PT" || CAST($days AS Utf8) || "H")
             AND (
                 title LIKE '%' || $query || '%' 
                 OR location LIKE '%' || $query || '%'
@@ -655,30 +683,28 @@ async def find_events(query: str, period: str = "month", limit: int = 20) -> Lis
                 OR description LIKE '%' || $query || '%'
             )
             ORDER BY date_time
-            LIMIT $limit
             """,
             parameters={
-                "days": str(period_days * 24),
                 "query": query,
-                "limit": limit,
             },
             commit_tx=True,
         )
     )
     
-    events = []
+    now = datetime.utcnow()
+    max_dt = now + timedelta(days=period_days)
+    events: List[Dict] = []
+
     for row in result[0].rows:
-        event_dict = {}
-        for column in row.__fields__:
-            value = getattr(row, column)
-            if hasattr(value, 'isoformat'):
-                value = value.isoformat()
-            elif isinstance(value, ydb.Decimal):
-                value = float(value)
-            event_dict[column] = value
-        events.append(event_dict)
-    
-    return events
+        event_dict = _normalize_row(row)
+        event_dt = _parse_event_datetime(event_dict.get("date_time"))
+        if event_dt is None:
+            continue
+        if now <= event_dt <= max_dt:
+            events.append(event_dict)
+
+    events.sort(key=lambda x: x.get("date_time", ""))
+    return events[:limit]
 
 
 async def get_user_events(user_id: int, status: str = None) -> List[Dict]:
@@ -1012,43 +1038,30 @@ async def get_events_for_digest(period: str = "week") -> List[Dict]:
     """Получение предстоящих активных мероприятий для дайджеста."""
     pool = await get_pool()
     
-    # Определяем период для фильтрации
-    period_days = {
-        "week": 7,
-        "month": 30,
-        "all": 365 * 10,  # 10 лет
-    }.get(period, 7)
-    
+    period_days = _period_to_days(period)
     result = await pool.retry_operation(
         lambda session: session.transaction().execute(
             """
             SELECT * FROM events 
             WHERE status = 'active' 
-            AND date_time >= CurrentUtcTimestamp()
-            AND date_time <= CurrentUtcTimestamp() + Interval("PT" || CAST($days AS Utf8) || "H")
-            AND ($categories_condition)
             ORDER BY date_time
             """,
-            parameters={
-                "days": str(period_days * 24),
-                "categories_condition": categories_condition,
-            },
             commit_tx=True,
         )
     )
     
-    events = []
+    now = datetime.utcnow()
+    max_dt = now + timedelta(days=period_days)
+    events: List[Dict] = []
     for row in result[0].rows:
-        event_dict = {}
-        for column in row.__fields__:
-            value = getattr(row, column)
-            if hasattr(value, 'isoformat'):
-                value = value.isoformat()
-            elif isinstance(value, ydb.Decimal):
-                value = float(value)
-            event_dict[column] = value
-        events.append(event_dict)
-    
+        event_dict = _normalize_row(row)
+        event_dt = _parse_event_datetime(event_dict.get("date_time"))
+        if event_dt is None:
+            continue
+        if now <= event_dt <= max_dt:
+            events.append(event_dict)
+
+    events.sort(key=lambda x: x.get("date_time", ""))
     return events
 
 
@@ -1119,37 +1132,33 @@ async def get_events_for_user_subscriptions(user_id: int, period: str = "week") 
     if not subscriptions:
         return []
     
-    # Определяем период для фильтрации
-    period_days = {
-        "week": 7,
-        "month": 30,
-        "all": 365 * 10,  # 10 лет
-    }.get(period, 7)
-    
-    # Создаем условие для категорий
-    categories_condition = " OR ".join([f"category = '{cat}'" for cat in subscriptions])
-    
+    period_days = _period_to_days(period)
     result = await pool.retry_operation(
         lambda session: session.transaction().execute(
-            f"""
+            """
             SELECT * FROM events 
             WHERE status = 'active' 
-            AND date_time >= CurrentUtcTimestamp()
-            AND date_time <= CurrentUtcTimestamp() + Interval("PT" || CAST($days AS Utf8) || "H")
-            AND ({categories_condition})
             ORDER BY date_time
             """,
-            parameters={
-                "days": str(period_days * 24),
-            },
             commit_tx=True,
         )
     )
     
-    events = []
+    now = datetime.utcnow()
+    max_dt = now + timedelta(days=period_days)
+    subscriptions_set = {item.strip().lower() for item in subscriptions if item and item.strip()}
+    events: List[Dict] = []
+
     for row in result[0].rows:
-        event_dict = {}
-        for column in row.__fields__:
-            value = getattr(row, column)
-            if hasattr(value, 'isoformat'):
-                value = value.iso*
+        event_dict = _normalize_row(row)
+        event_category = str(event_dict.get("category") or "").strip().lower()
+        if event_category not in subscriptions_set:
+            continue
+        event_dt = _parse_event_datetime(event_dict.get("date_time"))
+        if event_dt is None:
+            continue
+        if now <= event_dt <= max_dt:
+            events.append(event_dict)
+
+    events.sort(key=lambda x: x.get("date_time", ""))
+    return events
