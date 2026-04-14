@@ -20,6 +20,17 @@ GROUP_ID = int(os.getenv("GROUP_ID")) if os.getenv("GROUP_ID") else 0
 # ⚠️ ОБНОВЛЕНО: ADMIN_IDS теперь список организаторов (не только админы)
 ADMIN_IDS = list(map(int, os.getenv("ADMIN_IDS", "").split(","))) if os.getenv("ADMIN_IDS") else []
 
+# Команды, которые могут выполнять только админы (ADMIN_IDS).
+# Нужны для ограничения сервисных операций обычным участникам.
+RESTRICTED_COMMANDS = {
+    cmd.strip().lower()
+    for cmd in os.getenv(
+        "RESTRICTED_COMMANDS",
+        "debug_info,list_topics,update_topic_names,admin_report,random_pairs",
+    ).split(",")
+    if cmd.strip()
+}
+
 # ⚠️ ОБНОВЛЕНО: Часовой пояс для Санкт-Петербурга
 TIMEZONE = os.getenv("TIMEZONE", "Europe/Moscow")  # Москва = СПб
 

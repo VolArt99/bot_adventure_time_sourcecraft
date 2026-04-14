@@ -3,6 +3,7 @@ from typing import List, Dict
 from html import escape
 import pytz
 from config import TIMEZONE
+from utils.event_links import build_google_calendar_link, build_ics_link, build_maps_link
 
 TZ = pytz.timezone(TIMEZONE)
 
@@ -122,6 +123,18 @@ async def format_event_message(
         ]
     )
 
+    maps_link = build_maps_link(event.get("location"))
+    gcal_link = build_google_calendar_link(event)
+    ics_link = build_ics_link(event["id"]) if event.get("id") else None
+    if maps_link or gcal_link or ics_link:
+        lines.extend(["", "<b>🔗 Полезные ссылки:</b>"])
+        if maps_link:
+            lines.append(f'• <a href="{maps_link}">Маршрут / карта</a>')
+        if gcal_link:
+            lines.append(f'• <a href="{gcal_link}">Google Calendar</a>')
+        if ics_link:
+            lines.append(f"• ICS: <code>{ics_link}</code>")
+
     if carpool:
         lines.extend(["", carpool])
 
@@ -182,6 +195,9 @@ def format_digest_text(
             f"🧵 Тема: {topic_name}\n"
             f"👤 Организатор: {org_name}\n"
             f"🔗 Ссылка: {link_text}\n"
+            f"🗺 Карта: {build_maps_link(e.get('location')) or 'недоступна'}\n"
+            f"📅 Google: {build_google_calendar_link(e) or 'недоступна'}\n"
+            f"📎 ICS: {build_ics_link(e['id']) if e.get('id') else 'недоступна'}\n"
         )
 
     return "\n".join(lines)

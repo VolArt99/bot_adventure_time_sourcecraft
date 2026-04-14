@@ -6,7 +6,13 @@ from aiogram.types import Message
 
 from config import TIMEZONE
 from database import get_user_stats, get_top_participants, find_events
+from database import (
+    set_random_meeting_opt_in,
+    get_random_meeting_opt_in_users,
+)
 from utils.helpers import get_username_by_id
+from utils.pairing import build_random_pairs
+from filters.admin import admin_only
 import pytz
 
 router = Router()
@@ -73,3 +79,44 @@ async def cmd_find_events(message: Message):
         )
 
     await message.answer("\n".join(lines), parse_mode="HTML")
+
+
+@router.message(Command("random_optin"))
+async def cmd_random_optin(message: Message):
+    await set_random_meeting_opt_in(message.from_user.id, True)
+    await message.answer("✅ Вы участвуете в рандомных встречах 1:1.")
+
+
+@router.message(Command("random_optout"))
+async def cmd_random_optout(message: Message):
+    await set_random_meeting_opt_in(message.from_user.id, False)
+    await message.answer("👌 Вы исключены из рандомных встреч 1:1.")
+
+
+@router.message(Command("random_pairs"))
+@admin_only
+async def cmd_random_pairs(message: Message):
+    users = await get_random_meeting_opt_in_users()
+    if len(users) < 2:
+        await message.answer("Недостаточно участников с согласием для 1:1.")
+        return
+
+    pairs, leftovers = build_random_pairs(users)
+    lines = [f"🤝 Сформировано пар: {len(pairs)}"]
+    for left_id, right_id in pairs:
+        left_name = await get_username_by_id(left_id, message.bot) or f"id{left_id}"
+        right_name = await get_username_by_id(right_id, message.bot) or f"id{right_id}"
+        lines.append(f"• {left_name} ↔ {right_name}")
+        for uid, partner in ((left_id, right_name), (right_id, left_name)):
+            try:
+                await message.bot.send_message(
+                    uid,
+                    f"🤝 Ваша случайная встреча 1:1: {partner}. Договоритесь о времени!",
+                )
+            except Exception:
+                pass
+
+    if leftovers:
+        lines.append("Ожидают следующего раунда: " + ", ".join(f"id{uid}" for uid in leftovers))
+
+    await message.answer("\n".join(lines))

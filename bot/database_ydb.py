@@ -12,7 +12,9 @@ logger = logging.getLogger(__name__)
 
 # Конфигурация подключения к YDB
 YDB_ENDPOINT = os.getenv("YDB_ENDPOINT", "grpcs://ydb.serverless.yandexcloud.net:2135")
-YDB_DATABASE = os.getenv("YDB_DATABASE", "/ru-central1/b1gburmf2sv6jdb39qi4/etnnggcnvg783q3fj957")
+YDB_DATABASE = os.getenv(
+    "YDB_DATABASE", "/ru-central1/b1gburmf2sv6jdb39qi4/etnnggcnvg783q3fj957"
+)
 
 # Глобальные переменные для драйвера и пула сессий
 _driver = None
@@ -52,7 +54,7 @@ async def get_pool():
 async def init_db():
     """Создаёт таблицы при первом запуске."""
     pool = await get_pool()
-    
+
     # Создание таблицы users
     await pool.retry_operation(
         lambda session: session.execute_scheme(
@@ -68,7 +70,7 @@ async def init_db():
             """
         )
     )
-    
+
     # Создание таблицы events
     await pool.retry_operation(
         lambda session: session.execute_scheme(
@@ -98,7 +100,7 @@ async def init_db():
             """
         )
     )
-    
+
     # Создание таблицы participants
     await pool.retry_operation(
         lambda session: session.execute_scheme(
@@ -118,7 +120,7 @@ async def init_db():
             """
         )
     )
-    
+
     # Создание таблицы reviews
     await pool.retry_operation(
         lambda session: session.execute_scheme(
@@ -137,7 +139,7 @@ async def init_db():
             """
         )
     )
-    
+
     # Создание таблицы reminder_jobs
     await pool.retry_operation(
         lambda session: session.execute_scheme(
@@ -154,7 +156,7 @@ async def init_db():
             """
         )
     )
-    
+
     # Создание таблицы forum_topics
     await pool.retry_operation(
         lambda session: session.execute_scheme(
@@ -172,7 +174,7 @@ async def init_db():
             """
         )
     )
-    
+
     # Создание таблицы user_category_subscriptions
     await pool.retry_operation(
         lambda session: session.execute_scheme(
@@ -186,14 +188,27 @@ async def init_db():
             """
         )
     )
-    
+
+    await pool.retry_operation(
+        lambda session: session.execute_scheme(
+            """
+            CREATE TABLE IF NOT EXISTS random_meeting_opt_in (
+                user_id Int64 NOT NULL,
+                is_enabled Bool NOT NULL,
+                updated_at Timestamp DEFAULT CurrentUtcTimestamp(),
+                PRIMARY KEY (user_id)
+            )
+            """
+        )
+    )
+
     logger.info("Таблицы YDB созданы или уже существуют")
 
 
 async def get_or_create_user(user_id: int, username: str = None) -> int:
     """Возвращает пользователя из БД, создаёт если нет."""
     pool = await get_pool()
-    
+
     # Проверяем, существует ли пользователь
     result = await pool.retry_operation(
         lambda session: session.transaction().execute(
@@ -206,7 +221,7 @@ async def get_or_create_user(user_id: int, username: str = None) -> int:
             commit_tx=True,
         )
     )
-    
+
     if not result[0].rows:
         # Создаем нового пользователя
         await pool.retry_operation(
@@ -221,18 +236,19 @@ async def get_or_create_user(user_id: int, username: str = None) -> int:
                 commit_tx=True,
             )
         )
-    
+
     return user_id
 
 
 async def create_event(event_data: Dict[str, Any]) -> int:
     """Создаёт мероприятие и возвращает его ID."""
     pool = await get_pool()
-    
+
     # Генерируем ID для мероприятия
     import time
+
     event_id = int(time.time() * 1000)  # Используем timestamp в миллисекундах
-    
+
     await pool.retry_operation(
         lambda session: session.transaction().execute(
             """
@@ -272,14 +288,14 @@ async def create_event(event_data: Dict[str, Any]) -> int:
             commit_tx=True,
         )
     )
-    
+
     return event_id
 
 
 async def get_event(event_id: int) -> Optional[Dict]:
     """Возвращает мероприятие по ID."""
     pool = await get_pool()
-    
+
     result = await pool.retry_operation(
         lambda session: session.transaction().execute(
             """
@@ -291,29 +307,29 @@ async def get_event(event_id: int) -> Optional[Dict]:
             commit_tx=True,
         )
     )
-    
+
     if not result[0].rows:
         return None
-    
+
     row = result[0].rows[0]
     # Преобразуем YDB строку в словарь Python
     event_dict = {}
     for column in row.__fields__:
         value = getattr(row, column)
         # Преобразуем специальные типы YDB
-        if hasattr(value, 'isoformat'):
+        if hasattr(value, "isoformat"):
             value = value.isoformat()
         elif isinstance(value, ydb.Decimal):
             value = float(value)
         event_dict[column] = value
-    
+
     return event_dict
 
 
 async def update_event_message_id(event_id: int, thread_id: int, message_id: int):
     """Сохраняет thread_id и message_id после публикации."""
     pool = await get_pool()
-    
+
     await pool.retry_operation(
         lambda session: session.transaction().execute(
             """
@@ -333,7 +349,7 @@ async def update_event_message_id(event_id: int, thread_id: int, message_id: int
 async def get_active_events() -> List[Dict]:
     """Возвращает все активные мероприятия."""
     pool = await get_pool()
-    
+
     result = await pool.retry_operation(
         lambda session: session.transaction().execute(
             """
@@ -344,19 +360,19 @@ async def get_active_events() -> List[Dict]:
             commit_tx=True,
         )
     )
-    
+
     events = []
     for row in result[0].rows:
         event_dict = {}
         for column in row.__fields__:
             value = getattr(row, column)
-            if hasattr(value, 'isoformat'):
+            if hasattr(value, "isoformat"):
                 value = value.isoformat()
             elif isinstance(value, ydb.Decimal):
                 value = float(value)
             event_dict[column] = value
         events.append(event_dict)
-    
+
     return events
 
 
@@ -405,7 +421,7 @@ async def add_participant(
 ) -> bool:
     """Добавляет участника в событие."""
     pool = await get_pool()
-    
+
     # Проверяем, не существует ли уже участник
     result = await pool.retry_operation(
         lambda session: session.transaction().execute(
@@ -420,14 +436,15 @@ async def add_participant(
             commit_tx=True,
         )
     )
-    
+
     if result[0].rows:
         return False
-    
+
     # Генерируем ID для участника
     import time
+
     participant_id = int(time.time() * 1000) + user_id  # Уникальный ID
-    
+
     await pool.retry_operation(
         lambda session: session.transaction().execute(
             """
@@ -445,14 +462,14 @@ async def add_participant(
             commit_tx=True,
         )
     )
-    
+
     return True
 
 
 async def remove_participant(event_id: int, user_id: int):
     """Удаляет участника из события (и пассажиров если водитель)."""
     pool = await get_pool()
-    
+
     # Получаем статус участника
     result = await pool.retry_operation(
         lambda session: session.transaction().execute(
@@ -467,7 +484,7 @@ async def remove_participant(event_id: int, user_id: int):
             commit_tx=True,
         )
     )
-    
+
     if result[0].rows:
         status = result[0].rows[0].status
         if status == "driver":
@@ -485,7 +502,7 @@ async def remove_participant(event_id: int, user_id: int):
                     commit_tx=True,
                 )
             )
-    
+
     # Удаляем самого участника
     await pool.retry_operation(
         lambda session: session.transaction().execute(
@@ -505,7 +522,7 @@ async def remove_participant(event_id: int, user_id: int):
 async def get_participants(event_id: int, status: str = None) -> List[int]:
     """Возвращает список ID участников с указанным статусом."""
     pool = await get_pool()
-    
+
     if status:
         query = """
             SELECT user_id FROM participants 
@@ -523,7 +540,7 @@ async def get_participants(event_id: int, status: str = None) -> List[int]:
         params = {
             "event_id": event_id,
         }
-    
+
     result = await pool.retry_operation(
         lambda session: session.transaction().execute(
             query,
@@ -531,14 +548,14 @@ async def get_participants(event_id: int, status: str = None) -> List[int]:
             commit_tx=True,
         )
     )
-    
+
     return [row.user_id for row in result[0].rows]
 
 
 async def get_main_participants(event_id: int) -> List[int]:
     """Возвращает ID участников основного состава (идут + карпулинг)."""
     pool = await get_pool()
-    
+
     result = await pool.retry_operation(
         lambda session: session.transaction().execute(
             """
@@ -551,14 +568,14 @@ async def get_main_participants(event_id: int) -> List[int]:
             commit_tx=True,
         )
     )
-    
+
     return [row.user_id for row in result[0].rows]
 
 
 async def cancel_event(event_id: int) -> None:
     """Помечает мероприятие как отменённое и очищает участников."""
     pool = await get_pool()
-    
+
     # Помечаем мероприятие как отменённое
     await pool.retry_operation(
         lambda session: session.transaction().execute(
@@ -571,7 +588,7 @@ async def cancel_event(event_id: int) -> None:
             commit_tx=True,
         )
     )
-    
+
     # Удаляем всех участников
     await pool.retry_operation(
         lambda session: session.transaction().execute(
@@ -589,7 +606,7 @@ async def cancel_event(event_id: int) -> None:
 async def get_user_stats(user_id: int) -> Dict:
     """⚠️ НОВОЕ: Возвращает статистику пользователя."""
     pool = await get_pool()
-    
+
     # Получаем количество мероприятий, где пользователь был организатором
     result_creator = await pool.retry_operation(
         lambda session: session.transaction().execute(
@@ -603,9 +620,11 @@ async def get_user_stats(user_id: int) -> Dict:
             commit_tx=True,
         )
     )
-    
-    events_count = result_creator[0].rows[0].events_count if result_creator[0].rows else 0
-    
+
+    events_count = (
+        result_creator[0].rows[0].events_count if result_creator[0].rows else 0
+    )
+
     # Получаем общее количество участий
     result_participations = await pool.retry_operation(
         lambda session: session.transaction().execute(
@@ -619,9 +638,13 @@ async def get_user_stats(user_id: int) -> Dict:
             commit_tx=True,
         )
     )
-    
-    total_participations = result_participations[0].rows[0].total_participations if result_participations[0].rows else 0
-    
+
+    total_participations = (
+        result_participations[0].rows[0].total_participations
+        if result_participations[0].rows
+        else 0
+    )
+
     return {
         "events_count": events_count,
         "total_participations": total_participations,
@@ -631,7 +654,7 @@ async def get_user_stats(user_id: int) -> Dict:
 async def get_top_participants(days: int = 30, limit: int = 3) -> List[Dict]:
     """Топ участников по количеству участий за период."""
     pool = await get_pool()
-    
+
     # Получаем топ участников за последние N дней
     result = await pool.retry_operation(
         lambda session: session.transaction().execute(
@@ -654,22 +677,24 @@ async def get_top_participants(days: int = 30, limit: int = 3) -> List[Dict]:
             commit_tx=True,
         )
     )
-    
+
     top_participants = []
     for row in result[0].rows:
-        top_participants.append({
-            "user_id": row.user_id,
-            "username": row.username or f"User {row.user_id}",
-            "participation_count": row.participation_count,
-        })
-    
+        top_participants.append(
+            {
+                "user_id": row.user_id,
+                "username": row.username or f"User {row.user_id}",
+                "participation_count": row.participation_count,
+            }
+        )
+
     return top_participants
 
 
 async def find_events(query: str, period: str = "month", limit: int = 20) -> List[Dict]:
     """Поиск предстоящих активных мероприятий по названию/месту/категории."""
     pool = await get_pool()
-    
+
     period_days = _period_to_days(period, default_days=30)
     result = await pool.retry_operation(
         lambda session: session.transaction().execute(
@@ -690,7 +715,7 @@ async def find_events(query: str, period: str = "month", limit: int = 20) -> Lis
             commit_tx=True,
         )
     )
-    
+
     now = datetime.utcnow()
     max_dt = now + timedelta(days=period_days)
     events: List[Dict] = []
@@ -710,7 +735,7 @@ async def find_events(query: str, period: str = "month", limit: int = 20) -> Lis
 async def get_user_events(user_id: int, status: str = None) -> List[Dict]:
     """Возвращает мероприятия пользователя: как участника и/или организатора."""
     pool = await get_pool()
-    
+
     if status == "organizer":
         # Мероприятия, где пользователь организатор
         query = """
@@ -738,7 +763,7 @@ async def get_user_events(user_id: int, status: str = None) -> List[Dict]:
             ORDER BY e.date_time
         """
         params = {"user_id": user_id}
-    
+
     result = await pool.retry_operation(
         lambda session: session.transaction().execute(
             query,
@@ -746,26 +771,36 @@ async def get_user_events(user_id: int, status: str = None) -> List[Dict]:
             commit_tx=True,
         )
     )
-    
+
     events = []
     for row in result[0].rows:
         event_dict = {}
         for column in row.__fields__:
             value = getattr(row, column)
-            if hasattr(value, 'isoformat'):
+            if hasattr(value, "isoformat"):
                 value = value.isoformat()
             elif isinstance(value, ydb.Decimal):
                 value = float(value)
             event_dict[column] = value
         events.append(event_dict)
-    
+
     return events
 
 
 async def move_from_waitlist(event_id: int) -> Optional[int]:
     """Перемещает первого из резерва в основной список."""
     pool = await get_pool()
-    
+
+    event = await get_event(event_id)
+    if not event:
+        return None
+
+    participant_limit = event.get("participant_limit") or 0
+    if participant_limit > 0:
+        going = await get_main_participants(event_id)
+        if len(going) >= participant_limit:
+            return None
+        
     # Получаем первого участника из резерва
     result = await pool.retry_operation(
         lambda session: session.transaction().execute(
@@ -781,12 +816,12 @@ async def move_from_waitlist(event_id: int) -> Optional[int]:
             commit_tx=True,
         )
     )
-    
+
     if not result[0].rows:
         return None
-    
+
     user_id = result[0].rows[0].user_id
-    
+
     # Обновляем статус на 'going'
     await pool.retry_operation(
         lambda session: session.transaction().execute(
@@ -802,14 +837,14 @@ async def move_from_waitlist(event_id: int) -> Optional[int]:
             commit_tx=True,
         )
     )
-    
+
     return user_id
 
 
 async def get_drivers_with_passengers(event_id: int) -> List[Dict]:
     """Возвращает список водителей с их пассажирами."""
     pool = await get_pool()
-    
+
     # Получаем всех водителей
     result_drivers = await pool.retry_operation(
         lambda session: session.transaction().execute(
@@ -823,12 +858,12 @@ async def get_drivers_with_passengers(event_id: int) -> List[Dict]:
             commit_tx=True,
         )
     )
-    
+
     drivers = []
     for row in result_drivers[0].rows:
         driver_id = row.user_id
         car_seats = row.car_seats
-        
+
         # Получаем пассажиров этого водителя
         result_passengers = await pool.retry_operation(
             lambda session: session.transaction().execute(
@@ -843,22 +878,26 @@ async def get_drivers_with_passengers(event_id: int) -> List[Dict]:
                 commit_tx=True,
             )
         )
-        
-        passengers = [row_passenger.user_id for row_passenger in result_passengers[0].rows]
-        
-        drivers.append({
-            "user_id": driver_id,
-            "car_seats": car_seats,
-            "passengers": passengers,
-        })
-    
+
+        passengers = [
+            row_passenger.user_id for row_passenger in result_passengers[0].rows
+        ]
+
+        drivers.append(
+            {
+                "user_id": driver_id,
+                "car_seats": car_seats,
+                "passengers": passengers,
+            }
+        )
+
     return drivers
 
 
 async def get_driver_free_seats(driver_id: int, event_id: int) -> int:
     """Возвращает количество свободных мест у водителя."""
     pool = await get_pool()
-    
+
     # Получаем информацию о водителе
     result_driver = await pool.retry_operation(
         lambda session: session.transaction().execute(
@@ -873,12 +912,12 @@ async def get_driver_free_seats(driver_id: int, event_id: int) -> int:
             commit_tx=True,
         )
     )
-    
+
     if not result_driver[0].rows:
         return 0
-    
+
     car_seats = result_driver[0].rows[0].car_seats
-    
+
     # Получаем количество пассажиров
     result_passengers = await pool.retry_operation(
         lambda session: session.transaction().execute(
@@ -893,9 +932,11 @@ async def get_driver_free_seats(driver_id: int, event_id: int) -> int:
             commit_tx=True,
         )
     )
-    
-    passenger_count = result_passengers[0].rows[0].passenger_count if result_passengers[0].rows else 0
-    
+
+    passenger_count = (
+        result_passengers[0].rows[0].passenger_count if result_passengers[0].rows else 0
+    )
+
     # Свободные места = общие места - пассажиры - 1 (сам водитель)
     free_seats = car_seats - passenger_count - 1
     return max(0, free_seats)
@@ -904,7 +945,7 @@ async def get_driver_free_seats(driver_id: int, event_id: int) -> int:
 async def add_driver(event_id: int, user_id: int, car_seats: int) -> bool:
     """Добавляет водителя."""
     pool = await get_pool()
-    
+
     # Проверяем, не является ли уже участником
     result = await pool.retry_operation(
         lambda session: session.transaction().execute(
@@ -919,14 +960,15 @@ async def add_driver(event_id: int, user_id: int, car_seats: int) -> bool:
             commit_tx=True,
         )
     )
-    
+
     if result[0].rows:
         return False
-    
+
     # Генерируем ID для участника
     import time
+
     participant_id = int(time.time() * 1000) + user_id
-    
+
     await pool.retry_operation(
         lambda session: session.transaction().execute(
             """
@@ -942,19 +984,19 @@ async def add_driver(event_id: int, user_id: int, car_seats: int) -> bool:
             commit_tx=True,
         )
     )
-    
+
     return True
 
 
 async def add_passenger(event_id: int, user_id: int, driver_id: int) -> bool:
     """Добавляет пассажира к водителю."""
     pool = await get_pool()
-    
+
     # Проверяем, есть ли свободные места у водителя
     free_seats = await get_driver_free_seats(driver_id, event_id)
     if free_seats <= 0:
         return False
-    
+
     # Проверяем, не является ли уже участником
     result = await pool.retry_operation(
         lambda session: session.transaction().execute(
@@ -969,14 +1011,15 @@ async def add_passenger(event_id: int, user_id: int, driver_id: int) -> bool:
             commit_tx=True,
         )
     )
-    
+
     if result[0].rows:
         return False
-    
+
     # Генерируем ID для участника
     import time
+
     participant_id = int(time.time() * 1000) + user_id
-    
+
     await pool.retry_operation(
         lambda session: session.transaction().execute(
             """
@@ -992,34 +1035,166 @@ async def add_passenger(event_id: int, user_id: int, driver_id: int) -> bool:
             commit_tx=True,
         )
     )
-    
+
     return True
 
 
 async def get_forum_topics_raw(bot, chat_id: int):
     """Возвращает список тем форума в виде словарей."""
     try:
-        # Получаем информацию о чате
         chat = await bot.get_chat(chat_id)
-        
-        # Проверяем, является ли чат форумом
+
         if not getattr(chat, "is_forum", False):
             return []
-        
-        # Получаем список тем форума
-        # В aiogram нет прямого метода для получения тем форума,
-        # поэтому возвращаем пустой список
-        # В реальной реализации нужно использовать get_forum_topic_icon_stickers или другие методы
-        return []
+
+        if hasattr(bot, "get_forum_topics"):
+            topics = await bot.get_forum_topics(chat_id=chat_id)
+            return [
+                {
+                    "message_thread_id": topic.message_thread_id,
+                    "name": topic.name,
+                    "is_closed": bool(getattr(topic, "is_closed", False)),
+                    "is_hidden": bool(getattr(topic, "is_hidden", False)),
+                }
+                for topic in topics
+            ]
+
+        stored_topics = await get_all_topics()
+        return [
+            {
+                "message_thread_id": row.get("message_thread_id"),
+                "name": row.get("name", f"Тема {row.get('message_thread_id')}"),
+                "is_closed": bool(row.get("is_closed", False)),
+                "is_hidden": bool(row.get("is_hidden", False)),
+            }
+            for row in stored_topics
+        ]
     except Exception as e:
         logger.error(f"Ошибка при получении тем форума: {e}")
-        return []
+        return await get_all_topics()
+
+
+async def save_forum_topic(message_thread_id: int, name: str) -> bool:
+    pool = await get_pool()
+    topic_id = int(message_thread_id)
+
+    await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            UPSERT INTO forum_topics (id, message_thread_id, name, is_closed, is_hidden)
+            VALUES ($id, $message_thread_id, $name, false, false)
+            """,
+            parameters={
+                "id": topic_id,
+                "message_thread_id": int(message_thread_id),
+                "name": name or f"Тема {message_thread_id}",
+            },
+            commit_tx=True,
+        )
+    )
+    return True
+
+
+async def get_all_topics() -> List[Dict]:
+    pool = await get_pool()
+    result = await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            SELECT message_thread_id, name, is_closed, is_hidden
+            FROM forum_topics
+            ORDER BY message_thread_id
+            """,
+            commit_tx=True,
+        )
+    )
+    return [
+        {
+            "message_thread_id": row.message_thread_id,
+            "name": row.name,
+            "is_closed": bool(row.is_closed),
+            "is_hidden": bool(row.is_hidden),
+        }
+        for row in result[0].rows
+    ]
+
+
+async def get_topic_by_id(message_thread_id: int) -> Optional[Dict]:
+    pool = await get_pool()
+    result = await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            SELECT message_thread_id, name, is_closed, is_hidden
+            FROM forum_topics
+            WHERE message_thread_id = $message_thread_id
+            LIMIT 1
+            """,
+            parameters={"message_thread_id": int(message_thread_id)},
+            commit_tx=True,
+        )
+    )
+    if not result[0].rows:
+        return None
+    row = result[0].rows[0]
+    return {
+        "message_thread_id": row.message_thread_id,
+        "name": row.name,
+        "is_closed": bool(row.is_closed),
+        "is_hidden": bool(row.is_hidden),
+    }
+
+
+async def sync_topics_from_config() -> int:
+    try:
+        from topics_config import TOPICS_MAPPING
+    except Exception:
+        return 0
+
+    synced = 0
+    for thread_id, name in TOPICS_MAPPING.items():
+        await save_forum_topic(int(thread_id), str(name))
+        synced += 1
+    return synced
+
+
+async def set_random_meeting_opt_in(user_id: int, is_enabled: bool) -> None:
+    pool = await get_pool()
+    await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            UPSERT INTO random_meeting_opt_in (user_id, is_enabled)
+            VALUES ($user_id, $is_enabled)
+            """,
+            parameters={"user_id": int(user_id), "is_enabled": bool(is_enabled)},
+            commit_tx=True,
+        )
+    )
+
+
+async def get_random_meeting_opt_in_users() -> list[int]:
+    pool = await get_pool()
+    result = await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            SELECT user_id FROM random_meeting_opt_in
+            WHERE is_enabled = true
+            ORDER BY user_id
+            """,
+            commit_tx=True,
+        )
+    )
+    return [row.user_id for row in result[0].rows]
+
+
+def build_random_pairs(user_ids: list[int]) -> tuple[list[tuple[int, int]], list[int]]:
+    from utils.pairing import build_random_pairs as _build_random_pairs
+
+    return _build_random_pairs(user_ids)
 
 
 async def update_event_status(event_id: int, status: str):
     """Обновляет статус мероприятия."""
     pool = await get_pool()
-    
+
     await pool.retry_operation(
         lambda session: session.transaction().execute(
             """
@@ -1037,7 +1212,7 @@ async def update_event_status(event_id: int, status: str):
 async def get_events_for_digest(period: str = "week") -> List[Dict]:
     """Получение предстоящих активных мероприятий для дайджеста."""
     pool = await get_pool()
-    
+
     period_days = _period_to_days(period)
     result = await pool.retry_operation(
         lambda session: session.transaction().execute(
@@ -1049,7 +1224,7 @@ async def get_events_for_digest(period: str = "week") -> List[Dict]:
             commit_tx=True,
         )
     )
-    
+
     now = datetime.utcnow()
     max_dt = now + timedelta(days=period_days)
     events: List[Dict] = []
@@ -1068,7 +1243,7 @@ async def get_events_for_digest(period: str = "week") -> List[Dict]:
 async def set_user_category_subscriptions(user_id: int, categories: list[str]) -> None:
     """Перезаписывает список подписок пользователя по категориям."""
     pool = await get_pool()
-    
+
     # Удаляем существующие подписки пользователя
     await pool.retry_operation(
         lambda session: session.transaction().execute(
@@ -1081,7 +1256,7 @@ async def set_user_category_subscriptions(user_id: int, categories: list[str]) -
             commit_tx=True,
         )
     )
-    
+
     # Добавляем новые подписки
     for category in categories:
         if category.strip():  # Пропускаем пустые категории
@@ -1098,14 +1273,14 @@ async def set_user_category_subscriptions(user_id: int, categories: list[str]) -
                     commit_tx=True,
                 )
             )
-    
+
     logger.info(f"Обновлены подписки пользователя {user_id}: {categories}")
 
 
 async def get_user_category_subscriptions(user_id: int) -> list[str]:
     """Возвращает категории, на которые подписан пользователь."""
     pool = await get_pool()
-    
+
     result = await pool.retry_operation(
         lambda session: session.transaction().execute(
             """
@@ -1119,19 +1294,21 @@ async def get_user_category_subscriptions(user_id: int) -> list[str]:
             commit_tx=True,
         )
     )
-    
+
     return [row.category for row in result[0].rows]
 
 
-async def get_events_for_user_subscriptions(user_id: int, period: str = "week") -> List[Dict]:
+async def get_events_for_user_subscriptions(
+    user_id: int, period: str = "week"
+) -> List[Dict]:
     """Возвращает активные события, которые совпадают с подписками пользователя."""
     pool = await get_pool()
-    
+
     # Получаем подписки пользователя
     subscriptions = await get_user_category_subscriptions(user_id)
     if not subscriptions:
         return []
-    
+
     period_days = _period_to_days(period)
     result = await pool.retry_operation(
         lambda session: session.transaction().execute(
@@ -1143,10 +1320,12 @@ async def get_events_for_user_subscriptions(user_id: int, period: str = "week") 
             commit_tx=True,
         )
     )
-    
+
     now = datetime.utcnow()
     max_dt = now + timedelta(days=period_days)
-    subscriptions_set = {item.strip().lower() for item in subscriptions if item and item.strip()}
+    subscriptions_set = {
+        item.strip().lower() for item in subscriptions if item and item.strip()
+    }
     events: List[Dict] = []
 
     for row in result[0].rows:

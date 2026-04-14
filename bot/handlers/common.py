@@ -8,6 +8,7 @@ import aiogram
 from config import GROUP_ID
 from database import get_or_create_user
 from filters.admin import admin_only
+from filters.command_access import restricted_command
 
 logger = logging.getLogger(__name__)
 router = Router()
@@ -36,23 +37,28 @@ async def cmd_help(message: Message):
         "/my_stats — ваша статистика посещений\n"
         "/top — топ-3 участников за 30 дней\n"
         "/find_events — поиск активных событий по тексту\n\n"
+        "/random_optin — согласиться на рандомные встречи 1:1\n"
+        "/random_optout — отключить рандомные встречи 1:1\n\n"
         "<b>Админ/сервис:</b>\n"
         "/debug_info — единая диагностика (бот, группа, права, темы)\n"
         "/health — быстрая проверка работоспособности\n"
         "/list_topics — список обнаруженных тем\n"
         "/update_topic_names — обновить названия тем (для админов)\n"
-        "/admin_report — сводный отчёт по событиям (для админов)"
+        "/admin_report — сводный отчёт по событиям (для админов)\n"
+        "/random_pairs — сформировать пары 1:1 (для админов)"
     )
     await message.answer(help_text, parse_mode="HTML")
 
 
 @router.message(Command("health"))
+@restricted_command
 async def cmd_health(message: Message):
     """Быстрый health-check."""
     await message.answer("✅ Бот запущен и отвечает. Используйте /debug_info для подробной диагностики.")
 
 
 @router.message(Command("debug_info"))
+@restricted_command
 async def cmd_debug_info(message: Message):
     """Единая диагностическая команда."""
     from config import ADMIN_IDS
@@ -85,6 +91,7 @@ async def cmd_debug_info(message: Message):
 
 
 @router.message(Command("list_topics"))
+@restricted_command
 async def list_topics(message: Message):
     """Список обнаруженных тем."""
     from utils.topics import get_topics_list_from_db
