@@ -3,7 +3,7 @@ from functools import wraps
 from aiogram.filters import BaseFilter
 from aiogram.types import Message, CallbackQuery, TelegramObject
 
-from database import get_or_create_user
+from bot.database import get_or_create_user
 
 
 class IsRegisteredFilter(BaseFilter):

@@ -2,7 +2,7 @@ from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import Message
 
-from filters.admin import admin_only
+from bot.filters.admin import admin_only
 
 router = Router(name=__name__)
 

@@ -1,16 +1,11 @@
 import os
-import sys
-from pathlib import Path
 import unittest
 
 os.environ.setdefault("BOT_TOKEN", "test-token")
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "bot"))
-
-from texts import format_duration, category_to_hashtags  # noqa: E402
-from utils.event_links import build_google_calendar_link, build_maps_link  # noqa: E402
-from utils.pairing import build_random_pairs  # noqa: E402
-
+from bot.texts import format_duration, category_to_hashtags  # noqa: E402
+from bot.utils.event_links import build_google_calendar_link, build_maps_link  # noqa: E402
+from bot.utils.pairing import build_random_pairs  # noqa: E402
 
 class TextFormattersTest(unittest.TestCase):
     def test_format_duration_hours_and_minutes(self):

@@ -6,8 +6,9 @@ from datetime import datetime, timedelta
 import pytz
 import logging
 from html import escape
-from config import TIMEZONE, REMINDER_INTERVALS, GROUP_ID, DIGEST_DAY_OF_WEEK, DIGEST_HOUR
-from database import get_active_events, get_participants, get_event
+
+from bot.config import TIMEZONE, REMINDER_INTERVALS, GROUP_ID, DIGEST_DAY_OF_WEEK, DIGEST_HOUR
+from bot.database import get_active_events, get_participants, get_event
 
 logger = logging.getLogger(__name__)
 TZ = pytz.timezone(TIMEZONE)
@@ -60,7 +61,7 @@ async def send_reminder(event_id: int, interval: int, bot):
 
         minutes_until = interval // 60
 
-        from texts import format_reminder_text
+        from bot.texts import format_reminder_text
 
         text = format_reminder_text(event, minutes_until)
 
@@ -98,7 +99,7 @@ async def restore_jobs(bot):
 
 async def schedule_digest(bot, chat_id: int, thread_id: int = None):
     """Планирует еженедельный дайджест."""
-    from handlers.digest import send_digest
+    from bot.handlers.digest import send_digest
 
     scheduler.add_job(
         send_digest,

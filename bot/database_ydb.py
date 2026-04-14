@@ -1206,24 +1206,17 @@ async def add_passenger(event_id: int, user_id: int, driver_id: int) -> bool:
 
 
 async def get_forum_topics_raw(bot, chat_id: int):
-    """Возвращает список тем форума в виде словарей."""
+    """
+    Возвращает список тем форума из локального хранилища.
+
+    Telegram Bot API не предоставляет стабильного кросс-версийного метода для
+    прямого листинга всех тем, поэтому используем обнаруженные/сохранённые темы.
+    """
     try:
         chat = await bot.get_chat(chat_id)
 
         if not getattr(chat, "is_forum", False):
             return []
-
-        if hasattr(bot, "get_forum_topics"):
-            topics = await bot.get_forum_topics(chat_id=chat_id)
-            return [
-                {
-                    "message_thread_id": topic.message_thread_id,
-                    "name": topic.name,
-                    "is_closed": bool(getattr(topic, "is_closed", False)),
-                    "is_hidden": bool(getattr(topic, "is_hidden", False)),
-                }
-                for topic in topics
-            ]
 
         stored_topics = await get_all_topics()
         return [
@@ -1235,8 +1228,8 @@ async def get_forum_topics_raw(bot, chat_id: int):
             }
             for row in stored_topics
         ]
-    except Exception as e:
-        logger.error(f"Ошибка при получении тем форума: {e}")
+    except (TypeError, ValueError) as e:
+        logger.error("Ошибка при получении тем форума: %s", e)
         return await get_all_topics()
 
 
@@ -1309,9 +1302,19 @@ async def get_topic_by_id(message_thread_id: int) -> Optional[Dict]:
     }
 
 
+async def get_topic_name_by_thread_id(message_thread_id: int | None) -> Optional[str]:
+    """Возвращает название темы по её thread_id."""
+    if message_thread_id in (None, 0):
+        return None
+    topic = await get_topic_by_id(int(message_thread_id))
+    if not topic:
+        return None
+    return topic.get("name")
+
+
 async def sync_topics_from_config() -> int:
     try:
-        from topics_config import TOPICS_MAPPING
+        from bot.topics_config import TOPICS_MAPPING
     except Exception:
         return 0
 
@@ -1352,7 +1355,7 @@ async def get_random_meeting_opt_in_users() -> list[int]:
 
 
 def build_random_pairs(user_ids: list[int]) -> tuple[list[tuple[int, int]], list[int]]:
-    from utils.pairing import build_random_pairs as _build_random_pairs
+    from bot.utils.pairing import build_random_pairs as _build_random_pairs
 
     return _build_random_pairs(user_ids)
 

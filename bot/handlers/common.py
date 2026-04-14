@@ -6,8 +6,9 @@ from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
+from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 
-from config import (
+from bot.config import (
     ADMIN_DAILY_COMMAND_LIMIT,
     GROUP_ID,
     MEMBER_ALLOWED_COMMANDS,
@@ -15,7 +16,7 @@ from config import (
     OUTSIDER_START_DAILY_LIMIT,
     OWNER_ID,
 )
-from database import (
+from bot.database import (
     get_or_create_user,
     add_pending_user,
     get_pending_user,
@@ -27,19 +28,26 @@ from database import (
     update_intro_status,
 )
 
-from filters.admin import admin_only
-from filters.command_access import restricted_command
+from bot.filters.admin import admin_only
+from bot.filters.command_access import restricted_command
 
-from keyboards import (
+from bot.keyboards import (
     onboarding_start_keyboard,
     rules_ack_keyboard,
     owner_approval_keyboard,
     intro_status_keyboard,
 )
-from texts import ONBOARDING_WELCOME_TEXT, GROUP_RULES_TEXT
+from bot.texts import ONBOARDING_WELCOME_TEXT, GROUP_RULES_TEXT
 
 logger = logging.getLogger(__name__)
 router = Router()
+
+
+def _extract_command(message: Message) -> str | None:
+    text = (message.text or "").strip()
+    if not text.startswith("/"):
+        return None
+    return text.split()[0].split("@")[0].lstrip("/").lower()
 
 
 async def _notify_owner_about_request(callback: CallbackQuery) -> None:
@@ -92,6 +100,10 @@ async def rules_ack(callback: CallbackQuery):
 
 @router.message(F.chat.type == "private")
 async def onboarding_guard(message: Message):
+    command = _extract_command(message)
+    if command in {"help", "status"}:
+        return
+
     approved = await is_member_approved(message.from_user.id)
     if approved:
         return
@@ -126,8 +138,14 @@ async def owner_approve_user(callback: CallbackQuery):
             user_id,
             f"✅ Ваша заявка одобрена. Ссылка для входа в группу:\n{invite.invite_link}",
         )
-    except Exception as e:
-        logger.exception("Ошибка отправки инвайта пользователю %s: %s", user_id, e)
+    except (TelegramForbiddenError, TelegramBadRequest) as exc:
+        logger.warning(
+            "invite_send_failed user_id=%s command=%s event_id=%s error=%s",
+            user_id,
+            "approve_user",
+            callback.id,
+            type(exc).__name__,
+        )
 
     await callback.message.edit_text(f"✅ Пользователь {user_id} одобрен и перенесён в контроль "
                                      f"«Рассказа о себе»." )
@@ -144,8 +162,14 @@ async def owner_reject_user(callback: CallbackQuery):
     await delete_pending_user(user_id)
     try:
         await callback.bot.send_message(user_id, "❌ К сожалению, заявка на вступление отклонена.")
-    except Exception:
-        logger.info("Не удалось уведомить пользователя %s об отклонении", user_id)
+    except (TelegramForbiddenError, TelegramBadRequest) as exc:
+        logger.info(
+            "reject_notify_skipped user_id=%s command=%s event_id=%s error=%s",
+            user_id,
+            "reject_user",
+            callback.id,
+            type(exc).__name__,
+        )
 
     await callback.message.edit_text(f"❌ Заявка пользователя {user_id} отклонена.")
     await callback.answer("Отклонено")
@@ -245,11 +269,12 @@ async def cmd_help(message: Message):
         f"• Владелец (OWNER_ID={OWNER_ID}) — доступ ко всем командам, без лимита.\n"
         f"• Админ (ADMIN_IDS) — доступ ко всем командам, лимит: {ADMIN_DAILY_COMMAND_LIMIT} команд/сутки.\n"
         f"• Участник группы — доступ только к пользовательским командам, лимит: {MEMBER_DAILY_COMMAND_LIMIT} команд/сутки.\n"
-        f"• Не участник группы — доступна только /start, лимит: {OUTSIDER_START_DAILY_LIMIT} запусков/сутки.\n\n"
+        f"• Не участник группы — доступны /start, /help, /status, лимит: {OUTSIDER_START_DAILY_LIMIT} команд/сутки.\n\n"
         f"<b>Команды участника:</b> {member_commands}\n\n"        
         "<b>Основные команды:</b>\n"
         "/start — регистрация и запуск бота\n"
         "/help — список команд и возможностей\n"
+        "/status — быстрый статус бота\n"
         "/create_event — создать мероприятие (для организаторов)\n"
         "/my_events — мои мероприятия (неделя/месяц/всё время)\n"
         "/digest — дайджест мероприятий (неделя/месяц/всё время)\n"
@@ -280,12 +305,17 @@ async def cmd_health(message: Message):
     await message.answer("✅ Бот запущен и отвечает. Используйте /debug_info для подробной диагностики.")
 
 
+@router.message(Command("status"))
+async def cmd_status(message: Message):
+    await message.answer("✅ Бот работает. Для списка возможностей используйте /help.")
+
+
 @router.message(Command("debug_info"))
 @restricted_command
 async def cmd_debug_info(message: Message):
     """Единая диагностическая команда."""
-    from config import ADMIN_IDS
-    from utils.topics import get_topics_list_from_db
+    from bot.config import ADMIN_IDS
+    from bot.utils.topics import get_topics_list_from_db
     import sys
 
     try:
@@ -317,7 +347,7 @@ async def cmd_debug_info(message: Message):
 @restricted_command
 async def list_topics(message: Message):
     """Список обнаруженных тем."""
-    from utils.topics import get_topics_list_from_db
+    from bot.utils.topics import get_topics_list_from_db
 
     topics = await get_topics_list_from_db()
 
@@ -346,7 +376,7 @@ async def list_topics(message: Message):
 async def update_topic_names(message: Message):
     """Обновляет названия тем из контекста группы."""
 
-    from database import get_all_topics
+    from bot.database import get_all_topics
 
     await message.answer("⏳ Обновляю названия тем...")
 

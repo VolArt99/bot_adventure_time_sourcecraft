@@ -2,8 +2,8 @@ from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import Message
 
-from database import get_admin_report_metrics
-from filters.admin import admin_only
+from bot.database import get_admin_report_metrics
+from bot.filters.admin import admin_only
 
 router = Router(name=__name__)
 

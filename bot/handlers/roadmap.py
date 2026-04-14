@@ -1,18 +1,18 @@
 from datetime import datetime
-
 from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import Message
 
-from config import TIMEZONE
-from database import get_user_stats, get_top_participants, find_events
-from database import (
+from bot.config import TIMEZONE
+from bot.database import get_user_stats, get_top_participants, find_events
+from bot.database import (
     set_random_meeting_opt_in,
     get_random_meeting_opt_in_users,
 )
-from utils.helpers import get_username_by_id
-from utils.pairing import build_random_pairs
-from filters.admin import admin_only
+from bot.utils.helpers import get_username_by_id
+from bot.utils.pairing import build_random_pairs
+from bot.filters.admin import admin_only
+
 import pytz
 
 router = Router()

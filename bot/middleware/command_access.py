@@ -1,20 +1,22 @@
 from collections import defaultdict
 from datetime import datetime, timezone
+import logging
 from typing import Awaitable, Callable
-
 from aiogram import BaseMiddleware
 from aiogram.types import Message, TelegramObject
 
-from config import (
+from bot.config import (
     ADMIN_DAILY_COMMAND_LIMIT,
     ADMIN_IDS,
     MEMBER_ALLOWED_COMMANDS,
     MEMBER_DAILY_COMMAND_LIMIT,
+    OUTSIDER_ALLOWED_COMMANDS,
     OUTSIDER_START_DAILY_LIMIT,
     OWNER_ID,
 )
-from database import is_member_approved
+from bot.database import is_member_approved
 
+logger = logging.getLogger(__name__)
 
 class CommandAccessMiddleware(BaseMiddleware):
     """Роли и лимиты по командам в личных сообщениях."""
@@ -75,6 +77,12 @@ class CommandAccessMiddleware(BaseMiddleware):
         # Участник: только разрешённые команды + дневной лимит.
         if is_approved_member:
             if command not in MEMBER_ALLOWED_COMMANDS:
+                logger.info(
+                    "access_denied user_id=%s command=%s event_id=%s role=member reason=restricted_command",
+                    user_id,
+                    command,
+                    getattr(event, "message_id", None),
+                )                
                 await event.answer("❌ Эта команда доступна только админу или владельцу.")
                 return
             return await self._apply_limit(
@@ -88,9 +96,17 @@ class CommandAccessMiddleware(BaseMiddleware):
                 ),
             )
 
-        # Остальные пользователи: только /start с отдельным лимитом.
-        if command != "start":
-            await event.answer("❌ Для вас доступна только команда /start.")
+        # Остальные пользователи: ограниченный набор команд с отдельным лимитом.
+        if command not in OUTSIDER_ALLOWED_COMMANDS:
+            logger.info(
+                "access_denied user_id=%s command=%s event_id=%s role=outsider reason=command_not_allowed",
+                user_id,
+                command,
+                getattr(event, "message_id", None),
+            )
+            await event.answer(
+                "❌ Для вас доступны только /start, /help и /status до одобрения заявки."
+            )
             return
 
         return await self._apply_limit(
@@ -99,7 +115,7 @@ class CommandAccessMiddleware(BaseMiddleware):
             data,
             daily_limit=OUTSIDER_START_DAILY_LIMIT,
             limit_text=(
-                "⚠️ Дневной лимит на /start исчерпан. "
+                "⚠️ Дневной лимит команд до одобрения исчерпан. "
                 "Попробуйте снова завтра."
             ),
         )

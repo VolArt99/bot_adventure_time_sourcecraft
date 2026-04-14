@@ -4,13 +4,13 @@ from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
-from constants import EVENT_CATEGORY_GROUPS
-from keyboards import (
+from bot.constants import EVENT_CATEGORY_GROUPS
+from bot.keyboards import (
     carpool_keyboard,
     category_groups_keyboard,
     choose_topic_keyboard,
 )
-from utils.topics import get_topics_list_from_db
+from bot.utils.topics import get_topics_list_from_db
 from .shared import CreateEvent
 
 logger = logging.getLogger(__name__)

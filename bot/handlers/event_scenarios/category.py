@@ -2,8 +2,8 @@ from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
-from constants import EVENT_CATEGORIES, EVENT_CATEGORY_GROUPS
-from keyboards import category_groups_keyboard, category_subgroups_keyboard
+from bot.constants import EVENT_CATEGORIES, EVENT_CATEGORY_GROUPS
+from bot.keyboards import category_groups_keyboard, category_subgroups_keyboard
 from .shared import CreateEvent, finalize_event_creation
 
 router = Router(name=__name__)

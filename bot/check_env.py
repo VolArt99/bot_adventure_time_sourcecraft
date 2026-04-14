@@ -1,7 +1,5 @@
-# check_env.py - Исправленная версия (без создания бота)
 import sys
 import aiogram
-from aiogram import Bot
 
 print("=" * 60)
 print("ПРОВЕРКА ОКРУЖЕНИЯ")
@@ -12,13 +10,8 @@ print(f"aiogram версия: {aiogram.__version__}")
 print(f"aiogram путь: {aiogram.__file__}")
 print("=" * 60)
 
-# ⚠️ ПРОВЕРКА НА КЛАССЕ (без создания инстанса)
-has_method = hasattr(Bot, 'get_forum_topics')
-print(f"Bot.get_forum_topics доступен: {has_method}")
-
-# Список методов с 'forum'
-forum_methods = [m for m in dir(Bot) if 'forum' in m.lower()]
-print(f"Методы с 'forum': {forum_methods}")
+print("ℹ️ Telegram Bot API не предоставляет универсального способа получить все ID тем напрямую.")
+print("ℹ️ Бот использует локально обнаруженные темы (из входящих сообщений) и topics_config.py.")
 
 # Проверка версии
 version_parts = aiogram.__version__.split('.')
@@ -31,5 +24,5 @@ else:
     print("⚠️ Требуется aiogram 3.3.0+")
 
 print("=" * 60)
-print(f"ИТОГ: get_forum_topics = {'✅ ДОСТУПЕН' if has_method else '❌ НЕ ДОСТУПЕН'}")
+print("ИТОГ: ориентируйтесь на /list_topics и таблицу forum_topics в БД.")
 print("=" * 60)

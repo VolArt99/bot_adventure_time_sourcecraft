@@ -3,11 +3,11 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command
 import logging
 
-from config import GROUP_ID
-from database import get_events_for_digest, get_topic_name_by_thread_id
-from keyboards import period_keyboard
-from texts import format_digest_text
-from utils.helpers import get_username_by_id, build_event_message_link
+from bot.config import GROUP_ID
+from bot.database import get_events_for_digest, get_topic_name_by_thread_id
+from bot.keyboards import period_keyboard
+from bot.texts import format_digest_text
+from bot.utils.helpers import get_username_by_id, build_event_message_link
 
 logger = logging.getLogger(__name__)
 router = Router()

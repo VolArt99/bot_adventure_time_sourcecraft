@@ -1,19 +1,15 @@
 import os
-import sys
-from pathlib import Path
+import importlib
 import unittest
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 os.environ.setdefault("BOT_TOKEN", "test-token")
 os.environ.setdefault("OWNER_ID", "12345")
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "bot"))
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "bot" / "handlers"))
+from bot.middleware.command_access import CommandAccessMiddleware  # noqa: E402
 
-from middleware.command_access import CommandAccessMiddleware  # noqa: E402
-import common  # noqa: E402
-import participation  # noqa: E402
-
+common = importlib.import_module("bot.handlers.common")
+participation = importlib.import_module("bot.handlers.participation")
 
 class _FakeMessage:
     def __init__(self, user_id: int, text: str, chat_type: str = "private"):
@@ -36,19 +32,19 @@ class _FakeCallback:
 
 
 class CommandAccessTests(unittest.IsolatedAsyncioTestCase):
-    async def test_outsider_non_start_command_is_denied(self):
+    async def test_outsider_help_command_is_allowed(self):
         m = CommandAccessMiddleware()
         event = _FakeMessage(user_id=777, text="/help")
         handler = AsyncMock()
 
         with (
-            patch("middleware.command_access.Message", _FakeMessage),
-            patch("middleware.command_access.is_member_approved", new=AsyncMock(return_value=False)),
+            patch("bot.middleware.command_access.Message", _FakeMessage),
+            patch("bot.middleware.command_access.is_member_approved", new=AsyncMock(return_value=False)),
         ):
             await m(handler, event, {})
 
-        handler.assert_not_awaited()
-        event.answer.assert_awaited()
+        handler.assert_awaited()
+        event.answer.assert_not_awaited()
 
 
 class OnboardingOwnerChecksTests(unittest.IsolatedAsyncioTestCase):
@@ -63,7 +59,7 @@ class OnboardingOwnerChecksTests(unittest.IsolatedAsyncioTestCase):
     async def test_reject_flow_for_owner(self):
         owner_callback = _FakeCallback(user_id=common.OWNER_ID, data="reject_user_42")
 
-        with patch("common.delete_pending_user", new=AsyncMock()) as delete_pending_user:
+        with patch("bot.handlers.common.delete_pending_user", new=AsyncMock()) as delete_pending_user:
             await common.owner_reject_user(owner_callback)
 
         delete_pending_user.assert_awaited_once_with(42)
@@ -76,8 +72,8 @@ class ParticipationTransitionsTests(unittest.IsolatedAsyncioTestCase):
         callback = _FakeCallback(user_id=11, data="waitlist_100")
 
         with (
-            patch("participation.get_event", new=AsyncMock(return_value={"id": 100, "status": "active"})),
-            patch("participation.get_main_participants", new=AsyncMock(return_value=[11])),
+            patch("bot.handlers.participation.get_event", new=AsyncMock(return_value={"id": 100, "status": "active"})),
+            patch("bot.handlers.participation.get_main_participants", new=AsyncMock(return_value=[11])),
         ):
             await participation.waitlist_event(callback)
 

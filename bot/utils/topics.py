@@ -1,6 +1,6 @@
 import logging
 
-from database import get_all_topics, get_topic_by_id, save_forum_topic
+from bot.database import get_all_topics, get_topic_by_id, save_forum_topic
 
 logger = logging.getLogger(__name__)
 

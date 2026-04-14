@@ -6,12 +6,12 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message
 
-from config import GROUP_ID, TIMEZONE
-from database import create_event, get_topic_name_by_thread_id, update_event_message_id
-from keyboards import event_actions
-from texts import format_event_message
-from utils.helpers import get_user_mention
-from utils.weather import get_weather
+from bot.config import GROUP_ID, TIMEZONE
+from bot.database import create_event, get_topic_name_by_thread_id, update_event_message_id
+from bot.keyboards import event_actions
+from bot.texts import format_event_message
+from bot.utils.helpers import get_user_mention
+from bot.utils.weather import get_weather
 
 logger = logging.getLogger(__name__)
 TZ = pytz.timezone(TIMEZONE)
@@ -98,7 +98,7 @@ async def finalize_event_creation(
         )
         await update_event_message_id(event_id, data.get("thread_id"), sent_msg.message_id)
 
-        from utils.scheduler import schedule_reminders_for_event
+        from bot.utils.scheduler import schedule_reminders_for_event
 
         await schedule_reminders_for_event(event_id, bot)
 

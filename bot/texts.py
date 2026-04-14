@@ -2,8 +2,9 @@ from datetime import datetime
 from typing import List, Dict
 from html import escape
 import pytz
-from config import TIMEZONE
-from utils.event_links import build_google_calendar_link, build_ics_link, build_maps_link
+
+from bot.config import TIMEZONE
+from bot.utils.event_links import build_google_calendar_link, build_ics_link, build_maps_link
 
 TZ = pytz.timezone(TIMEZONE)
 
@@ -166,7 +167,7 @@ async def format_event_message(
         lines.extend(["", carpool])
 
     if event.get("carpool_enabled"):
-        from database import get_drivers_with_passengers
+        from bot.database import get_drivers_with_passengers
 
         drivers = await get_drivers_with_passengers(event["id"])
         if drivers:

@@ -1,9 +1,8 @@
-# ✅ ИСПРАВЛЕННЫЙ ФАЙЛ: bot/middleware/topic_discoverer.py
+import logging
+from typing import Callable, Dict, Any, Awaitable
 
 from aiogram import BaseMiddleware
 from aiogram.types import Update
-from typing import Callable, Dict, Any, Awaitable
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -19,24 +18,37 @@ class TopicDiscovererMiddleware(BaseMiddleware):
         event: Update,
         data: Dict[str, Any],
     ) -> Any:
-        try:
-            # Проверяем тип события
-            if hasattr(event, 'message') and event.message is not None:
-                message = event.message
-                
-                # Проверяем, есть ли в сообщении информация о теме
-                if hasattr(message, 'message_thread_id') and message.message_thread_id:
-                    message_thread_id = message.message_thread_id
-                    
-                    # Получаем название темы из конфига или генерируем
-                    topic_name = self._get_topic_name(message_thread_id)
-                    
-                    # Сохраняем тему
-                    from database import save_forum_topic
+        # Проверяем тип события
+        if hasattr(event, "message") and event.message is not None:
+            message = event.message
+
+            # Проверяем, есть ли в сообщении информация о теме
+            if hasattr(message, "message_thread_id") and message.message_thread_id:
+                message_thread_id = message.message_thread_id
+
+                # Получаем название темы из конфига или генерируем
+                topic_name = self._get_topic_name(message_thread_id)
+
+                from bot.database import save_forum_topic
+
+                try:
                     await save_forum_topic(message_thread_id, topic_name)
-                    logger.info(f"✅ Обнаружена тема: '{topic_name}' (ID: {message_thread_id})")
-        except Exception as e:
-            logger.error(f"❌ Ошибка в middleware: {e}", exc_info=True)
+                    logger.info(
+                        "topic_discovered user_id=%s command=%s event_id=%s thread_id=%s topic_name=%s",
+                        getattr(getattr(message, "from_user", None), "id", None),
+                        (message.text or "").split(" ", 1)[0] if message.text else None,
+                        getattr(message, "message_id", None),
+                        message_thread_id,
+                        topic_name,
+                    )
+                except (TypeError, ValueError) as exc:
+                    logger.warning(
+                        "topic_discover_failed user_id=%s event_id=%s thread_id=%s error=%s",
+                        getattr(getattr(message, "from_user", None), "id", None),
+                        getattr(message, "message_id", None),
+                        message_thread_id,
+                        type(exc).__name__,
+                    )
         
         return await handler(event, data)
     
@@ -45,7 +57,7 @@ class TopicDiscovererMiddleware(BaseMiddleware):
         Получает название темы из конфига.
         """
         try:
-            from topics_config import TOPICS_MAPPING
+            from bot.topics_config import TOPICS_MAPPING
             
             if thread_id in TOPICS_MAPPING:
                 name = TOPICS_MAPPING[thread_id]
@@ -57,6 +69,6 @@ class TopicDiscovererMiddleware(BaseMiddleware):
         except ImportError:
             logger.warning("topics_config.py не найден, используется ID как название")
             return f"Тема {thread_id}"
-        except Exception as e:
-            logger.warning(f"Ошибка при получении названия: {e}")
+        except (TypeError, ValueError):
+            logger.warning("Некорректный thread_id=%s, используется fallback-название", thread_id)
             return f"Тема {thread_id}"

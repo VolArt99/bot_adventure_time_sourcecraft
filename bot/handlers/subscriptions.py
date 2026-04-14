@@ -2,17 +2,17 @@ from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.types import CallbackQuery, Message
 
-from constants import EVENT_CATEGORIES
-from database import (
+from bot.constants import EVENT_CATEGORIES
+from bot.database import (
     get_events_for_user_subscriptions,
     get_or_create_user,
     get_topic_name_by_thread_id,
     get_user_category_subscriptions,
     set_user_category_subscriptions,
 )
-from keyboards import period_keyboard
-from texts import format_digest_text
-from utils.helpers import get_username_by_id
+from bot.keyboards import period_keyboard
+from bot.texts import format_digest_text
+from bot.utils.helpers import get_username_by_id
 
 router = Router(name=__name__)
 

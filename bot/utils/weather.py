@@ -1,5 +1,5 @@
 import aiohttp
-from config import WEATHER_API_KEY
+from bot.config import WEATHER_API_KEY
 
 WEATHER_EMOJI = {
     "01d": "☀️", "01n": "🌙",

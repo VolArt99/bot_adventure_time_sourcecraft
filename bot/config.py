@@ -1,7 +1,5 @@
  # загрузка настроек из .env
 
-# ⚠️ ОБНОВЛЕНО: Добавлена валидация и дефолтные значения
-
 import os
 from dotenv import load_dotenv
 
@@ -19,8 +17,12 @@ GROUP_ID = int(os.getenv("GROUP_ID")) if os.getenv("GROUP_ID") else 0
 
 # ⚠️ ОБНОВЛЕНО: ADMIN_IDS теперь список организаторов (не только админы)
 ADMIN_IDS = list(map(int, os.getenv("ADMIN_IDS", "").split(","))) if os.getenv("ADMIN_IDS") else []
-OWNER_CHAT_ID = int(os.getenv("OWNER_CHAT_ID")) if os.getenv("OWNER_CHAT_ID") else 0
 OWNER_ID = int(os.getenv("OWNER_ID")) if os.getenv("OWNER_ID") else 0
+OUTSIDER_ALLOWED_COMMANDS = {
+    cmd.strip().lower()
+    for cmd in os.getenv("OUTSIDER_ALLOWED_COMMANDS", "start,help,status").split(",")
+    if cmd.strip()
+}
 
 # Дневные лимиты по отправке команд
 ADMIN_DAILY_COMMAND_LIMIT = int(os.getenv("ADMIN_DAILY_COMMAND_LIMIT", "150"))

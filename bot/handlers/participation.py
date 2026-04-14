@@ -3,14 +3,17 @@
 from aiogram import Router, F, Bot
 from aiogram.types import CallbackQuery, Message
 from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
-from keyboards import event_actions
-from texts import format_event_message
-from utils.helpers import get_username_by_id
-from config import GROUP_ID, ADMIN_IDS
+
+from bot.keyboards import event_actions
+from bot.texts import format_event_message
+from bot.utils.helpers import get_username_by_id
+from bot.config import GROUP_ID, ADMIN_IDS
+
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.context import FSMContext
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from database import (
+
+from bot.database import (
     get_event,
     add_participant,
     remove_participant,
@@ -39,8 +42,8 @@ async def update_event_message(
     if not event:
         return
 
-    from database import get_topic_name_by_thread_id
-    from utils.helpers import get_user_mention
+    from bot.database import get_topic_name_by_thread_id
+    from bot.utils.helpers import get_user_mention
 
     going = await get_main_participants(event_id)
     waitlist = await get_participants(event_id, "waitlist")

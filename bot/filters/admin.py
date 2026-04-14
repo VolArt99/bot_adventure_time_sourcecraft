@@ -3,7 +3,7 @@ from functools import wraps
 from aiogram.filters import BaseFilter
 from aiogram.types import Message, CallbackQuery, TelegramObject
 
-from config import ADMIN_IDS
+from bot.config import ADMIN_IDS
 
 
 class IsAdminFilter(BaseFilter):

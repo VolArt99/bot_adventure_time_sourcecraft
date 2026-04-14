@@ -3,7 +3,7 @@ from functools import wraps
 
 from aiogram.types import Message, CallbackQuery
 
-from config import ADMIN_IDS, RESTRICTED_COMMANDS
+from bot.config import ADMIN_IDS, RESTRICTED_COMMANDS
 
 
 EventT = Message | CallbackQuery

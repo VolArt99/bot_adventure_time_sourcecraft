@@ -6,18 +6,18 @@ from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery
 
-from config import TIMEZONE, GROUP_ID
-from database import (
+from bot.config import TIMEZONE, GROUP_ID
+from bot.database import (
     get_user_events,
     get_event,
     get_participants,
     get_main_participants,
     get_topic_name_by_thread_id,
 )
-from keyboards import event_actions, period_keyboard
+from bot.keyboards import event_actions, period_keyboard
 
-from texts import format_event_message
-from utils.helpers import get_user_mention, build_event_message_link
+from bot.texts import format_event_message
+from bot.utils.helpers import get_user_mention, build_event_message_link
 
 router = Router()
 TZ = pytz.timezone(TIMEZONE)

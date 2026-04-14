@@ -1,13 +1,7 @@
 # точка входа, инициализация бота, диспетчера, планировщика
 
-# ⚠️ ОБНОВЛЕНО: Улучшенная инициализация и восстановление
-
-import sys
-import os
 import json
 import base64
-
-sys.path.insert(0, os.path.dirname(__file__))
 
 import asyncio
 import logging
@@ -16,10 +10,20 @@ from aiogram.exceptions import TelegramNetworkError
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.fsm.storage.redis import RedisStorage
 from aiogram.fsm.strategy import FSMStrategy
-from config import BOT_TOKEN, REDIS_DSN
-from database import init_db, sync_topics_from_config
-from handlers import common, events, participation, digest, reminders, my_events, roadmap, subscriptions, admin
-from utils.scheduler import restore_jobs, start_scheduler
+
+from bot.config import BOT_TOKEN, REDIS_DSN
+from bot.database import init_db, sync_topics_from_config
+import bot.handlers.common as common
+import bot.handlers.events as events
+import bot.handlers.participation as participation
+import bot.handlers.digest as digest
+import bot.handlers.reminders as reminders
+import bot.handlers.my_events as my_events
+import bot.handlers.roadmap as roadmap
+import bot.handlers.subscriptions as subscriptions
+import bot.handlers.admin as admin
+from bot.utils.scheduler import restore_jobs, start_scheduler
+
 from aiogram.types import Update
 
 # Настройка логирования
@@ -49,7 +53,7 @@ def _register_handlers() -> None:
     """Регистрирует роутеры и middleware один раз."""
     dp.message.filter(F.chat.type == "private")
 
-    from middleware.command_access import CommandAccessMiddleware
+    from bot.middleware.command_access import CommandAccessMiddleware
     dp.message.middleware(CommandAccessMiddleware())
 
     dp.include_router(common.router)
@@ -62,7 +66,7 @@ def _register_handlers() -> None:
     dp.include_router(subscriptions.router)
     dp.include_router(admin.router)
 
-    from middleware.topic_discoverer import TopicDiscovererMiddleware
+    from bot.middleware.topic_discoverer import TopicDiscovererMiddleware
 
     dp.update.middleware(TopicDiscovererMiddleware())
 
