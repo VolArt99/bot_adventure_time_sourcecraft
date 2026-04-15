@@ -836,6 +836,88 @@ async def get_user_stats(user_id: int) -> Dict:
     }
 
 
+async def get_admin_report_metrics() -> Dict[str, Any]:
+    """Возвращает агрегированные метрики для команды /admin_report."""
+    pool = await get_pool()
+
+    active_events_result = await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            SELECT COUNT(*) AS active_events
+            FROM events
+            WHERE status = 'active'
+            """,
+            commit_tx=True,
+        )
+    )
+    active_events = (
+        int(active_events_result[0].rows[0].active_events)
+        if active_events_result and active_events_result[0].rows
+        else 0
+    )
+
+    attendance_result = await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            SELECT COUNT(*) AS attendance_count
+            FROM events e
+            JOIN participants p ON e.id = p.event_id
+            WHERE e.status = 'active'
+              AND p.status IN ('going', 'driver', 'passenger')
+            """,
+            commit_tx=True,
+        )
+    )
+    attendance_count = (
+        int(attendance_result[0].rows[0].attendance_count)
+        if attendance_result and attendance_result[0].rows
+        else 0
+    )
+    avg_attendance = round(attendance_count / active_events, 2) if active_events else 0.0
+
+    no_show_result = await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            SELECT COUNT(*) AS no_show
+            FROM participants
+            WHERE status = 'no_show'
+            """,
+            commit_tx=True,
+        )
+    )
+    no_show = (
+        int(no_show_result[0].rows[0].no_show)
+        if no_show_result and no_show_result[0].rows
+        else 0
+    )
+
+    top_categories_result = await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            SELECT category, COUNT(*) AS cnt
+            FROM events
+            WHERE status = 'active'
+            GROUP BY category
+            ORDER BY cnt DESC
+            LIMIT 5
+            """,
+            commit_tx=True,
+        )
+    )
+
+    top_categories: List[Dict[str, Any]] = []
+    for row in top_categories_result[0].rows if top_categories_result else []:
+        category_name = (row.category or 'Без категории').strip() if isinstance(row.category, str) else 'Без категории'
+        top_categories.append({'category': category_name, 'cnt': int(row.cnt)})
+
+    return {
+        'active_events': active_events,
+        'avg_attendance': avg_attendance,
+        'no_show': no_show,
+        'top_categories': top_categories,
+    }
+
+
 async def get_top_participants(days: int = 30, limit: int = 3) -> List[Dict]:
     """Топ участников по количеству участий за период."""
     pool = await get_pool()
