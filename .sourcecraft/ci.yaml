@@ -34,6 +34,7 @@ workflows:
       OWNER_ID: ${{ secrets.OWNER_ID }}
       YDB_ENDPOINT: ${{ secrets.YDB_ENDPOINT }}
       YDB_DATABASE: ${{ secrets.YDB_DATABASE }}
+      YDB_SERVICE_ACCOUNT_KEY_CONTENT_CREDENTIALS: ${{ secrets.YDB_SERVICE_ACCOUNT_KEY_CONTENT_CREDENTIALS }}
     tasks:
       - name: deploy-tg-backend-task
         cubes: 
@@ -53,7 +54,7 @@ workflows:
               YC_FUNCTION_RUNTIME: python312
               YC_FUNCTION_ENTRYPOINT: dynamic_handler.handler
               SOURCE_PATH: "."
-              ENVIRONMENT: "BOT_TOKEN=${{ inputs.bot-token }},WEATHER_API_KEY=${{ secrets.WEATHER_API_KEY }},GROUP_ID=${{ secrets.GROUP_ID }},ADMIN_IDS=${{ secrets.ADMIN_IDS }},OWNER_ID=${{ secrets.OWNER_ID }},YDB_ENDPOINT=${{ secrets.YDB_ENDPOINT }},YDB_DATABASE=${{ secrets.YDB_DATABASE }},TIMEZONE=Europe/Moscow"
+              ENVIRONMENT: "BOT_TOKEN=${{ inputs.bot-token }},WEATHER_API_KEY=${{ secrets.WEATHER_API_KEY }},GROUP_ID=${{ secrets.GROUP_ID }},ADMIN_IDS=${{ secrets.ADMIN_IDS }},OWNER_ID=${{ secrets.OWNER_ID }},YDB_ENDPOINT=${{ secrets.YDB_ENDPOINT }},YDB_DATABASE=${{ secrets.YDB_DATABASE }},YDB_SERVICE_ACCOUNT_KEY_CONTENT_CREDENTIALS=${{ secrets.YDB_SERVICE_ACCOUNT_KEY_CONTENT_CREDENTIALS }},TIMEZONE=Europe/Moscow"
               PUBLIC: true
             image: cr.yandex/sourcecraft/yc-function:latest
 

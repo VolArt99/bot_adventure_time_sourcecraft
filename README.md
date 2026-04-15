@@ -125,3 +125,4 @@ python -m bot.main
 - В SourceCraft workflow использует `YC_FUNCTION_ENTRYPOINT=dynamic_handler.handler` и `SOURCE_PATH="."`, чтобы в рантайме был доступен пакет `bot` с абсолютными импортами (`from bot...`).
 - Переменные окружения функции передаются через `ENVIRONMENT` в `.sourcecraft/ci.yaml`: `BOT_TOKEN`, `WEATHER_API_KEY`, `GROUP_ID`, `ADMIN_IDS`, `OWNER_ID`, `YDB_ENDPOINT`, `YDB_DATABASE`, `TIMEZONE`.
 - Для установки зависимостей на стороне функции используется корневой `requirements.txt`, который подключает `bot/requirements.txt`.
+- Для доступа к YDB в Cloud Functions нужно явно задать креды (например, `YDB_SERVICE_ACCOUNT_KEY_CONTENT_CREDENTIALS` c JSON-ключом сервисного аккаунта или `YDB_SERVICE_ACCOUNT_KEY_FILE_CREDENTIALS`). Авто-fallback на metadata endpoint в функциях часто недоступен и приводит к таймаутам.

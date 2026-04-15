@@ -21,13 +21,25 @@ _pool = None
 
 def _build_credentials() -> ydb.Credentials:
     """Подбирает стратегию авторизации для YDB и логирует выбранный путь."""
-    if os.getenv("YDB_ACCESS_TOKEN_CREDENTIALS"):
-        logger.info("YDB auth: YDB_ACCESS_TOKEN_CREDENTIALS")
-        return ydb.AccessTokenCredentials(os.getenv("YDB_ACCESS_TOKEN_CREDENTIALS"))
+    service_account_key_content = os.getenv("YDB_SERVICE_ACCOUNT_KEY_CONTENT_CREDENTIALS") or os.getenv("SA_KEY_CONTENT")
+    if service_account_key_content:
+        logger.info("YDB auth: service account key content from env")
+        return ydb.iam.ServiceAccountCredentials.from_content(service_account_key_content)
 
-    if os.getenv("SA_KEY_FILE") or os.getenv("YDB_SERVICE_ACCOUNT_KEY_FILE_CREDENTIALS"):
-        logger.info("YDB auth: service account key file")
-        return ydb.credentials_from_env_variables()
+    if os.getenv("YDB_METADATA_CREDENTIALS", "0") == "1":
+        logger.info("YDB auth: forced metadata credentials by YDB_METADATA_CREDENTIALS=1")
+        return ydb.iam.MetadataUrlCredentials()
+
+    runs_in_cloud_function = any(
+        os.getenv(var_name)
+        for var_name in ("FUNCTION_NAME", "FUNCTION_ID", "YC_FUNCTION_NAME", "YC_FUNCTION_ID")
+    )
+    if runs_in_cloud_function:
+        raise ValueError(
+            "YDB credentials are not configured for Cloud Functions. "
+            "Set YDB_SERVICE_ACCOUNT_KEY_CONTENT_CREDENTIALS / SA_KEY_CONTENT. "
+            "Use YDB_METADATA_CREDENTIALS=1 only when metadata endpoint is available."
+        )
 
     logger.info("YDB auth: instance metadata service account token")
     return ydb.iam.MetadataUrlCredentials()
