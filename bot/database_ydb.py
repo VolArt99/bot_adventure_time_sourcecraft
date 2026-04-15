@@ -19,6 +19,20 @@ _driver = None
 _pool = None
 
 
+def _build_credentials() -> ydb.Credentials:
+    """Подбирает стратегию авторизации для YDB и логирует выбранный путь."""
+    if os.getenv("YDB_ACCESS_TOKEN_CREDENTIALS"):
+        logger.info("YDB auth: YDB_ACCESS_TOKEN_CREDENTIALS")
+        return ydb.AccessTokenCredentials(os.getenv("YDB_ACCESS_TOKEN_CREDENTIALS"))
+
+    if os.getenv("SA_KEY_FILE") or os.getenv("YDB_SERVICE_ACCOUNT_KEY_FILE_CREDENTIALS"):
+        logger.info("YDB auth: service account key file")
+        return ydb.credentials_from_env_variables()
+
+    logger.info("YDB auth: instance metadata service account token")
+    return ydb.iam.MetadataUrlCredentials()
+
+
 async def get_driver():
     """Возвращает инициализированный драйвер YDB."""
     global _driver
@@ -28,7 +42,7 @@ async def get_driver():
         driver_config = ydb.DriverConfig(
             YDB_ENDPOINT,
             YDB_DATABASE,
-            credentials=ydb.credentials_from_env_variables(),
+            credentials=_build_credentials(),
             root_certificates=ydb.load_ydb_root_certificate(),
         )
         _driver = ydb.aio.Driver(driver_config)
