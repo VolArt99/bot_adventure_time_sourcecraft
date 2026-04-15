@@ -31,6 +31,7 @@ workflows:
       WEATHER_API_KEY: ${{ secrets.WEATHER_API_KEY }}
       GROUP_ID: ${{ secrets.GROUP_ID }}
       ADMIN_IDS: ${{ secrets.ADMIN_IDS }}
+      OWNER_ID: ${{ secrets.OWNER_ID }}
       YDB_ENDPOINT: ${{ secrets.YDB_ENDPOINT }}
       YDB_DATABASE: ${{ secrets.YDB_DATABASE }}
     tasks:
@@ -49,9 +50,9 @@ workflows:
               YC_FOLDER_ID: ${{ tokens.SERVICE_CONNECTION_WITH_TOKEN.folder_id }} 
               YC_FUNCTION_NAME: ${{ cubes.format-name.outputs.function_name }}
               YC_FUNCTION_RUNTIME: python312
-              YC_FUNCTION_ENTRYPOINT: main.handler
-              SOURCE_PATH: "./bot"
-              ENVIRONMENT: "BOT_TOKEN=${{ inputs.bot-token }}"
+              YC_FUNCTION_ENTRYPOINT: dynamic_handler.handler
+              SOURCE_PATH: "."
+              ENVIRONMENT: "BOT_TOKEN=${{ inputs.bot-token }},WEATHER_API_KEY=${{ secrets.WEATHER_API_KEY }},GROUP_ID=${{ secrets.GROUP_ID }},ADMIN_IDS=${{ secrets.ADMIN_IDS }},OWNER_ID=${{ secrets.OWNER_ID }},YDB_ENDPOINT=${{ secrets.YDB_ENDPOINT }},YDB_DATABASE=${{ secrets.YDB_DATABASE }},TIMEZONE=Europe/Moscow"
               PUBLIC: true
             image: cr.yandex/sourcecraft/yc-function:latest
 
