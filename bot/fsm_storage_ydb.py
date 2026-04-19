@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from collections.abc import Mapping
 from typing import Any
 
@@ -11,11 +12,26 @@ from aiogram.fsm.storage.base import BaseStorage, StorageKey
 
 from bot.database import get_pool
 
+logger = logging.getLogger(__name__)
 
 class YdbStorage(BaseStorage):
     """Persist FSM state/data in YDB table `fsm_states`."""
 
     @staticmethod
+    def _as_int(value: Any, *, default: int | None = None) -> int | None:
+        """Best-effort conversion to int for YDB Int64 parameters."""
+        if value is None:
+            return default
+        if isinstance(value, bool):
+            return default
+        if isinstance(value, int):
+            return value
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return default
+
+    @classmethod
     def _key_parameters(key: StorageKey) -> dict[str, Any]:
         """Build stable YDB parameters for FSM key.
 
@@ -24,14 +40,17 @@ class YdbStorage(BaseStorage):
         Для такого случая используем стабильный fallback `0`, чтобы параметр
         всегда передавался в запрос и не приводил к `Missing value for parameter`.
         """
-        return {
-            "bot_id": key.bot_id if key.bot_id is not None else 0,
-            "chat_id": key.chat_id,
-            "user_id": key.user_id,
-            "thread_id": key.thread_id,
+        params = {
+            "bot_id": cls._as_int(key.bot_id, default=0),
+            "chat_id": cls._as_int(key.chat_id, default=0),
+            "user_id": cls._as_int(key.user_id, default=0),
+            "thread_id": cls._as_int(key.thread_id, default=None),
             "business_connection_id": key.business_connection_id,
-            "destiny": key.destiny,
+            "destiny": key.destiny or "default",
         }
+        if key.bot_id != params["bot_id"]:
+            logger.warning("FSM key bot_id normalized from %r to %r", key.bot_id, params["bot_id"])
+        return params
 
     async def set_state(self, key: StorageKey, state: str | State | None = None) -> None:
         state_value = state.state if isinstance(state, State) else state
