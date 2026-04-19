@@ -630,18 +630,7 @@ async def get_event(event_id: int) -> Optional[Dict]:
         return None
 
     row = result[0].rows[0]
-    # Преобразуем YDB строку в словарь Python
-    event_dict = {}
-    for column in row.__fields__:
-        value = getattr(row, column)
-        # Преобразуем специальные типы YDB
-        if hasattr(value, "isoformat"):
-            value = value.isoformat()
-        elif isinstance(value, ydb.Decimal):
-            value = float(value)
-        event_dict[column] = value
-
-    return event_dict
+    return _normalize_row(row)
 
 
 async def update_event_message_id(event_id: int, thread_id: int, message_id: int):
@@ -679,26 +668,24 @@ async def get_active_events() -> List[Dict]:
         )
     )
 
-    events = []
-    for row in result[0].rows:
-        event_dict = {}
-        for column in row.__fields__:
-            value = getattr(row, column)
-            if hasattr(value, "isoformat"):
-                value = value.isoformat()
-            elif isinstance(value, ydb.Decimal):
-                value = float(value)
-            event_dict[column] = value
-        events.append(event_dict)
-
-    return events
+    return [_normalize_row(row) for row in result[0].rows]
 
 
 def _normalize_row(row) -> Dict[str, Any]:
     """Преобразует строку YDB в обычный словарь python-типов."""
     event_dict: Dict[str, Any] = {}
-    for column in row.__fields__:
-        value = getattr(row, column)
+    if isinstance(row, dict):
+        row_items = row.items()
+    elif hasattr(row, "items"):
+        row_items = row.items()
+    elif hasattr(row, "__fields__"):
+        row_items = ((column, getattr(row, column)) for column in row.__fields__)
+    elif hasattr(row, "_asdict"):
+        row_items = row._asdict().items()
+    else:
+        row_items = ((column, getattr(row, column)) for column in dir(row) if not column.startswith("_"))
+
+    for column, value in row_items:
         if hasattr(value, "isoformat"):
             value = value.isoformat()
         elif isinstance(value, ydb.Decimal):
@@ -1172,19 +1159,7 @@ async def get_user_events(user_id: int, status: str = None) -> List[Dict]:
         )
     )
 
-    events = []
-    for row in result[0].rows:
-        event_dict = {}
-        for column in row.__fields__:
-            value = getattr(row, column)
-            if hasattr(value, "isoformat"):
-                value = value.isoformat()
-            elif isinstance(value, ydb.Decimal):
-                value = float(value)
-            event_dict[column] = value
-        events.append(event_dict)
-
-    return events
+    return [_normalize_row(row) for row in result[0].rows]
 
 
 async def move_from_waitlist(event_id: int) -> Optional[int]:
