@@ -22,6 +22,16 @@ _driver = None
 _pool = None
 
 
+def _is_schema_limit_error(exc: Exception) -> bool:
+    """Определяет ошибку лимита schema-операций YDB."""
+    message = str(exc).lower()
+    return (
+        "number of schema operations" in message
+        or "request exceeded a limit on the number of schema operations" in message
+        or "server_code: 400080" in message
+    )
+
+
 def _build_credentials() -> ydb.Credentials:
     """Подбирает стратегию авторизации для YDB и логирует выбранный путь."""
     service_account_key_file = os.getenv("YDB_SERVICE_ACCOUNT_KEY_FILE_CREDENTIALS") or os.getenv("SA_KEY_FILE")
@@ -111,197 +121,160 @@ async def init_db():
     """Создаёт таблицы при первом запуске."""
     pool = await get_pool()
 
-    # Создание таблицы users
-    await pool.retry_operation(
-        lambda session: session.execute_scheme(
-            """
-            CREATE TABLE IF NOT EXISTS users (
-                id Int64 NOT NULL,
-                username Utf8,
-                notification_settings Utf8 DEFAULT 'all',
-                stats_count Int64 DEFAULT 0,
-                birth_date Utf8,
-                PRIMARY KEY (id)
-            )
-            """
+    create_statements = [
+        """
+        CREATE TABLE IF NOT EXISTS users (
+            id Int64 NOT NULL,
+            username Utf8,
+            notification_settings Utf8 DEFAULT 'all',
+            stats_count Int64 DEFAULT 0,
+            birth_date Utf8,
+            PRIMARY KEY (id)
         )
-    )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS events (
+            id Int64 NOT NULL,
+            title Utf8 NOT NULL,
+            description Utf8,
+            date_time Utf8 NOT NULL,
+            duration_minutes Int64,
+            location Utf8,
+            location_lat Double,
+            location_lon Double,
+            price_total Double,
+            price_per_person Double,
+            participant_limit Int64,
+            thread_id Int64,
+            message_id Int64,
+            creator_id Int64,
+            weather_info Utf8,
+            carpool_enabled Bool DEFAULT false,
+            status Utf8 DEFAULT 'active',
+            category Utf8,
+            created_at Timestamp,
+            PRIMARY KEY (id)
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS participants (
+            id Int64 NOT NULL,
+            event_id Int64 NOT NULL,
+            user_id Int64 NOT NULL,
+            status Utf8,
+            car_seats Int64,
+            passenger_of Int64,
+            joined_at Timestamp,
+            PRIMARY KEY (id)
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS reviews (
+            id Int64 NOT NULL,
+            event_id Int64 NOT NULL,
+            user_id Int64 NOT NULL,
+            rating Int64,
+            comment Utf8,
+            created_at Timestamp,
+            PRIMARY KEY (id)
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS reminder_jobs (
+            id Int64 NOT NULL,
+            event_id Int64 NOT NULL,
+            interval_seconds Int64,
+            scheduled_time Timestamp,
+            sent Bool DEFAULT false,
+            PRIMARY KEY (id)
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS forum_topics (
+            id Int64 NOT NULL,
+            message_thread_id Int64 NOT NULL,
+            name Utf8 NOT NULL,
+            is_closed Bool DEFAULT false,
+            is_hidden Bool DEFAULT false,
+            discovered_at Timestamp,
+            PRIMARY KEY (id)
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS user_category_subscriptions (
+            user_id Int64 NOT NULL,
+            category Utf8 NOT NULL,
+            created_at Timestamp,
+            PRIMARY KEY (user_id, category)
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS random_meeting_opt_in (
+            user_id Int64 NOT NULL,
+            is_enabled Bool NOT NULL,
+            updated_at Timestamp,
+            PRIMARY KEY (user_id)
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS pending_users (
+            user_id Int64 NOT NULL,
+            username Utf8,
+            full_name Utf8,
+            status Utf8,
+            created_at Timestamp,
+            PRIMARY KEY (user_id)
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS fsm_states (
+            bot_id Int64 NOT NULL,
+            chat_id Int64 NOT NULL,
+            user_id Int64 NOT NULL,
+            thread_id Int64,
+            business_connection_id Utf8,
+            destiny Utf8 NOT NULL,
+            state Utf8,
+            data_json Utf8,
+            updated_at Timestamp,
+            PRIMARY KEY (bot_id, chat_id, user_id, thread_id, business_connection_id, destiny)
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS approved_members (
+            user_id Int64 NOT NULL,
+            username Utf8,
+            full_name Utf8,
+            join_date Timestamp,
+            intro_status Utf8 DEFAULT 'pending',
+            PRIMARY KEY (user_id)
+        )
+        """,
+    ]
 
-    # Создание таблицы events
-    await pool.retry_operation(
-        lambda session: session.execute_scheme(
-            """
-            CREATE TABLE IF NOT EXISTS events (
-                id Int64 NOT NULL,
-                title Utf8 NOT NULL,
-                description Utf8,
-                date_time Utf8 NOT NULL,
-                duration_minutes Int64,
-                location Utf8,
-                location_lat Double,
-                location_lon Double,
-                price_total Double,
-                price_per_person Double,
-                participant_limit Int64,
-                thread_id Int64,
-                message_id Int64,
-                creator_id Int64,
-                weather_info Utf8,
-                carpool_enabled Bool DEFAULT false,
-                status Utf8 DEFAULT 'active',
-                category Utf8,
-                created_at Timestamp,
-                PRIMARY KEY (id)
+    schema_limit_hit = False
+    for statement in create_statements:
+        try:
+            await pool.retry_operation(
+                lambda session, sql=statement: session.execute_scheme(sql)
             )
-            """
-        )
-    )
+        except Exception as exc:
+            if _is_schema_limit_error(exc):
+                schema_limit_hit = True
+                logger.warning(
+                    "Пропускаем schema init из-за лимита операций YDB: %s",
+                    exc,
+                )
+                break
+            raise
 
-    # Создание таблицы participants
-    await pool.retry_operation(
-        lambda session: session.execute_scheme(
-            """
-            CREATE TABLE IF NOT EXISTS participants (
-                id Int64 NOT NULL,
-                event_id Int64 NOT NULL,
-                user_id Int64 NOT NULL,
-                status Utf8,
-                car_seats Int64,
-                passenger_of Int64,
-                joined_at Timestamp,
-                PRIMARY KEY (id)
-            )
-            """
+    if schema_limit_hit:
+        logger.warning(
+            "Инициализация схемы выполнена частично из-за лимита YDB; "
+            "бот продолжит работу, повторите миграцию позже."
         )
-    )
-
-    # Создание таблицы reviews
-    await pool.retry_operation(
-        lambda session: session.execute_scheme(
-            """
-            CREATE TABLE IF NOT EXISTS reviews (
-                id Int64 NOT NULL,
-                event_id Int64 NOT NULL,
-                user_id Int64 NOT NULL,
-                rating Int64,
-                comment Utf8,
-                created_at Timestamp,
-                PRIMARY KEY (id)
-            )
-            """
-        )
-    )
-
-    # Создание таблицы reminder_jobs
-    await pool.retry_operation(
-        lambda session: session.execute_scheme(
-            """
-            CREATE TABLE IF NOT EXISTS reminder_jobs (
-                id Int64 NOT NULL,
-                event_id Int64 NOT NULL,
-                interval_seconds Int64,
-                scheduled_time Timestamp,
-                sent Bool DEFAULT false,
-                PRIMARY KEY (id)
-            )
-            """
-        )
-    )
-
-    # Создание таблицы forum_topics
-    await pool.retry_operation(
-        lambda session: session.execute_scheme(
-            """
-            CREATE TABLE IF NOT EXISTS forum_topics (
-                id Int64 NOT NULL,
-                message_thread_id Int64 NOT NULL,
-                name Utf8 NOT NULL,
-                is_closed Bool DEFAULT false,
-                is_hidden Bool DEFAULT false,
-                discovered_at Timestamp,
-                PRIMARY KEY (id)
-            )
-            """
-        )
-    )
-
-    # Создание таблицы user_category_subscriptions
-    await pool.retry_operation(
-        lambda session: session.execute_scheme(
-            """
-            CREATE TABLE IF NOT EXISTS user_category_subscriptions (
-                user_id Int64 NOT NULL,
-                category Utf8 NOT NULL,
-                created_at Timestamp,
-                PRIMARY KEY (user_id, category)
-            )
-            """
-        )
-    )
-
-    await pool.retry_operation(
-        lambda session: session.execute_scheme(
-            """
-            CREATE TABLE IF NOT EXISTS random_meeting_opt_in (
-                user_id Int64 NOT NULL,
-                is_enabled Bool NOT NULL,
-                updated_at Timestamp,
-                PRIMARY KEY (user_id)
-            )
-            """
-        )
-    )
-
-    await pool.retry_operation(
-        lambda session: session.execute_scheme(
-            """
-            CREATE TABLE IF NOT EXISTS pending_users (
-                user_id Int64 NOT NULL,
-                username Utf8,
-                full_name Utf8,
-                status Utf8,
-                created_at Timestamp,
-                PRIMARY KEY (user_id)
-            )
-            """
-        )
-    )
-
-    await pool.retry_operation(
-        lambda session: session.execute_scheme(
-            """
-            CREATE TABLE IF NOT EXISTS fsm_states (
-                bot_id Int64 NOT NULL,
-                chat_id Int64 NOT NULL,
-                user_id Int64 NOT NULL,
-                thread_id Int64,
-                business_connection_id Utf8,
-                destiny Utf8 NOT NULL,
-                state Utf8,
-                data_json Utf8,
-                updated_at Timestamp,
-                PRIMARY KEY (bot_id, chat_id, user_id, thread_id, business_connection_id, destiny)
-            )
-            """
-        )
-    )
-    
-    await pool.retry_operation(
-        lambda session: session.execute_scheme(
-            """
-            CREATE TABLE IF NOT EXISTS approved_members (
-                user_id Int64 NOT NULL,
-                username Utf8,
-                full_name Utf8,
-                join_date Timestamp,
-                intro_status Utf8 DEFAULT 'pending',
-                PRIMARY KEY (user_id)
-            )
-            """
-        )
-    )
-
-    logger.info("Таблицы YDB созданы или уже существуют")
+    else:
+        logger.info("Таблицы YDB созданы или уже существуют")
 
 
 async def get_or_create_user(user_id: int, username: str = None) -> int:
