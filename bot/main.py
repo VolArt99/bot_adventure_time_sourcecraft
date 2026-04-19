@@ -22,6 +22,7 @@ import bot.handlers.subscriptions as subscriptions
 import bot.handlers.admin as admin
 from bot.utils.scheduler import restore_jobs, start_scheduler
 from bot.fsm_storage_ydb import YdbStorage
+from bot.init_flags import should_run_schema_init
 
 from aiogram.types import Update
 
@@ -78,7 +79,11 @@ async def ensure_initialized(*, for_polling: bool = False) -> None:
 
         if not _is_initialized:
             logger.info("Инициализация бота...")
-            await init_db()
+            if should_run_schema_init():
+                await init_db()
+                logger.info("Схема БД проверена/инициализирована")
+            else:
+                logger.info("AUTO_INIT_DB disabled: пропускаем init_db() в этом окружении")
             await sync_topics_from_config()
             _register_handlers()
             logger.info("База, темы и роутеры инициализированы")

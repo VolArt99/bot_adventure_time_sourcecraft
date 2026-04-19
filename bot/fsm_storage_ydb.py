@@ -52,6 +52,7 @@ class YdbStorage(BaseStorage):
             logger.warning("FSM key bot_id normalized from %r to %r", key.bot_id, params["bot_id"])
         return params
 
+
     async def set_state(self, key: StorageKey, state: str | State | None = None) -> None:
         state_value = state.state if isinstance(state, State) else state
         pool = await get_pool()
