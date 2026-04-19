@@ -1399,9 +1399,9 @@ async def save_forum_topic(message_thread_id: int, name: str) -> bool:
             VALUES ($id, $message_thread_id, $name, false, false);
             """,
             parameters={
-                "id": topic_id,
-                "message_thread_id": int(message_thread_id),
-                "name": name or f"Тема {message_thread_id}",
+                "$id": topic_id,
+                "$message_thread_id": int(message_thread_id),
+                "$name": name or f"Тема {message_thread_id}",
             },
             commit_tx=True,
         )
