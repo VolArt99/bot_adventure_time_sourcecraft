@@ -92,8 +92,6 @@ async def ensure_initialized(*, for_polling: bool = False) -> None:
             _polling_initialized = True
 
 async def handler(event: dict, context):
-    await ensure_initialized(for_polling=False)
-
     body = event.get("body")
     if body is None or body == "":
         logger.warning("Пустое тело запроса")
@@ -113,6 +111,8 @@ async def handler(event: dict, context):
     except json.JSONDecodeError:
         logger.exception("Не удалось распарсить JSON тела запроса")
         return {"statusCode": 400, "body": "Invalid JSON in request body"}
+
+    await ensure_initialized(for_polling=False)
 
     try:
         await dp.feed_update(

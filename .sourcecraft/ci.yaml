@@ -47,17 +47,60 @@ workflows:
           - name: deploy-func
             env:
               ID_TOKEN: ${{ tokens.SERVICE_CONNECTION_WITH_TOKEN.id_token }}
-              YC_SA_ID: ${{ tokens.SERVICE_CONNECTION_WITH_TOKEN.service_account_id }}  
-              YC_FUNCTION_SA_ID: ${{ tokens.SERVICE_CONNECTION_WITH_TOKEN.service_account_id }}
+              YC_SA_ID: ${{ tokens.SERVICE_CONNECTION_WITH_TOKEN.service_account_id }}
+            image: cr.yandex/sourcecraft/yc-iam:latest
+
+          - name: ensure-func
+            env:
+              YC_IAM_TOKEN: ${{ cubes.deploy-func.outputs.IAM_TOKEN }}
               YC_FOLDER_ID: ${{ tokens.SERVICE_CONNECTION_WITH_TOKEN.folder_id }} 
-              YC_FORMAT: yaml
               YC_FUNCTION_NAME: ${{ cubes.format-name.outputs.function_name }}
+            image:
+              name: cr.yandex/sourcecraft/yc-cli:latest
+              entrypoint: ""
+            script:
+              - |
+                yc config set folder-id "$YC_FOLDER_ID"
+                echo "Checking if function exists..."
+                if ! yc serverless function get --name="$YC_FUNCTION_NAME" > function_info.txt; then
+                  echo "Function does not exist. Creating..."
+                  yc serverless function create --name="$YC_FUNCTION_NAME"
+                  yc serverless function get --name="$YC_FUNCTION_NAME" > function_info.txt
+                else
+                  echo "Function already exists."
+                fi
+                invoke_url=$(awk '/http_invoke_url:/ {print $2; exit}' function_info.txt)
+                if [ -n "$invoke_url" ]; then
+                  echo "invoke_url=$invoke_url" >> "$SOURCECRAFT_OUTPUT"
+                fi
+
+          - name: deploy-func-version
+            env:
+              YC_IAM_TOKEN: ${{ cubes.deploy-func.outputs.IAM_TOKEN }}
+              YC_FOLDER_ID: ${{ tokens.SERVICE_CONNECTION_WITH_TOKEN.folder_id }}
+              YC_FUNCTION_NAME: ${{ cubes.format-name.outputs.function_name }}              
               YC_FUNCTION_RUNTIME: python312
               YC_FUNCTION_ENTRYPOINT: dynamic_handler.handler
+              YC_FUNCTION_MEMORY: 256m
+              YC_FUNCTION_EXECUTION_TIMEOUT: 30s              
               SOURCE_PATH: "."
               ENVIRONMENT: "BOT_TOKEN=${{ inputs.bot-token }},WEATHER_API_KEY=${{ secrets.WEATHER_API_KEY }},GROUP_ID=${{ secrets.GROUP_ID }},ADMIN_IDS=${{ secrets.ADMIN_IDS }},OWNER_ID=${{ secrets.OWNER_ID }},YDB_ENDPOINT=${{ secrets.YDB_ENDPOINT }},YDB_DATABASE=${{ secrets.YDB_DATABASE }},YDB_SERVICE_ACCOUNT_KEY_CONTENT_CREDENTIALS=${{ secrets.YDB_SERVICE_ACCOUNT_KEY_CONTENT_CREDENTIALS }},TIMEZONE=Europe/Moscow"
-              PUBLIC: true
-            image: cr.yandex/sourcecraft/yc-function:latest
+            image:
+              name: cr.yandex/sourcecraft/yc-cli:latest
+              entrypoint: ""
+            script:
+              - |
+                yc config set folder-id "$YC_FOLDER_ID"
+                echo "Deploying new function version..."
+                yc serverless function version create \
+                  --function-name="$YC_FUNCTION_NAME" \
+                  --runtime="$YC_FUNCTION_RUNTIME" \
+                  --entrypoint="$YC_FUNCTION_ENTRYPOINT" \
+                  --memory="$YC_FUNCTION_MEMORY" \
+                  --execution-timeout="$YC_FUNCTION_EXECUTION_TIMEOUT" \
+                  --environment="$ENVIRONMENT" \
+                  --source-path="$SOURCE_PATH"
+                yc serverless function allow-unauthenticated-invoke --name="$YC_FUNCTION_NAME"
 
           - name: register-with-botfather
             env:
@@ -68,7 +111,7 @@ workflows:
                 if [ -n "$TG_BOT_TOKEN" ] && [ "$TG_BOT_TOKEN" != "YOUR_TG_BOT_TOKEN" ]; then
                     echo "TG_BOT_TOKEN is properly set"
                     echo "Setting webhook..."
-                    curl --request POST --url https://api.telegram.org/bot$TG_BOT_TOKEN/setWebhook?url=${{cubes.deploy-func.outputs.invoke_url}}
+                    curl --request POST --url https://api.telegram.org/bot$TG_BOT_TOKEN/setWebhook?url=${{cubes.ensure-func.outputs.invoke_url}}
                     echo "Webhook set!"
                 else
                     echo "TG_BOT_TOKEN is either not set or equals placeholder value"
@@ -77,11 +120,8 @@ workflows:
           - name: get-outputs
             script:
               - |
-                echo "invoke_url=${{ cubes.deploy-func.outputs.invoke_url }}"
-                echo "deployment_location=${{ cubes.deploy-func.outputs.deployment_location }}"
-                echo "invoke_url=${{ cubes.deploy-func.outputs.invoke_url }}" > invoke_url.txt
-                echo "deployment_location=${{ cubes.deploy-func.outputs.deployment_location }}" > deployment_location.txt
+                echo "invoke_url=${{ cubes.ensure-func.outputs.invoke_url }}"
+                echo "invoke_url=${{ cubes.ensure-func.outputs.invoke_url }}" > invoke_url.txt
             artifacts:
               paths:
                 - invoke_url.txt
-                - deployment_location.txt
