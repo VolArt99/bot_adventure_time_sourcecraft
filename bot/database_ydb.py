@@ -1387,22 +1387,16 @@ async def get_forum_topics_raw(bot, chat_id: int):
 async def save_forum_topic(message_thread_id: int, name: str) -> bool:
     pool = await get_pool()
     topic_id = int(message_thread_id)
+    topic_name = (name or f"Тема {message_thread_id}").replace("'", "''")
 
+    query = f"""
+    UPSERT INTO forum_topics (id, message_thread_id, name, is_closed, is_hidden)
+    VALUES ({topic_id}, {topic_id}, '{topic_name}', false, false);
+    """
+    
     await pool.retry_operation(
         lambda session: session.transaction().execute(
-            """
-            DECLARE $id AS Int64;
-            DECLARE $message_thread_id AS Int64;
-            DECLARE $name AS Utf8;
-
-            UPSERT INTO forum_topics (id, message_thread_id, name, is_closed, is_hidden)
-            VALUES ($id, $message_thread_id, $name, false, false);
-            """,
-            parameters={
-                "$id": topic_id,
-                "$message_thread_id": int(message_thread_id),
-                "$name": name or f"Тема {message_thread_id}",
-            },
+            query,
             commit_tx=True,
         )
     )
