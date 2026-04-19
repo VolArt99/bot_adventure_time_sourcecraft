@@ -34,6 +34,7 @@ workflows:
       OWNER_ID: ${{ secrets.OWNER_ID }}
       YDB_ENDPOINT: ${{ secrets.YDB_ENDPOINT }}
       YDB_DATABASE: ${{ secrets.YDB_DATABASE }}
+      AUTO_INIT_DB: "0"
     tasks:
       - name: deploy-tg-backend-task
         cubes: 
@@ -91,12 +92,28 @@ workflows:
               OWNER_ID: ${{ secrets.OWNER_ID }}
               YDB_ENDPOINT: ${{ secrets.YDB_ENDPOINT }}
               YDB_DATABASE: ${{ secrets.YDB_DATABASE }}
+              AUTO_INIT_DB: "0"
+              AUTO_INIT_DB_SECRET: ${{ secrets.AUTO_INIT_DB }}
               TIMEZONE: Europe/Moscow
             image:
               name: cr.yandex/sourcecraft/yc-cli:latest
               entrypoint: ""
             script:
               - |
+                if [ -z "$AUTO_INIT_DB_SECRET" ]; then
+                  echo "ERROR: secret AUTO_INIT_DB is not set. Add it in SourceCraft Secrets with value 0 or 1."
+                  exit 1
+                fi
+                case "$AUTO_INIT_DB_SECRET" in
+                  0|1|true|false|yes|no|on|off|TRUE|FALSE|YES|NO|ON|OFF)
+                    ;;
+                  *)
+                    echo "ERROR: AUTO_INIT_DB must be boolean-like (0/1/true/false/yes/no/on/off), got: '$AUTO_INIT_DB_SECRET'"
+                    exit 1
+                    ;;
+                esac
+                AUTO_INIT_DB="$AUTO_INIT_DB_SECRET"
+
                 csv_escape() {
                   local value="$1"
                   if [[ "$value" == *['",'$'\n''\r']* ]]; then
@@ -128,6 +145,8 @@ workflows:
                     build_env_pair "YDB_ENDPOINT" "$YDB_ENDPOINT"
                     printf ','
                     build_env_pair "YDB_DATABASE" "$YDB_DATABASE"
+                    printf ','
+                    build_env_pair "AUTO_INIT_DB" "$AUTO_INIT_DB"
                     printf ','
                     build_env_pair "TIMEZONE" "$TIMEZONE"
                   } | tr -d '\r'

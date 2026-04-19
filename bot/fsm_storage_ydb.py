@@ -32,7 +32,7 @@ class YdbStorage(BaseStorage):
             return default
 
     @classmethod
-    def _key_parameters(cls, key: StorageKey) -> dict[str, Any]:
+    def _key_parameters(cls, key: StorageKey | Mapping[str, Any] | Any) -> dict[str, Any]:
         """Build stable YDB parameters for FSM key.
 
         В aiogram `bot_id` может быть `None` (зависит от key builder/стратегии),
@@ -40,16 +40,24 @@ class YdbStorage(BaseStorage):
         Для такого случая используем стабильный fallback `0`, чтобы параметр
         всегда передавался в запрос и не приводил к `Missing value for parameter`.
         """
+        raw_key = key if isinstance(key, Mapping) else vars(key) if hasattr(key, "__dict__") else {
+            "bot_id": getattr(key, "bot_id", None),
+            "chat_id": getattr(key, "chat_id", None),
+            "user_id": getattr(key, "user_id", None),
+            "thread_id": getattr(key, "thread_id", None),
+            "business_connection_id": getattr(key, "business_connection_id", None),
+            "destiny": getattr(key, "destiny", None),
+        }        
         params = {
-            "bot_id": cls._as_int(key.bot_id, default=0),
-            "chat_id": cls._as_int(key.chat_id, default=0),
-            "user_id": cls._as_int(key.user_id, default=0),
-            "thread_id": cls._as_int(key.thread_id, default=None),
-            "business_connection_id": key.business_connection_id,
-            "destiny": key.destiny or "default",
+            "bot_id": cls._as_int(raw_key.get("bot_id"), default=0),
+            "chat_id": cls._as_int(raw_key.get("chat_id"), default=0),
+            "user_id": cls._as_int(raw_key.get("user_id"), default=0),
+            "thread_id": cls._as_int(raw_key.get("thread_id"), default=None),
+            "business_connection_id": raw_key.get("business_connection_id"),
+            "destiny": raw_key.get("destiny") or "default",
         }
-        if key.bot_id != params["bot_id"]:
-            logger.warning("FSM key bot_id normalized from %r to %r", key.bot_id, params["bot_id"])
+        if raw_key.get("bot_id") != params["bot_id"]:
+            logger.warning("FSM key bot_id normalized from %r to %r", raw_key.get("bot_id"), params["bot_id"])
         return params
 
 

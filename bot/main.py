@@ -22,7 +22,7 @@ import bot.handlers.subscriptions as subscriptions
 import bot.handlers.admin as admin
 from bot.utils.scheduler import restore_jobs, start_scheduler
 from bot.fsm_storage_ydb import YdbStorage
-from bot.init_flags import should_run_schema_init
+from bot.init_flags import should_run_schema_init, should_run_schema_init_webhook
 
 from aiogram.types import Update
 
@@ -79,7 +79,8 @@ async def ensure_initialized(*, for_polling: bool = False) -> None:
 
         if not _is_initialized:
             logger.info("Инициализация бота...")
-            if should_run_schema_init():
+            run_schema_init = should_run_schema_init() if for_polling else should_run_schema_init_webhook()
+            if run_schema_init:
                 await init_db()
                 logger.info("Схема БД проверена/инициализирована")
             else:

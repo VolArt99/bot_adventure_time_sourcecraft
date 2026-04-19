@@ -24,3 +24,16 @@ def should_run_schema_init() -> bool:
         for var_name in ("FUNCTION_NAME", "FUNCTION_ID", "YC_FUNCTION_NAME", "YC_FUNCTION_ID")
     )
     return not runs_in_cloud_function
+
+
+def should_run_schema_init_webhook() -> bool:
+    """Return whether `init_db()` should run in webhook/serverless handlers.
+
+    Webhook invocations are short-lived and can happen in bursts, so schema
+    initialization is disabled by default unless explicitly enabled via
+    AUTO_INIT_DB.
+    """
+    raw = os.getenv("AUTO_INIT_DB")
+    if raw is not None:
+        return raw.strip().lower() in {"1", "true", "yes", "on"}
+    return False

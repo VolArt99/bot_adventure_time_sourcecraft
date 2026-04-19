@@ -24,6 +24,20 @@ class YdbStorageKeyParamsTests(unittest.TestCase):
         self.assertIsNone(params["thread_id"])
         self.assertEqual(params["destiny"], "default")
 
+
+    def test_key_parameters_fallback_for_mapping_without_bot_id(self):
+        params = YdbStorage._key_parameters({
+            "chat_id": "321",
+            "user_id": "654",
+            "destiny": None,
+        })
+
+        self.assertEqual(params["bot_id"], 0)
+        self.assertEqual(params["chat_id"], 321)
+        self.assertEqual(params["user_id"], 654)
+        self.assertEqual(params["destiny"], "default")
+
+        
     def test_key_parameters_normalizes_string_ints(self):
         key = StorageKey(
             bot_id="777",
