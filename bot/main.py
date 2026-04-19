@@ -94,8 +94,9 @@ async def ensure_initialized(*, for_polling: bool = False) -> None:
 async def handler(event: dict, context):
     body = event.get("body")
     if body is None or body == "":
-        logger.warning("Пустое тело запроса")
-        return {"statusCode": 400, "body": "Empty request body"}
+        # При открытии URL функции в браузере (GET) тело обычно пустое — это не ошибка.
+        logger.info("Пустое тело запроса (healthcheck/ручной вызов)")
+        return {"statusCode": 200, "body": "OK"}
 
     if event.get("isBase64Encoded"):
         body = base64.b64decode(body).decode("utf-8")

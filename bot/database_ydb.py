@@ -150,7 +150,7 @@ async def init_db():
                 carpool_enabled Bool DEFAULT false,
                 status Utf8 DEFAULT 'active',
                 category Utf8,
-                created_at Timestamp DEFAULT CurrentUtcTimestamp(),
+                created_at Timestamp,
                 PRIMARY KEY (id)
             )
             """
@@ -168,7 +168,7 @@ async def init_db():
                 status Utf8,
                 car_seats Int64,
                 passenger_of Int64,
-                joined_at Timestamp DEFAULT CurrentUtcTimestamp(),
+                joined_at Timestamp,
                 PRIMARY KEY (id),
                 INDEX idx_event_user (event_id, user_id),
                 INDEX idx_user (user_id)
@@ -223,7 +223,7 @@ async def init_db():
                 name Utf8 NOT NULL,
                 is_closed Bool DEFAULT false,
                 is_hidden Bool DEFAULT false,
-                discovered_at Timestamp DEFAULT CurrentUtcTimestamp(),
+                discovered_at Timestamp,
                 PRIMARY KEY (id),
                 UNIQUE INDEX idx_thread_id (message_thread_id)
             )
@@ -238,7 +238,7 @@ async def init_db():
             CREATE TABLE IF NOT EXISTS user_category_subscriptions (
                 user_id Int64 NOT NULL,
                 category Utf8 NOT NULL,
-                created_at Timestamp DEFAULT CurrentUtcTimestamp(),
+                created_at Timestamp,
                 PRIMARY KEY (user_id, category)
             )
             """
@@ -251,7 +251,7 @@ async def init_db():
             CREATE TABLE IF NOT EXISTS random_meeting_opt_in (
                 user_id Int64 NOT NULL,
                 is_enabled Bool NOT NULL,
-                updated_at Timestamp DEFAULT CurrentUtcTimestamp(),
+                updated_at Timestamp,
                 PRIMARY KEY (user_id)
             )
             """
@@ -266,7 +266,7 @@ async def init_db():
                 username Utf8,
                 full_name Utf8,
                 status Utf8,
-                created_at Timestamp DEFAULT CurrentUtcTimestamp(),
+                created_at Timestamp,
                 PRIMARY KEY (user_id)
             )
             """
@@ -285,7 +285,7 @@ async def init_db():
                 destiny Utf8 NOT NULL,
                 state Utf8,
                 data_json Utf8,
-                updated_at Timestamp DEFAULT CurrentUtcTimestamp(),
+                updated_at Timestamp,
                 PRIMARY KEY (bot_id, chat_id, user_id, thread_id, business_connection_id, destiny)
             )
             """
@@ -299,7 +299,7 @@ async def init_db():
                 user_id Int64 NOT NULL,
                 username Utf8,
                 full_name Utf8,
-                join_date Timestamp DEFAULT CurrentUtcTimestamp(),
+                join_date Timestamp,
                 intro_status Utf8 DEFAULT 'pending',
                 PRIMARY KEY (user_id)
             )
