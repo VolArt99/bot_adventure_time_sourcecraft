@@ -7,6 +7,7 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
+import ydb
 from aiogram.fsm.state import State
 from aiogram.fsm.storage.base import BaseStorage, StorageKey
 
@@ -16,6 +17,15 @@ logger = logging.getLogger(__name__)
 
 class YdbStorage(BaseStorage):
     """Persist FSM state/data in YDB table `fsm_states`."""
+
+    _BASE_QUERY_TYPES = {
+        "$bot_id": ydb.PrimitiveType.Int64,
+        "$chat_id": ydb.PrimitiveType.Int64,
+        "$user_id": ydb.PrimitiveType.Int64,
+        "$thread_id": ydb.OptionalType(ydb.PrimitiveType.Int64),
+        "$business_connection_id": ydb.OptionalType(ydb.PrimitiveType.Utf8),
+        "$destiny": ydb.PrimitiveType.Utf8,
+    }
 
     @staticmethod
     def _with_dollar_aliases(parameters: Mapping[str, Any]) -> dict[str, Any]:
@@ -68,28 +78,38 @@ class YdbStorage(BaseStorage):
             logger.warning("FSM key bot_id normalized from %r to %r", raw_key.get("bot_id"), params["bot_id"])
         return params
 
+    @classmethod
+    def _prefixed_parameters(cls, params: Mapping[str, Any]) -> dict[str, Any]:
+        return {f"${name}": value for name, value in params.items()}
+    
 
     async def set_state(self, key: StorageKey, state: str | State | None = None) -> None:
         state_value = state.state if isinstance(state, State) else state
         pool = await get_pool()
         await pool.retry_operation(
             lambda session: session.transaction().execute(
-                """
-                DECLARE $bot_id AS Int64;
-                DECLARE $chat_id AS Int64;
-                DECLARE $user_id AS Int64;
-                DECLARE $thread_id AS Int64?;
-                DECLARE $business_connection_id AS Utf8?;
-                DECLARE $destiny AS Utf8;
-                DECLARE $state AS Utf8?;
+                ydb.DataQuery(
+                    """
+                    DECLARE $bot_id AS Int64;
+                    DECLARE $chat_id AS Int64;
+                    DECLARE $user_id AS Int64;
+                    DECLARE $thread_id AS Int64?;
+                    DECLARE $business_connection_id AS Utf8?;
+                    DECLARE $destiny AS Utf8;
+                    DECLARE $state AS Utf8?;
 
-                UPSERT INTO fsm_states (
-                    bot_id, chat_id, user_id, thread_id, business_connection_id, destiny, state
-                ) VALUES (
-                    $bot_id, $chat_id, $user_id, $thread_id, $business_connection_id, $destiny, $state
-                );
-                """,
-                parameters=self._with_dollar_aliases({
+                    UPSERT INTO fsm_states (
+                        bot_id, chat_id, user_id, thread_id, business_connection_id, destiny, state
+                    ) VALUES (
+                        $bot_id, $chat_id, $user_id, $thread_id, $business_connection_id, $destiny, $state
+                    );
+                    """,
+                    {
+                        **self._BASE_QUERY_TYPES,
+                        "$state": ydb.OptionalType(ydb.PrimitiveType.Utf8),
+                    },
+                ),
+                parameters=self._prefixed_parameters({
                     **self._key_parameters(key),
                     "state": state_value,
                 }),
@@ -101,23 +121,26 @@ class YdbStorage(BaseStorage):
         pool = await get_pool()
         result = await pool.retry_operation(
             lambda session: session.transaction().execute(
-                """
-                DECLARE $bot_id AS Int64;
-                DECLARE $chat_id AS Int64;
-                DECLARE $user_id AS Int64;
-                DECLARE $thread_id AS Int64?;
-                DECLARE $business_connection_id AS Utf8?;
-                DECLARE $destiny AS Utf8;
+                ydb.DataQuery(
+                    """
+                    DECLARE $bot_id AS Int64;
+                    DECLARE $chat_id AS Int64;
+                    DECLARE $user_id AS Int64;
+                    DECLARE $thread_id AS Int64?;
+                    DECLARE $business_connection_id AS Utf8?;
+                    DECLARE $destiny AS Utf8;
 
-                SELECT state FROM fsm_states
-                WHERE bot_id = $bot_id
-                  AND chat_id = $chat_id
-                  AND user_id = $user_id
-                  AND thread_id IS NOT DISTINCT FROM $thread_id
-                  AND business_connection_id IS NOT DISTINCT FROM $business_connection_id
-                  AND destiny = $destiny;
-                """,
-                parameters=self._with_dollar_aliases(self._key_parameters(key)),
+                    SELECT state FROM fsm_states
+                    WHERE bot_id = $bot_id
+                      AND chat_id = $chat_id
+                      AND user_id = $user_id
+                      AND thread_id IS NOT DISTINCT FROM $thread_id
+                      AND business_connection_id IS NOT DISTINCT FROM $business_connection_id
+                      AND destiny = $destiny;
+                    """,
+                    dict(self._BASE_QUERY_TYPES),
+                ),
+                parameters=self._prefixed_parameters(self._key_parameters(key)),
                 commit_tx=True,
             )
         )
@@ -131,22 +154,28 @@ class YdbStorage(BaseStorage):
         pool = await get_pool()
         await pool.retry_operation(
             lambda session: session.transaction().execute(
-                """
-                DECLARE $bot_id AS Int64;
-                DECLARE $chat_id AS Int64;
-                DECLARE $user_id AS Int64;
-                DECLARE $thread_id AS Int64?;
-                DECLARE $business_connection_id AS Utf8?;
-                DECLARE $destiny AS Utf8;
-                DECLARE $data_json AS Utf8?;
+                ydb.DataQuery(
+                    """
+                    DECLARE $bot_id AS Int64;
+                    DECLARE $chat_id AS Int64;
+                    DECLARE $user_id AS Int64;
+                    DECLARE $thread_id AS Int64?;
+                    DECLARE $business_connection_id AS Utf8?;
+                    DECLARE $destiny AS Utf8;
+                    DECLARE $data_json AS Utf8?;
 
-                UPSERT INTO fsm_states (
-                    bot_id, chat_id, user_id, thread_id, business_connection_id, destiny, data_json
-                ) VALUES (
-                    $bot_id, $chat_id, $user_id, $thread_id, $business_connection_id, $destiny, $data_json
-                );
-                """,
-                parameters=self._with_dollar_aliases({
+                    UPSERT INTO fsm_states (
+                        bot_id, chat_id, user_id, thread_id, business_connection_id, destiny, data_json
+                    ) VALUES (
+                        $bot_id, $chat_id, $user_id, $thread_id, $business_connection_id, $destiny, $data_json
+                    );
+                    """,
+                    {
+                        **self._BASE_QUERY_TYPES,
+                        "$data_json": ydb.OptionalType(ydb.PrimitiveType.Utf8),
+                    },
+                ),
+                parameters=self._prefixed_parameters({
                     **self._key_parameters(key),
                     "data_json": serialized,
                 }),
@@ -158,23 +187,26 @@ class YdbStorage(BaseStorage):
         pool = await get_pool()
         result = await pool.retry_operation(
             lambda session: session.transaction().execute(
-                """
-                DECLARE $bot_id AS Int64;
-                DECLARE $chat_id AS Int64;
-                DECLARE $user_id AS Int64;
-                DECLARE $thread_id AS Int64?;
-                DECLARE $business_connection_id AS Utf8?;
-                DECLARE $destiny AS Utf8;
+                ydb.DataQuery(
+                    """
+                    DECLARE $bot_id AS Int64;
+                    DECLARE $chat_id AS Int64;
+                    DECLARE $user_id AS Int64;
+                    DECLARE $thread_id AS Int64?;
+                    DECLARE $business_connection_id AS Utf8?;
+                    DECLARE $destiny AS Utf8;
 
-                SELECT data_json FROM fsm_states
-                WHERE bot_id = $bot_id
-                  AND chat_id = $chat_id
-                  AND user_id = $user_id
-                  AND thread_id IS NOT DISTINCT FROM $thread_id
-                  AND business_connection_id IS NOT DISTINCT FROM $business_connection_id
-                  AND destiny = $destiny;
-                """,
-                parameters=self._with_dollar_aliases(self._key_parameters(key)),
+                    SELECT data_json FROM fsm_states
+                    WHERE bot_id = $bot_id
+                      AND chat_id = $chat_id
+                      AND user_id = $user_id
+                      AND thread_id IS NOT DISTINCT FROM $thread_id
+                      AND business_connection_id IS NOT DISTINCT FROM $business_connection_id
+                      AND destiny = $destiny;
+                    """,
+                    dict(self._BASE_QUERY_TYPES),
+                ),
+                parameters=self._prefixed_parameters(self._key_parameters(key)),
                 commit_tx=True,
             )
         )
