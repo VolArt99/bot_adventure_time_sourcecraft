@@ -2,6 +2,9 @@
 
 import os
 import logging
+import json
+import base64
+import ast
 import ydb
 import ydb.aio
 from datetime import datetime, timedelta
@@ -21,10 +24,40 @@ _pool = None
 
 def _build_credentials() -> ydb.Credentials:
     """Подбирает стратегию авторизации для YDB и логирует выбранный путь."""
+    service_account_key_file = os.getenv("YDB_SERVICE_ACCOUNT_KEY_FILE_CREDENTIALS") or os.getenv("SA_KEY_FILE")
+    if service_account_key_file:
+        logger.info("YDB auth: service account key file from env: %s", service_account_key_file)
+        return ydb.iam.ServiceAccountCredentials.from_file(service_account_key_file)
+
     service_account_key_content = os.getenv("YDB_SERVICE_ACCOUNT_KEY_CONTENT_CREDENTIALS") or os.getenv("SA_KEY_CONTENT")
     if service_account_key_content:
         logger.info("YDB auth: service account key content from env")
-        return ydb.iam.ServiceAccountCredentials.from_content(service_account_key_content)
+        raw_key = service_account_key_content.strip()
+
+        # Частый случай в CI/CD: ключ положили как JSON-строку с экранированием.
+        if raw_key.startswith('"') and raw_key.endswith('"'):
+            try:
+                raw_key = json.loads(raw_key)
+            except json.JSONDecodeError:
+                pass
+
+        # Частый случай: в переменную попал repr(dict) c одинарными кавычками.
+        if raw_key.startswith("{'") and raw_key.endswith("'}"):
+            try:
+                raw_key = json.dumps(ast.literal_eval(raw_key), ensure_ascii=False)
+            except (ValueError, SyntaxError):
+                pass
+
+        # Ещё один частый формат: base64 от JSON.
+        if not raw_key.startswith("{"):
+            try:
+                decoded = base64.b64decode(raw_key).decode("utf-8")
+                if decoded.strip().startswith("{"):
+                    raw_key = decoded
+            except Exception:
+                pass
+
+        return ydb.iam.ServiceAccountCredentials.from_content(raw_key)
 
     if os.getenv("YDB_METADATA_CREDENTIALS", "0") == "1":
         logger.info("YDB auth: forced metadata credentials by YDB_METADATA_CREDENTIALS=1")
