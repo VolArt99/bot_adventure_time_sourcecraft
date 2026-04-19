@@ -34,7 +34,6 @@ workflows:
       OWNER_ID: ${{ secrets.OWNER_ID }}
       YDB_ENDPOINT: ${{ secrets.YDB_ENDPOINT }}
       YDB_DATABASE: ${{ secrets.YDB_DATABASE }}
-      YDB_SERVICE_ACCOUNT_KEY_CONTENT_CREDENTIALS: ${{ secrets.YDB_SERVICE_ACCOUNT_KEY_CONTENT_CREDENTIALS }}
     tasks:
       - name: deploy-tg-backend-task
         cubes: 
@@ -82,14 +81,58 @@ workflows:
               YC_FUNCTION_RUNTIME: python312
               YC_FUNCTION_ENTRYPOINT: dynamic_handler.handler
               YC_FUNCTION_MEMORY: 256m
-              YC_FUNCTION_EXECUTION_TIMEOUT: 30s              
+              YC_FUNCTION_EXECUTION_TIMEOUT: 30s 
+              YC_FUNCTION_SERVICE_ACCOUNT_ID: ${{ tokens.SERVICE_CONNECTION_WITH_TOKEN.service_account_id }}             
               SOURCE_PATH: "."
-              ENVIRONMENT: "BOT_TOKEN=${{ inputs.bot-token }},WEATHER_API_KEY=${{ secrets.WEATHER_API_KEY }},GROUP_ID=${{ secrets.GROUP_ID }},ADMIN_IDS=${{ secrets.ADMIN_IDS }},OWNER_ID=${{ secrets.OWNER_ID }},YDB_ENDPOINT=${{ secrets.YDB_ENDPOINT }},YDB_DATABASE=${{ secrets.YDB_DATABASE }},YDB_SERVICE_ACCOUNT_KEY_CONTENT_CREDENTIALS=${{ secrets.YDB_SERVICE_ACCOUNT_KEY_CONTENT_CREDENTIALS }},TIMEZONE=Europe/Moscow"
+              BOT_TOKEN: ${{ inputs.bot-token }}
+              WEATHER_API_KEY: ${{ secrets.WEATHER_API_KEY }}
+              GROUP_ID: ${{ secrets.GROUP_ID }}
+              ADMIN_IDS: ${{ secrets.ADMIN_IDS }}
+              OWNER_ID: ${{ secrets.OWNER_ID }}
+              YDB_ENDPOINT: ${{ secrets.YDB_ENDPOINT }}
+              YDB_DATABASE: ${{ secrets.YDB_DATABASE }}
+              TIMEZONE: Europe/Moscow
             image:
               name: cr.yandex/sourcecraft/yc-cli:latest
               entrypoint: ""
             script:
               - |
+                csv_escape() {
+                  local value="$1"
+                  if [[ "$value" == *['",'$'\n''\r']* ]]; then
+                    value="${value//\"/\"\"}"
+                    printf '"%s"' "$value"
+                  else
+                    printf '%s' "$value"
+                  fi
+                }
+
+                build_env_pair() {
+                  local key="$1"
+                  local value="$2"
+                  printf '%s=%s' "$key" "$(csv_escape "$value")"
+                }
+
+                ENVIRONMENT="$(
+                  {
+                    build_env_pair "BOT_TOKEN" "$BOT_TOKEN"
+                    printf ','
+                    build_env_pair "WEATHER_API_KEY" "$WEATHER_API_KEY"
+                    printf ','
+                    build_env_pair "GROUP_ID" "$GROUP_ID"
+                    printf ','
+                    build_env_pair "ADMIN_IDS" "$ADMIN_IDS"
+                    printf ','
+                    build_env_pair "OWNER_ID" "$OWNER_ID"
+                    printf ','
+                    build_env_pair "YDB_ENDPOINT" "$YDB_ENDPOINT"
+                    printf ','
+                    build_env_pair "YDB_DATABASE" "$YDB_DATABASE"
+                    printf ','
+                    build_env_pair "TIMEZONE" "$TIMEZONE"
+                  } | tr -d '\r'
+                )"
+
                 yc config set folder-id "$YC_FOLDER_ID"
                 echo "Deploying new function version..."
                 yc serverless function version create \
@@ -98,6 +141,7 @@ workflows:
                   --entrypoint="$YC_FUNCTION_ENTRYPOINT" \
                   --memory="$YC_FUNCTION_MEMORY" \
                   --execution-timeout="$YC_FUNCTION_EXECUTION_TIMEOUT" \
+                  --service-account-id="$YC_FUNCTION_SERVICE_ACCOUNT_ID" \
                   --environment="$ENVIRONMENT" \
                   --source-path="$SOURCE_PATH"
                 yc serverless function allow-unauthenticated-invoke --name="$YC_FUNCTION_NAME"

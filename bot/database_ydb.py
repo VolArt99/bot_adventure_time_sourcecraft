@@ -59,20 +59,17 @@ def _build_credentials() -> ydb.Credentials:
 
         return ydb.iam.ServiceAccountCredentials.from_content(raw_key)
 
-    if os.getenv("YDB_METADATA_CREDENTIALS", "0") == "1":
-        logger.info("YDB auth: forced metadata credentials by YDB_METADATA_CREDENTIALS=1")
-        return ydb.iam.MetadataUrlCredentials()
-
     runs_in_cloud_function = any(
         os.getenv(var_name)
         for var_name in ("FUNCTION_NAME", "FUNCTION_ID", "YC_FUNCTION_NAME", "YC_FUNCTION_ID")
     )
     if runs_in_cloud_function:
-        raise ValueError(
-            "YDB credentials are not configured for Cloud Functions. "
-            "Set YDB_SERVICE_ACCOUNT_KEY_CONTENT_CREDENTIALS / SA_KEY_CONTENT. "
-            "Use YDB_METADATA_CREDENTIALS=1 only when metadata endpoint is available."
-        )
+        logger.info("YDB auth: cloud function metadata credentials")
+        return ydb.iam.MetadataUrlCredentials()
+
+    if os.getenv("YDB_METADATA_CREDENTIALS", "0") == "1":
+        logger.info("YDB auth: forced metadata credentials by YDB_METADATA_CREDENTIALS=1")
+        return ydb.iam.MetadataUrlCredentials()
 
     logger.info("YDB auth: instance metadata service account token")
     return ydb.iam.MetadataUrlCredentials()
