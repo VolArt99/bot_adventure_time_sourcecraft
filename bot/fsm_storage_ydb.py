@@ -36,13 +36,13 @@ class YdbStorage(BaseStorage):
                 );
                 """,
                 parameters={
-                    "$bot_id": key.bot_id,
-                    "$chat_id": key.chat_id,
-                    "$user_id": key.user_id,
-                    "$thread_id": key.thread_id,
-                    "$business_connection_id": key.business_connection_id,
-                    "$destiny": key.destiny,
-                    "$state": state_value,
+                    "bot_id": key.bot_id,
+                    "chat_id": key.chat_id,
+                    "user_id": key.user_id,
+                    "thread_id": key.thread_id,
+                    "business_connection_id": key.business_connection_id,
+                    "destiny": key.destiny,
+                    "state": state_value,
                 },
                 commit_tx=True,
             )
@@ -69,12 +69,12 @@ class YdbStorage(BaseStorage):
                   AND destiny = $destiny;
                 """,
                 parameters={
-                    "$bot_id": key.bot_id,
-                    "$chat_id": key.chat_id,
-                    "$user_id": key.user_id,
-                    "$thread_id": key.thread_id,
-                    "$business_connection_id": key.business_connection_id,
-                    "$destiny": key.destiny,
+                    "bot_id": key.bot_id,
+                    "chat_id": key.chat_id,
+                    "user_id": key.user_id,
+                    "thread_id": key.thread_id,
+                    "business_connection_id": key.business_connection_id,
+                    "destiny": key.destiny,
                 },
                 commit_tx=True,
             )
@@ -105,13 +105,13 @@ class YdbStorage(BaseStorage):
                 );
                 """,
                 parameters={
-                    "$bot_id": key.bot_id,
-                    "$chat_id": key.chat_id,
-                    "$user_id": key.user_id,
-                    "$thread_id": key.thread_id,
-                    "$business_connection_id": key.business_connection_id,
-                    "$destiny": key.destiny,
-                    "$data_json": serialized,
+                    "bot_id": key.bot_id,
+                    "chat_id": key.chat_id,
+                    "user_id": key.user_id,
+                    "thread_id": key.thread_id,
+                    "business_connection_id": key.business_connection_id,
+                    "destiny": key.destiny,
+                    "data_json": serialized,
                 },
                 commit_tx=True,
             )
@@ -138,12 +138,12 @@ class YdbStorage(BaseStorage):
                   AND destiny = $destiny;
                 """,
                 parameters={
-                    "$bot_id": key.bot_id,
-                    "$chat_id": key.chat_id,
-                    "$user_id": key.user_id,
-                    "$thread_id": key.thread_id,
-                    "$business_connection_id": key.business_connection_id,
-                    "$destiny": key.destiny,
+                    "bot_id": key.bot_id,
+                    "chat_id": key.chat_id,
+                    "user_id": key.user_id,
+                    "thread_id": key.thread_id,
+                    "business_connection_id": key.business_connection_id,
+                    "destiny": key.destiny,
                 },
                 commit_tx=True,
             )
