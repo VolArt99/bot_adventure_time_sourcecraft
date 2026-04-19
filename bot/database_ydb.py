@@ -5,9 +5,11 @@ import logging
 import json
 import base64
 import ast
+from datetime import datetime, timedelta
+from functools import wraps
+
 import ydb
 import ydb.aio
-from datetime import datetime, timedelta
 from typing import Optional, List, Dict, Any
 from aiogram import Bot
 
@@ -20,6 +22,89 @@ YDB_DATABASE = os.getenv("YDB_DATABASE")
 # Глобальные переменные для драйвера и пула сессий
 _driver = None
 _pool = None
+_tx_execute_patched = False
+
+
+def _infer_ydb_type(value: Any, param_name: str):
+    if isinstance(value, bool):
+        return ydb.PrimitiveType.Bool
+    if isinstance(value, int):
+        return ydb.PrimitiveType.Int64
+    if isinstance(value, float):
+        return ydb.PrimitiveType.Double
+    if isinstance(value, bytes):
+        return ydb.PrimitiveType.String
+    if isinstance(value, datetime):
+        return ydb.PrimitiveType.Timestamp
+    if value is None:
+        if param_name.endswith("_id") or param_name == "id":
+            return ydb.OptionalType(ydb.PrimitiveType.Int64)
+        return ydb.OptionalType(ydb.PrimitiveType.Utf8)
+    return ydb.PrimitiveType.Utf8
+
+
+def _yql_type_name(ydb_type: Any) -> str:
+    if isinstance(ydb_type, ydb.OptionalType):
+        return f"{_yql_type_name(ydb_type.item)}?"
+
+    primitive_names = {
+        ydb.PrimitiveType.Bool: "Bool",
+        ydb.PrimitiveType.Int64: "Int64",
+        ydb.PrimitiveType.Double: "Double",
+        ydb.PrimitiveType.String: "String",
+        ydb.PrimitiveType.Timestamp: "Timestamp",
+        ydb.PrimitiveType.Utf8: "Utf8",
+    }
+    return primitive_names.get(ydb_type, "Utf8")
+
+
+def _normalize_parameters(parameters: Dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    prefixed: dict[str, Any] = {}
+    types: dict[str, Any] = {}
+    for name, value in parameters.items():
+        prefixed_name = name if name.startswith("$") else f"${name}"
+        prefixed[prefixed_name] = value
+        types[prefixed_name] = _infer_ydb_type(value, prefixed_name.lstrip("$"))
+    return prefixed, types
+
+
+def _build_query_with_declares(query: str, types: dict[str, Any]) -> str:
+    if "DECLARE $" in query:
+        return query
+    declares = [f"DECLARE {name} AS {_yql_type_name(ydb_type)};" for name, ydb_type in types.items()]
+    return "\n".join(declares) + "\n" + query
+
+
+def _patch_tx_execute_for_parameters() -> None:
+    global _tx_execute_patched
+    if _tx_execute_patched:
+        return
+
+    original_sync = ydb.table.TxContext.execute
+    original_async = ydb.aio.table.TxContext.execute
+
+    @wraps(original_sync)
+    def patched_sync(self, query, parameters=None, commit_tx=False, settings=None):
+        if isinstance(query, str) and isinstance(parameters, dict) and parameters:
+            prefixed, param_types = _normalize_parameters(parameters)
+            typed_query = ydb.DataQuery(_build_query_with_declares(query, param_types), param_types)
+            return original_sync(self, typed_query, parameters=prefixed, commit_tx=commit_tx, settings=settings)
+        return original_sync(self, query, parameters=parameters, commit_tx=commit_tx, settings=settings)
+
+    @wraps(original_async)
+    async def patched_async(self, query, parameters=None, commit_tx=False, settings=None):
+        if isinstance(query, str) and isinstance(parameters, dict) and parameters:
+            prefixed, param_types = _normalize_parameters(parameters)
+            typed_query = ydb.DataQuery(_build_query_with_declares(query, param_types), param_types)
+            return await original_async(self, typed_query, parameters=prefixed, commit_tx=commit_tx, settings=settings)
+        return await original_async(self, query, parameters=parameters, commit_tx=commit_tx, settings=settings)
+
+    ydb.table.TxContext.execute = patched_sync
+    ydb.aio.table.TxContext.execute = patched_async
+    _tx_execute_patched = True
+
+
+_patch_tx_execute_for_parameters()
 
 
 def _is_schema_limit_error(exc: Exception) -> bool:
