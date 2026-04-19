@@ -169,9 +169,7 @@ async def init_db():
                 car_seats Int64,
                 passenger_of Int64,
                 joined_at Timestamp,
-                PRIMARY KEY (id),
-                INDEX idx_event_user (event_id, user_id),
-                INDEX idx_user (user_id)
+                PRIMARY KEY (id)
             )
             """
         )
@@ -188,9 +186,7 @@ async def init_db():
                 rating Int64,
                 comment Utf8,
                 created_at Timestamp,
-                PRIMARY KEY (id),
-                INDEX idx_event (event_id),
-                INDEX idx_user (user_id)
+                PRIMARY KEY (id)
             )
             """
         )
@@ -206,8 +202,7 @@ async def init_db():
                 interval_seconds Int64,
                 scheduled_time Timestamp,
                 sent Bool DEFAULT false,
-                PRIMARY KEY (id),
-                INDEX idx_event (event_id)
+                PRIMARY KEY (id)
             )
             """
         )
@@ -224,8 +219,7 @@ async def init_db():
                 is_closed Bool DEFAULT false,
                 is_hidden Bool DEFAULT false,
                 discovered_at Timestamp,
-                PRIMARY KEY (id),
-                UNIQUE INDEX idx_thread_id (message_thread_id)
+                PRIMARY KEY (id)
             )
             """
         )
