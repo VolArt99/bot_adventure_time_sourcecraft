@@ -148,6 +148,7 @@ async def init_db():
             thread_id Int64,
             message_id Int64,
             creator_id Int64,
+            responsible_id Int64,
             weather_info Utf8,
             carpool_enabled Bool DEFAULT false,
             status Utf8 DEFAULT 'active',
@@ -275,6 +276,29 @@ async def init_db():
         )
     else:
         logger.info("Таблицы YDB созданы или уже существуют")
+
+
+    # Мягкая миграция для уже существующих инсталляций без ответственного.
+    try:
+        await pool.retry_operation(
+            lambda session: session.execute_scheme(
+                """
+                ALTER TABLE events
+                ADD COLUMN responsible_id Int64;
+                """
+            )
+        )
+        logger.info("Добавлена колонка events.responsible_id")
+    except Exception as exc:
+        # Колонка уже может существовать, либо временно достигнут лимит schema-операций.
+        if _is_schema_limit_error(exc):
+            logger.warning("Пропускаем ALTER events.responsible_id из-за лимита YDB: %s", exc)
+        elif "path does not exist" in str(exc).lower():
+            logger.warning("Таблица events пока недоступна для ALTER, миграция будет повторена позже")
+        elif "already exists" in str(exc).lower():
+            pass
+        else:
+            logger.warning("Не удалось применить мягкую миграцию events.responsible_id: %s", exc)
 
 
 async def get_or_create_user(user_id: int, username: str = None) -> int:
@@ -465,13 +489,13 @@ async def create_event(event_data: Dict[str, Any]) -> int:
                 location, location_lat, location_lon,
                 price_total, price_per_person, participant_limit,
                 thread_id, message_id, creator_id,
-                weather_info, carpool_enabled, category
+                responsible_id, weather_info, carpool_enabled, category
             ) VALUES (
                 $id, $title, $description, $date_time, $duration_minutes,
                 $location, $location_lat, $location_lon,
                 $price_total, $price_per_person, $participant_limit,
                 $thread_id, $message_id, $creator_id,
-                $weather_info, $carpool_enabled, $category
+                $responsible_id, $weather_info, $carpool_enabled, $category
             )
             """,
             parameters={
@@ -489,6 +513,7 @@ async def create_event(event_data: Dict[str, Any]) -> int:
                 "thread_id": event_data.get("thread_id") or 0,
                 "message_id": event_data.get("message_id") or 0,
                 "creator_id": event_data.get("creator_id", 0),
+                "responsible_id": event_data.get("responsible_id") or event_data.get("creator_id", 0),
                 "weather_info": event_data.get("weather_info", ""),
                 "carpool_enabled": bool(event_data.get("carpool_enabled", False)),
                 "category": event_data.get("category", ""),
@@ -1499,6 +1524,25 @@ async def update_event_status(event_id: int, status: str):
         )
     )
 
+
+async def set_event_responsible(event_id: int, responsible_id: int) -> None:
+    """Назначает ответственного за мероприятие."""
+    pool = await get_pool()
+    await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            UPDATE events
+            SET responsible_id = $responsible_id
+            WHERE id = $event_id
+            """,
+            parameters={
+                "event_id": int(event_id),
+                "responsible_id": int(responsible_id),
+            },
+            commit_tx=True,
+        )
+    )
+    
 
 async def get_events_for_digest(period: str = "week") -> List[Dict]:
     """Получение предстоящих активных мероприятий для дайджеста."""

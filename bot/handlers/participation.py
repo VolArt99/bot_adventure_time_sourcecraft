@@ -48,7 +48,8 @@ async def update_event_message(
     going = await get_main_participants(event_id)
     waitlist = await get_participants(event_id, "waitlist")
 
-    all_users = set(going + waitlist + [event["creator_id"]])
+    responsible_id = event.get("responsible_id") or event["creator_id"]
+    all_users = set(going + waitlist + [event["creator_id"], responsible_id])
 
     drivers = await get_drivers_with_passengers(event_id)
     for driver in drivers:
@@ -62,6 +63,7 @@ async def update_event_message(
 
     topic_name = await get_topic_name_by_thread_id(event.get("thread_id"))
     organizer_mention = await get_user_mention(event["creator_id"], bot)
+    responsible_mention = await get_user_mention(responsible_id, bot)
 
     text = await format_event_message(
         event,
@@ -70,6 +72,7 @@ async def update_event_message(
         mentions,
         topic_name=topic_name,
         organizer_mention=organizer_mention,
+        responsible_mention=responsible_mention,
     )
     try:
         await bot.edit_message_text(

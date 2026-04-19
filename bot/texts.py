@@ -74,6 +74,7 @@ async def format_event_message(
     mentions_dict: Dict[int, str],
     topic_name: str | None = None,
     organizer_mention: str | None = None,
+    responsible_mention: str | None = None,
 ) -> str:
     dt = datetime.fromisoformat(event["date_time"]).astimezone(TZ)
     date_str = dt.strftime("%d.%m.%Y")
@@ -130,7 +131,9 @@ async def format_event_message(
 
     if organizer_mention:
         lines.append(f"👤 Организатор: {organizer_mention}")
-
+    if responsible_mention:
+        lines.append(f"🧩 Ответственный: {responsible_mention}")
+        
     if weather:
         lines.append(weather)
 

@@ -67,6 +67,7 @@ async def finalize_event_creation(
         "participant_limit": data.get("participant_limit"),
         "thread_id": data.get("thread_id"),
         "creator_id": creator_user_id,
+        "responsible_id": data.get("responsible_id", creator_user_id),
         "weather_info": weather_info,
         "carpool_enabled": data.get("carpool_enabled", False),
         "category": category_value,
@@ -75,7 +76,9 @@ async def finalize_event_creation(
 
     bot = message.bot
     organizer_mention = await get_user_mention(creator_user_id, bot)
-    mentions = {creator_user_id: organizer_mention}
+    responsible_id = event_data.get("responsible_id", creator_user_id)
+    responsible_mention = await get_user_mention(responsible_id, bot)
+    mentions = {creator_user_id: organizer_mention, responsible_id: responsible_mention}
     topic_name = await get_topic_name_by_thread_id(data.get("thread_id"))
 
     event_text = await format_event_message(
@@ -85,6 +88,7 @@ async def finalize_event_creation(
         mentions,
         topic_name=topic_name,
         organizer_mention=organizer_mention,
+        responsible_mention=responsible_mention,
     )
 
     try:
