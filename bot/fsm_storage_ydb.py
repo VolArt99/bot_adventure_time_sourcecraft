@@ -18,6 +18,14 @@ class YdbStorage(BaseStorage):
     """Persist FSM state/data in YDB table `fsm_states`."""
 
     @staticmethod
+    def _with_dollar_aliases(parameters: Mapping[str, Any]) -> dict[str, Any]:
+        """Add `$name` aliases for drivers expecting prefixed parameter keys."""
+        merged = dict(parameters)
+        for name, value in tuple(parameters.items()):
+            merged[f"${name}"] = value
+        return merged
+    
+    @staticmethod
     def _as_int(value: Any, *, default: int | None = None) -> int | None:
         """Best-effort conversion to int for YDB Int64 parameters."""
         if value is None:
@@ -81,10 +89,10 @@ class YdbStorage(BaseStorage):
                     $bot_id, $chat_id, $user_id, $thread_id, $business_connection_id, $destiny, $state
                 );
                 """,
-                parameters={
+                parameters=self._with_dollar_aliases({
                     **self._key_parameters(key),
                     "state": state_value,
-                },
+                }),
                 commit_tx=True,
             )
         )
@@ -109,7 +117,7 @@ class YdbStorage(BaseStorage):
                   AND business_connection_id IS NOT DISTINCT FROM $business_connection_id
                   AND destiny = $destiny;
                 """,
-                parameters=self._key_parameters(key),
+                parameters=self._with_dollar_aliases(self._key_parameters(key)),
                 commit_tx=True,
             )
         )
@@ -138,10 +146,10 @@ class YdbStorage(BaseStorage):
                     $bot_id, $chat_id, $user_id, $thread_id, $business_connection_id, $destiny, $data_json
                 );
                 """,
-                parameters={
+                parameters=self._with_dollar_aliases({
                     **self._key_parameters(key),
                     "data_json": serialized,
-                },
+                }),
                 commit_tx=True,
             )
         )
@@ -166,7 +174,7 @@ class YdbStorage(BaseStorage):
                   AND business_connection_id IS NOT DISTINCT FROM $business_connection_id
                   AND destiny = $destiny;
                 """,
-                parameters=self._key_parameters(key),
+                parameters=self._with_dollar_aliases(self._key_parameters(key)),
                 commit_tx=True,
             )
         )

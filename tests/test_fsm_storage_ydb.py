@@ -56,6 +56,14 @@ class YdbStorageKeyParamsTests(unittest.TestCase):
         self.assertEqual(params["thread_id"], 1003)
         self.assertEqual(params["destiny"], "default")
 
+    def test_with_dollar_aliases_duplicates_parameter_names(self):
+        aliased = YdbStorage._with_dollar_aliases({"bot_id": 0, "destiny": "default"})
 
+        self.assertEqual(aliased["bot_id"], 0)
+        self.assertEqual(aliased["$bot_id"], 0)
+        self.assertEqual(aliased["destiny"], "default")
+        self.assertEqual(aliased["$destiny"], "default")
+
+        
 if __name__ == "__main__":
     unittest.main()
