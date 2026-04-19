@@ -21,20 +21,28 @@ class YdbStorage(BaseStorage):
         await pool.retry_operation(
             lambda session: session.transaction().execute(
                 """
+                DECLARE $bot_id AS Int64;
+                DECLARE $chat_id AS Int64;
+                DECLARE $user_id AS Int64;
+                DECLARE $thread_id AS Int64?;
+                DECLARE $business_connection_id AS Utf8?;
+                DECLARE $destiny AS Utf8;
+                DECLARE $state AS Utf8?;
+
                 UPSERT INTO fsm_states (
                     bot_id, chat_id, user_id, thread_id, business_connection_id, destiny, state
                 ) VALUES (
                     $bot_id, $chat_id, $user_id, $thread_id, $business_connection_id, $destiny, $state
-                )
+                );
                 """,
                 parameters={
-                    "bot_id": key.bot_id,
-                    "chat_id": key.chat_id,
-                    "user_id": key.user_id,
-                    "thread_id": key.thread_id,
-                    "business_connection_id": key.business_connection_id,
-                    "destiny": key.destiny,
-                    "state": state_value,
+                    "$bot_id": key.bot_id,
+                    "$chat_id": key.chat_id,
+                    "$user_id": key.user_id,
+                    "$thread_id": key.thread_id,
+                    "$business_connection_id": key.business_connection_id,
+                    "$destiny": key.destiny,
+                    "$state": state_value,
                 },
                 commit_tx=True,
             )
@@ -45,21 +53,28 @@ class YdbStorage(BaseStorage):
         result = await pool.retry_operation(
             lambda session: session.transaction().execute(
                 """
+                DECLARE $bot_id AS Int64;
+                DECLARE $chat_id AS Int64;
+                DECLARE $user_id AS Int64;
+                DECLARE $thread_id AS Int64?;
+                DECLARE $business_connection_id AS Utf8?;
+                DECLARE $destiny AS Utf8;
+
                 SELECT state FROM fsm_states
                 WHERE bot_id = $bot_id
                   AND chat_id = $chat_id
                   AND user_id = $user_id
                   AND thread_id IS NOT DISTINCT FROM $thread_id
                   AND business_connection_id IS NOT DISTINCT FROM $business_connection_id
-                  AND destiny = $destiny
+                  AND destiny = $destiny;
                 """,
                 parameters={
-                    "bot_id": key.bot_id,
-                    "chat_id": key.chat_id,
-                    "user_id": key.user_id,
-                    "thread_id": key.thread_id,
-                    "business_connection_id": key.business_connection_id,
-                    "destiny": key.destiny,
+                    "$bot_id": key.bot_id,
+                    "$chat_id": key.chat_id,
+                    "$user_id": key.user_id,
+                    "$thread_id": key.thread_id,
+                    "$business_connection_id": key.business_connection_id,
+                    "$destiny": key.destiny,
                 },
                 commit_tx=True,
             )
@@ -75,20 +90,28 @@ class YdbStorage(BaseStorage):
         await pool.retry_operation(
             lambda session: session.transaction().execute(
                 """
+                DECLARE $bot_id AS Int64;
+                DECLARE $chat_id AS Int64;
+                DECLARE $user_id AS Int64;
+                DECLARE $thread_id AS Int64?;
+                DECLARE $business_connection_id AS Utf8?;
+                DECLARE $destiny AS Utf8;
+                DECLARE $data_json AS Utf8?;
+
                 UPSERT INTO fsm_states (
                     bot_id, chat_id, user_id, thread_id, business_connection_id, destiny, data_json
                 ) VALUES (
                     $bot_id, $chat_id, $user_id, $thread_id, $business_connection_id, $destiny, $data_json
-                )
+                );
                 """,
                 parameters={
-                    "bot_id": key.bot_id,
-                    "chat_id": key.chat_id,
-                    "user_id": key.user_id,
-                    "thread_id": key.thread_id,
-                    "business_connection_id": key.business_connection_id,
-                    "destiny": key.destiny,
-                    "data_json": serialized,
+                    "$bot_id": key.bot_id,
+                    "$chat_id": key.chat_id,
+                    "$user_id": key.user_id,
+                    "$thread_id": key.thread_id,
+                    "$business_connection_id": key.business_connection_id,
+                    "$destiny": key.destiny,
+                    "$data_json": serialized,
                 },
                 commit_tx=True,
             )
@@ -99,21 +122,28 @@ class YdbStorage(BaseStorage):
         result = await pool.retry_operation(
             lambda session: session.transaction().execute(
                 """
+                DECLARE $bot_id AS Int64;
+                DECLARE $chat_id AS Int64;
+                DECLARE $user_id AS Int64;
+                DECLARE $thread_id AS Int64?;
+                DECLARE $business_connection_id AS Utf8?;
+                DECLARE $destiny AS Utf8;
+
                 SELECT data_json FROM fsm_states
                 WHERE bot_id = $bot_id
                   AND chat_id = $chat_id
                   AND user_id = $user_id
                   AND thread_id IS NOT DISTINCT FROM $thread_id
                   AND business_connection_id IS NOT DISTINCT FROM $business_connection_id
-                  AND destiny = $destiny
+                  AND destiny = $destiny;
                 """,
                 parameters={
-                    "bot_id": key.bot_id,
-                    "chat_id": key.chat_id,
-                    "user_id": key.user_id,
-                    "thread_id": key.thread_id,
-                    "business_connection_id": key.business_connection_id,
-                    "destiny": key.destiny,
+                    "$bot_id": key.bot_id,
+                    "$chat_id": key.chat_id,
+                    "$user_id": key.user_id,
+                    "$thread_id": key.thread_id,
+                    "$business_connection_id": key.business_connection_id,
+                    "$destiny": key.destiny,
                 },
                 commit_tx=True,
             )
