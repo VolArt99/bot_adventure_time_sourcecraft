@@ -15,6 +15,24 @@ from bot.database import get_pool
 class YdbStorage(BaseStorage):
     """Persist FSM state/data in YDB table `fsm_states`."""
 
+    @staticmethod
+    def _key_parameters(key: StorageKey) -> dict[str, Any]:
+        """Build stable YDB parameters for FSM key.
+
+        В aiogram `bot_id` может быть `None` (зависит от key builder/стратегии),
+        но в нашей таблице `fsm_states.bot_id` объявлен как `NOT NULL`.
+        Для такого случая используем стабильный fallback `0`, чтобы параметр
+        всегда передавался в запрос и не приводил к `Missing value for parameter`.
+        """
+        return {
+            "bot_id": key.bot_id if key.bot_id is not None else 0,
+            "chat_id": key.chat_id,
+            "user_id": key.user_id,
+            "thread_id": key.thread_id,
+            "business_connection_id": key.business_connection_id,
+            "destiny": key.destiny,
+        }
+
     async def set_state(self, key: StorageKey, state: str | State | None = None) -> None:
         state_value = state.state if isinstance(state, State) else state
         pool = await get_pool()
@@ -36,12 +54,7 @@ class YdbStorage(BaseStorage):
                 );
                 """,
                 parameters={
-                    "bot_id": key.bot_id,
-                    "chat_id": key.chat_id,
-                    "user_id": key.user_id,
-                    "thread_id": key.thread_id,
-                    "business_connection_id": key.business_connection_id,
-                    "destiny": key.destiny,
+                    **self._key_parameters(key),
                     "state": state_value,
                 },
                 commit_tx=True,
@@ -68,14 +81,7 @@ class YdbStorage(BaseStorage):
                   AND business_connection_id IS NOT DISTINCT FROM $business_connection_id
                   AND destiny = $destiny;
                 """,
-                parameters={
-                    "bot_id": key.bot_id,
-                    "chat_id": key.chat_id,
-                    "user_id": key.user_id,
-                    "thread_id": key.thread_id,
-                    "business_connection_id": key.business_connection_id,
-                    "destiny": key.destiny,
-                },
+                parameters=self._key_parameters(key),
                 commit_tx=True,
             )
         )
@@ -105,12 +111,7 @@ class YdbStorage(BaseStorage):
                 );
                 """,
                 parameters={
-                    "bot_id": key.bot_id,
-                    "chat_id": key.chat_id,
-                    "user_id": key.user_id,
-                    "thread_id": key.thread_id,
-                    "business_connection_id": key.business_connection_id,
-                    "destiny": key.destiny,
+                    **self._key_parameters(key),
                     "data_json": serialized,
                 },
                 commit_tx=True,
@@ -137,14 +138,7 @@ class YdbStorage(BaseStorage):
                   AND business_connection_id IS NOT DISTINCT FROM $business_connection_id
                   AND destiny = $destiny;
                 """,
-                parameters={
-                    "bot_id": key.bot_id,
-                    "chat_id": key.chat_id,
-                    "user_id": key.user_id,
-                    "thread_id": key.thread_id,
-                    "business_connection_id": key.business_connection_id,
-                    "destiny": key.destiny,
-                },
+                parameters=self._key_parameters(key),
                 commit_tx=True,
             )
         )
