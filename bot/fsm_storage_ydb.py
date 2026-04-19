@@ -32,7 +32,7 @@ class YdbStorage(BaseStorage):
             return default
 
     @classmethod
-    def _key_parameters(key: StorageKey) -> dict[str, Any]:
+    def _key_parameters(cls, key: StorageKey) -> dict[str, Any]:
         """Build stable YDB parameters for FSM key.
 
         В aiogram `bot_id` может быть `None` (зависит от key builder/стратегии),
