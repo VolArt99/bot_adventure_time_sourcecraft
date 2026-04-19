@@ -1391,8 +1391,12 @@ async def save_forum_topic(message_thread_id: int, name: str) -> bool:
     await pool.retry_operation(
         lambda session: session.transaction().execute(
             """
+            DECLARE $id AS Int64;
+            DECLARE $message_thread_id AS Int64;
+            DECLARE $name AS Utf8;
+
             UPSERT INTO forum_topics (id, message_thread_id, name, is_closed, is_hidden)
-            VALUES ($id, $message_thread_id, $name, false, false)
+            VALUES ($id, $message_thread_id, $name, false, false);
             """,
             parameters={
                 "id": topic_id,
