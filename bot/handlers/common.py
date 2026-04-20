@@ -101,7 +101,7 @@ async def rules_ack(callback: CallbackQuery):
 @router.message(F.chat.type == "private")
 async def onboarding_guard(message: Message):
     command = _extract_command(message)
-    if command in {"help", "status"}:
+    if command:
         return
 
     approved = await is_member_approved(message.from_user.id)
