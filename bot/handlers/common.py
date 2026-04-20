@@ -98,9 +98,10 @@ async def rules_ack(callback: CallbackQuery):
     await callback.answer()
 
 
-@router.message(F.chat.type == "private")
+@router.message(F.chat.type == "private", ~F.text.startswith("/"))
 async def onboarding_guard(message: Message):
     command = _extract_command(message)
+    # Не перехватываем команды: их должны обрабатывать профильные command-handler'ы.
     if command:
         return
 
