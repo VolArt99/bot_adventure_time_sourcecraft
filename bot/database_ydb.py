@@ -5,6 +5,7 @@ import logging
 import json
 import base64
 import ast
+from decimal import Decimal
 from datetime import datetime, timedelta
 from functools import wraps
 
@@ -688,7 +689,7 @@ def _normalize_row(row) -> Dict[str, Any]:
     for column, value in row_items:
         if hasattr(value, "isoformat"):
             value = value.isoformat()
-        elif isinstance(value, ydb.Decimal):
+        elif isinstance(value, Decimal):
             value = float(value)
         event_dict[column] = value
     return event_dict
