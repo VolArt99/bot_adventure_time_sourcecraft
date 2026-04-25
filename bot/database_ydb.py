@@ -119,6 +119,16 @@ def _is_schema_limit_error(exc: Exception) -> bool:
     )
 
 
+def _is_table_missing_error(exc: Exception, table_name: str) -> bool:
+    """Определяет ошибку отсутствующей таблицы YDB по имени таблицы."""
+    message = str(exc).lower()
+    table_name = table_name.lower()
+    return (
+        "cannot find table" in message
+        and table_name in message
+    )
+
+
 def _build_credentials() -> ydb.Credentials:
     """Подбирает стратегию авторизации для YDB и логирует выбранный путь."""
     service_account_key_file = os.getenv("YDB_SERVICE_ACCOUNT_KEY_FILE_CREDENTIALS") or os.getenv("SA_KEY_FILE")
@@ -571,46 +581,58 @@ async def upsert_approved_member(
 async def record_command_usage(role: str, command: str, usage_date: str | None = None) -> None:
     pool = await get_pool()
     day = usage_date or datetime.utcnow().date().isoformat()
-    prev = await pool.retry_operation(
-        lambda session: session.transaction().execute(
-            """
-            SELECT usage_count
-            FROM command_usage_daily
-            WHERE usage_date = $usage_date AND role = $role AND command = $command
-            """,
-            parameters={"usage_date": day, "role": role, "command": command},
-            commit_tx=True,
+    try:
+        prev = await pool.retry_operation(
+            lambda session: session.transaction().execute(
+                """
+                SELECT usage_count
+                FROM command_usage_daily
+                WHERE usage_date = $usage_date AND role = $role AND command = $command
+                """,
+                parameters={"usage_date": day, "role": role, "command": command},
+                commit_tx=True,
+            )
         )
-    )
-    current = int(prev[0].rows[0].usage_count) if prev and prev[0].rows else 0
-    await pool.retry_operation(
-        lambda session: session.transaction().execute(
-            """
-            UPSERT INTO command_usage_daily (usage_date, role, command, usage_count)
-            VALUES ($usage_date, $role, $command, $usage_count)
-            """,
-            parameters={"usage_date": day, "role": role, "command": command, "usage_count": current + 1},
-            commit_tx=True,
+        current = int(prev[0].rows[0].usage_count) if prev and prev[0].rows else 0
+        await pool.retry_operation(
+            lambda session: session.transaction().execute(
+                """
+                UPSERT INTO command_usage_daily (usage_date, role, command, usage_count)
+                VALUES ($usage_date, $role, $command, $usage_count)
+                """,
+                parameters={"usage_date": day, "role": role, "command": command, "usage_count": current + 1},
+                commit_tx=True,
+            )
         )
-    )
+    except Exception as exc:
+        if _is_table_missing_error(exc, "command_usage_daily"):
+            logger.warning("Skip command usage stats: table command_usage_daily is missing: %s", exc)
+            return
+        raise
 
 
 async def get_command_usage_summary(days: int = 7) -> list[dict[str, Any]]:
     pool = await get_pool()
     cutoff = (datetime.utcnow().date() - timedelta(days=max(0, days - 1))).isoformat()
-    result = await pool.retry_operation(
-        lambda session: session.transaction().execute(
-            """
-            SELECT role, SUM(usage_count) AS total_commands, COUNT(DISTINCT usage_date) AS active_days
-            FROM command_usage_daily
-            WHERE usage_date >= $cutoff
-            GROUP BY role
-            ORDER BY total_commands DESC
-            """,
-            parameters={"cutoff": cutoff},
-            commit_tx=True,
+    try:
+        result = await pool.retry_operation(
+            lambda session: session.transaction().execute(
+                """
+                SELECT role, SUM(usage_count) AS total_commands, COUNT(DISTINCT usage_date) AS active_days
+                FROM command_usage_daily
+                WHERE usage_date >= $cutoff
+                GROUP BY role
+                ORDER BY total_commands DESC
+                """,
+                parameters={"cutoff": cutoff},
+                commit_tx=True,
+            )
         )
-    )
+    except Exception as exc:
+        if _is_table_missing_error(exc, "command_usage_daily"):
+            logger.warning("Cannot build command usage summary: table command_usage_daily is missing: %s", exc)
+            return []
+        raise
     items: list[dict[str, Any]] = []
     for row in result[0].rows if result else []:
         total = int(row.total_commands or 0)
