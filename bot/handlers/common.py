@@ -10,6 +10,7 @@ from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 
 from bot.config import (
     ADMIN_DAILY_COMMAND_LIMIT,
+    ADMIN_IDS,
     GROUP_ID,
     MEMBER_ALLOWED_COMMANDS,
     MEMBER_DAILY_COMMAND_LIMIT,
@@ -26,6 +27,8 @@ from bot.database import (
     get_pending_intro_members,
     get_intro_members_statuses,
     update_intro_status,
+    upsert_approved_member,
+    get_command_usage_summary,
 )
 
 from bot.filters.admin import admin_only
@@ -74,13 +77,30 @@ async def _notify_owner_about_request(callback: CallbackQuery) -> None:
     )
 
 
+async def _is_user_in_group(message: Message) -> bool:
+    try:
+        member = await message.bot.get_chat_member(GROUP_ID, message.from_user.id)
+    except Exception:
+        return False
+    return member.status in {"member", "administrator", "creator"}
+
+
 @router.message(CommandStart())
 async def cmd_start(message: Message):
     user_id = message.from_user.id
     username = message.from_user.username
+    full_name = " ".join(filter(None, [message.from_user.first_name, message.from_user.last_name])).strip()
     await get_or_create_user(user_id, username)
+    if await _is_user_in_group(message):
+        await upsert_approved_member(user_id, username, full_name, intro_status="completed")
+        await message.answer(
+            "👋 С возвращением! Вы уже состоите в группе, поэтому заявка не требуется.\n"
+            "Используйте /help для списка команд."
+        )
+        return
+    
     await message.answer(ONBOARDING_WELCOME_TEXT, reply_markup=onboarding_start_keyboard())
-
+    
 
 @router.callback_query(F.data == "onboarding_start")
 async def onboarding_start(callback: CallbackQuery):
@@ -92,9 +112,13 @@ async def onboarding_start(callback: CallbackQuery):
 async def rules_ack(callback: CallbackQuery):
     user = callback.from_user
     full_name = " ".join(filter(None, [user.first_name, user.last_name])).strip()
-    await add_pending_user(user.id, user.username, full_name)
-    await _notify_owner_about_request(callback)
-    await callback.message.answer("✅ Правила приняты. Заявка отправлена владельцу на проверку.")
+    if await _is_user_in_group(callback.message):
+        await upsert_approved_member(user.id, user.username, full_name, intro_status="completed")
+        await callback.message.answer("✅ Правила приняты. Вы уже участник группы, доступ открыт.")
+    else:
+        await add_pending_user(user.id, user.username, full_name)
+        await _notify_owner_about_request(callback)
+        await callback.message.answer("✅ Правила приняты. Заявка отправлена владельцу на проверку.")
     await callback.answer()
 
 
@@ -263,42 +287,58 @@ async def intro_toggle(callback: CallbackQuery):
 
 @router.message(Command("help"))
 async def cmd_help(message: Message):
-    member_commands = ", ".join(f"/{cmd}" for cmd in sorted(MEMBER_ALLOWED_COMMANDS))
-    help_text = (
-        "ℹ️ <b>Все команды работают только в личных сообщениях с ботом.</b>\n\n"
-        "<b>Роли и доступ:</b>\n"
-        f"• Владелец (OWNER_ID={OWNER_ID}) — доступ ко всем командам, без лимита.\n"
-        f"• Админ (ADMIN_IDS) — доступ ко всем командам, лимит: {ADMIN_DAILY_COMMAND_LIMIT} команд/сутки.\n"
-        f"• Участник группы — доступ только к пользовательским командам, лимит: {MEMBER_DAILY_COMMAND_LIMIT} команд/сутки.\n"
-        f"• Не участник группы — доступны /start, /help, /status, лимит: {OUTSIDER_START_DAILY_LIMIT} команд/сутки.\n\n"
-        f"<b>Команды участника:</b> {member_commands}\n\n"        
-        "<b>Основные команды:</b>\n"
-        "/start — регистрация и запуск бота\n"
-        "/help — список команд и возможностей\n"
-        "/status — быстрый статус бота\n"
-        "/create_event — создать мероприятие (для организаторов)\n"
-        "/my_events — мои мероприятия (неделя/месяц/всё время)\n"
-        "/digest — дайджест мероприятий (неделя/месяц/всё время)\n"
-        "/subscriptions — подписки на категории\n"
-        "/my_digest — персональный дайджест по подпискам\n"
-        "/my_stats — ваша статистика посещений\n"
-        "/top — топ-3 участников за 30 дней\n"
-        "/find_events — поиск активных событий по тексту\n\n"
-        "/random_optin — согласиться на рандомные встречи 1:1\n"
-        "/random_optout — отключить рандомные встречи 1:1\n\n"
-        "<b>Админ/сервис:</b>\n"
-        "/debug_info — единая диагностика (бот, группа, права, темы)\n"
-        "/health — быстрая проверка работоспособности\n"
-        "/list_topics — список обнаруженных тем\n"
-        "/update_topic_names — обновить названия тем (для админов)\n"
-        "/admin_report — сводный отчёт по событиям (для админов)\n"
-        "/random_pairs — сформировать пары 1:1 (для админов)\n"
-        "/pending_intro — контроль не завершивших «Рассказ о себе» (владелец)\n"
-        "/list_intro — статусы дедлайнов «Рассказа о себе» (владелец)"
+    is_admin_or_owner = message.from_user.id in ADMIN_IDS or message.from_user.id == OWNER_ID
+
+    member_help = (
+        "ℹ️ <b>Команды участника</b>\n\n"
+        "🧭 Доступные команды:\n"
+        "/start, /help, /status\n"
+        "/create_event, /my_events\n"
+        "/digest, /subscriptions, /my_digest\n"
+        "/my_stats, /top, /find_events\n"
+        "/random_optin, /random_optout\n"
+        "/split_bill_create, /split_bill_join, /split_bill_paid, /split_bill_status\n"
     )
+    admin_help = (
+        "🛠 <b>Команды администратора/владельца</b>\n\n"
+        "/roles — роли и доступ\n"
+        "/usage_stats — среднее число запросов по ролям\n"
+        "/debug_info, /health, /list_topics, /update_topic_names\n"
+        "/admin_report, /random_pairs, /pending_intro, /list_intro\n"
+    )
+    help_text = admin_help + "\n" + member_help if is_admin_or_owner else member_help
     await message.answer(help_text, parse_mode="HTML")
 
 
+@router.message(Command("roles"))
+@admin_only
+async def cmd_roles(message: Message):
+    await message.answer(
+        "🔐 <b>Роли и доступ</b>\n\n"
+        f"👑 Владелец — полный доступ, без лимита.\n"
+        f"🛡 Админ — все команды, лимит: {ADMIN_DAILY_COMMAND_LIMIT}/сутки.\n"
+        f"🙋 Участник — только пользовательские команды, лимит: {MEMBER_DAILY_COMMAND_LIMIT}/сутки.\n"
+        f"🚪 Не участник — только /start, лимит: {OUTSIDER_START_DAILY_LIMIT}/сутки.",
+        parse_mode="HTML",
+    )
+
+
+@router.message(Command("usage_stats"))
+@admin_only
+async def cmd_usage_stats(message: Message):
+    rows = await get_command_usage_summary(days=7)
+    if not rows:
+        await message.answer("📉 Пока нет статистики по использованию команд.")
+        return
+    lines = ["📊 <b>Среднее использование команд (последние 7 дней)</b>"]
+    for row in rows:
+        lines.append(
+            f"• {row['role']}: всего {row['total_commands']}, "
+            f"в среднем {row['avg_per_day']}/день"
+        )
+    await message.answer("\n".join(lines), parse_mode="HTML")
+
+    
 @router.message(Command("health"))
 @restricted_command
 async def cmd_health(message: Message):

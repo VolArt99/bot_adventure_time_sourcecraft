@@ -20,13 +20,13 @@ ADMIN_IDS = list(map(int, os.getenv("ADMIN_IDS", "").split(","))) if os.getenv("
 OWNER_ID = int(os.getenv("OWNER_ID")) if os.getenv("OWNER_ID") else 0
 OUTSIDER_ALLOWED_COMMANDS = {
     cmd.strip().lower()
-    for cmd in os.getenv("OUTSIDER_ALLOWED_COMMANDS", "start,help,status").split(",")
+    for cmd in os.getenv("OUTSIDER_ALLOWED_COMMANDS", "start").split(",")
     if cmd.strip()
 }
 
 # Дневные лимиты по отправке команд
-ADMIN_DAILY_COMMAND_LIMIT = int(os.getenv("ADMIN_DAILY_COMMAND_LIMIT", "150"))
-MEMBER_DAILY_COMMAND_LIMIT = int(os.getenv("MEMBER_DAILY_COMMAND_LIMIT", "60"))
+ADMIN_DAILY_COMMAND_LIMIT = int(os.getenv("ADMIN_DAILY_COMMAND_LIMIT", "50"))
+MEMBER_DAILY_COMMAND_LIMIT = int(os.getenv("MEMBER_DAILY_COMMAND_LIMIT", "25"))
 OUTSIDER_START_DAILY_LIMIT = int(os.getenv("OUTSIDER_START_DAILY_LIMIT", "5"))
 
 # Команды, доступные участнику группы
@@ -34,7 +34,8 @@ MEMBER_ALLOWED_COMMANDS = {
     cmd.strip().lower()
     for cmd in os.getenv(
         "MEMBER_ALLOWED_COMMANDS",
-        "start,help,my_events,digest,subscriptions,my_digest,my_stats,top,find_events,random_optin,random_optout,"
+        "start,help,status,create_event,my_events,digest,subscriptions,my_digest,my_stats,top,find_events,random_optin,random_optout,"
+        "split_bill_create,split_bill_join,split_bill_paid,split_bill_status,split_bill_close,split_bill_add,split_bill_remove,"
         "set_responsible,add_participant_manual,set_carpool_manual,add_passenger_manual",
     ).split(",")
     if cmd.strip()

@@ -337,6 +337,38 @@ async def init_db():
             PRIMARY KEY (user_id)
         )
         """,
+        """
+        CREATE TABLE IF NOT EXISTS command_usage_daily (
+            usage_date Utf8 NOT NULL,
+            role Utf8 NOT NULL,
+            command Utf8 NOT NULL,
+            usage_count Int64 NOT NULL,
+            PRIMARY KEY (usage_date, role, command)
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS split_bill_events (
+            id Int64 NOT NULL,
+            group_id Int64 NOT NULL,
+            organizer_id Int64 NOT NULL,
+            total_amount Double NOT NULL,
+            status Utf8 NOT NULL,
+            source_event_id Int64,
+            created_at Timestamp,
+            closed_at Timestamp,
+            PRIMARY KEY (id)
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS split_bill_participants (
+            split_id Int64 NOT NULL,
+            user_id Int64 NOT NULL,
+            is_paid Bool NOT NULL,
+            share_amount Double NOT NULL,
+            joined_at Timestamp,
+            PRIMARY KEY (split_id, user_id)
+        )
+        """,        
     ]
 
     schema_limit_hit = False
@@ -508,6 +540,89 @@ async def approve_pending_user(user_id: int) -> Optional[Dict[str, Any]]:
     )
     await delete_pending_user(user_id)
     return pending
+
+
+async def upsert_approved_member(
+    user_id: int,
+    username: str | None,
+    full_name: str | None,
+    *,
+    intro_status: str = "completed",
+) -> None:
+    pool = await get_pool()
+    await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            UPSERT INTO approved_members (user_id, username, full_name, intro_status)
+            VALUES ($user_id, $username, $full_name, $intro_status)
+            """,
+            parameters={
+                "user_id": int(user_id),
+                "username": str(username or ""),
+                "full_name": str(full_name or ""),
+                "intro_status": intro_status,
+            },
+            commit_tx=True,
+        )
+    )
+
+
+async def record_command_usage(role: str, command: str, usage_date: str | None = None) -> None:
+    pool = await get_pool()
+    day = usage_date or datetime.utcnow().date().isoformat()
+    prev = await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            SELECT usage_count
+            FROM command_usage_daily
+            WHERE usage_date = $usage_date AND role = $role AND command = $command
+            """,
+            parameters={"usage_date": day, "role": role, "command": command},
+            commit_tx=True,
+        )
+    )
+    current = int(prev[0].rows[0].usage_count) if prev and prev[0].rows else 0
+    await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            UPSERT INTO command_usage_daily (usage_date, role, command, usage_count)
+            VALUES ($usage_date, $role, $command, $usage_count)
+            """,
+            parameters={"usage_date": day, "role": role, "command": command, "usage_count": current + 1},
+            commit_tx=True,
+        )
+    )
+
+
+async def get_command_usage_summary(days: int = 7) -> list[dict[str, Any]]:
+    pool = await get_pool()
+    cutoff = (datetime.utcnow().date() - timedelta(days=max(0, days - 1))).isoformat()
+    result = await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            SELECT role, SUM(usage_count) AS total_commands, COUNT(DISTINCT usage_date) AS active_days
+            FROM command_usage_daily
+            WHERE usage_date >= $cutoff
+            GROUP BY role
+            ORDER BY total_commands DESC
+            """,
+            parameters={"cutoff": cutoff},
+            commit_tx=True,
+        )
+    )
+    items: list[dict[str, Any]] = []
+    for row in result[0].rows if result else []:
+        total = int(row.total_commands or 0)
+        active_days = max(1, int(row.active_days or 1))
+        items.append(
+            {
+                "role": str(row.role),
+                "total_commands": total,
+                "active_days": active_days,
+                "avg_per_day": round(total / active_days, 2),
+            }
+        )
+    return items
 
 
 async def get_pending_intro_members() -> list[Dict[str, Any]]:
@@ -1053,13 +1168,13 @@ async def get_top_participants(days: int = 30, limit: int = 3) -> List[Dict]:
                 COUNT(DISTINCT p.event_id) as participation_count
             FROM participants p
             LEFT JOIN users u ON p.user_id = u.id
-            WHERE p.joined_at >= CurrentUtcTimestamp() - Interval("PT" || CAST($days AS Utf8) || "H")
+            WHERE p.joined_at >= CurrentUtcTimestamp() - DateTime::IntervalFromDays(CAST($days AS Uint64))
             GROUP BY p.user_id, u.username
             ORDER BY participation_count DESC
             LIMIT $limit
             """,
             parameters={
-                "days": str(days * 24),  # Конвертируем дни в часы
+                "days": int(days),
                 "limit": limit,
             },
             commit_tx=True,
@@ -1072,13 +1187,189 @@ async def get_top_participants(days: int = 30, limit: int = 3) -> List[Dict]:
             {
                 "user_id": row.user_id,
                 "username": row.username or f"User {row.user_id}",
-                "participation_count": row.participation_count,
+                "participations": int(row.participation_count or 0),
             }
         )
 
     return top_participants
 
 
+async def create_split_bill(
+    *,
+    group_id: int,
+    organizer_id: int,
+    total_amount: float,
+    source_event_id: int | None = None,
+) -> int:
+    pool = await get_pool()
+    now = datetime.utcnow()
+    result = await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            SELECT COALESCE(MAX(id), 0) + 1 AS new_id FROM split_bill_events
+            """,
+            commit_tx=True,
+        )
+    )
+    split_id = int(result[0].rows[0].new_id)
+
+    await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            UPSERT INTO split_bill_events
+            (id, group_id, organizer_id, total_amount, status, source_event_id, created_at)
+            VALUES ($id, $group_id, $organizer_id, $total_amount, $status, $source_event_id, $created_at)
+            """,
+            parameters={
+                "id": split_id,
+                "group_id": int(group_id),
+                "organizer_id": int(organizer_id),
+                "total_amount": float(total_amount),
+                "status": "open",
+                "source_event_id": source_event_id,
+                "created_at": now,
+            },
+            commit_tx=True,
+        )
+    )
+    return split_id
+
+
+async def get_split_bill(split_id: int) -> Optional[dict[str, Any]]:
+    pool = await get_pool()
+    result = await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            SELECT id, group_id, organizer_id, total_amount, status, source_event_id, created_at, closed_at
+            FROM split_bill_events
+            WHERE id = $split_id
+            """,
+            parameters={"split_id": int(split_id)},
+            commit_tx=True,
+        )
+    )
+    if not result[0].rows:
+        return None
+    return _normalize_row(result[0].rows[0])
+
+
+async def get_event_participant_ids(event_id: int) -> list[int]:
+    pool = await get_pool()
+    result = await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            SELECT DISTINCT user_id FROM participants WHERE event_id = $event_id
+            """,
+            parameters={"event_id": int(event_id)},
+            commit_tx=True,
+        )
+    )
+    return [int(row.user_id) for row in result[0].rows]
+
+
+async def get_split_bill_participants(split_id: int) -> list[dict[str, Any]]:
+    pool = await get_pool()
+    result = await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            SELECT user_id, is_paid, share_amount, joined_at
+            FROM split_bill_participants
+            WHERE split_id = $split_id
+            ORDER BY joined_at
+            """,
+            parameters={"split_id": int(split_id)},
+            commit_tx=True,
+        )
+    )
+    return [_normalize_row(row) for row in result[0].rows]
+
+
+async def recalculate_split_bill_shares(split_id: int) -> None:
+    bill = await get_split_bill(split_id)
+    if not bill:
+        return
+    participants = await get_split_bill_participants(split_id)
+    if not participants:
+        return
+    share = round(float(bill["total_amount"]) / len(participants), 2)
+    pool = await get_pool()
+    for participant in participants:
+        await pool.retry_operation(
+            lambda session, uid=int(participant["user_id"]): session.transaction().execute(
+                """
+                UPDATE split_bill_participants
+                SET share_amount = $share_amount
+                WHERE split_id = $split_id AND user_id = $user_id
+                """,
+                parameters={"split_id": int(split_id), "user_id": uid, "share_amount": share},
+                commit_tx=True,
+            )
+        )
+
+
+async def add_split_bill_participant(split_id: int, user_id: int) -> None:
+    pool = await get_pool()
+    await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            UPSERT INTO split_bill_participants (split_id, user_id, is_paid, share_amount, joined_at)
+            VALUES ($split_id, $user_id, false, 0.0, $joined_at)
+            """,
+            parameters={
+                "split_id": int(split_id),
+                "user_id": int(user_id),
+                "joined_at": datetime.utcnow(),
+            },
+            commit_tx=True,
+        )
+    )
+    await recalculate_split_bill_shares(split_id)
+
+
+async def remove_split_bill_participant(split_id: int, user_id: int) -> None:
+    pool = await get_pool()
+    await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            DELETE FROM split_bill_participants WHERE split_id = $split_id AND user_id = $user_id
+            """,
+            parameters={"split_id": int(split_id), "user_id": int(user_id)},
+            commit_tx=True,
+        )
+    )
+    await recalculate_split_bill_shares(split_id)
+
+
+async def mark_split_bill_paid(split_id: int, user_id: int) -> None:
+    pool = await get_pool()
+    await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            UPDATE split_bill_participants
+            SET is_paid = true
+            WHERE split_id = $split_id AND user_id = $user_id
+            """,
+            parameters={"split_id": int(split_id), "user_id": int(user_id)},
+            commit_tx=True,
+        )
+    )
+
+
+async def close_split_bill(split_id: int) -> None:
+    pool = await get_pool()
+    await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            UPDATE split_bill_events
+            SET status = 'closed', closed_at = $closed_at
+            WHERE id = $split_id
+            """,
+            parameters={"split_id": int(split_id), "closed_at": datetime.utcnow()},
+            commit_tx=True,
+        )
+    )
+
+    
 async def find_events(query: str, period: str = "month", limit: int = 20) -> List[Dict]:
     """Поиск предстоящих активных мероприятий по названию/месту/категории."""
     pool = await get_pool()

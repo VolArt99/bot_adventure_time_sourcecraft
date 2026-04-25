@@ -1,4 +1,5 @@
 from aiogram import F, Router
+from datetime import datetime
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
@@ -22,7 +23,7 @@ async def cmd_create_event(message: Message, state: FSMContext):
     await message.answer("📝 Введите название мероприятия:", reply_markup=cancel_keyboard())
 
 
-@router.message(CreateEvent.title)
+@router.message(CreateEvent.title, ~F.text.startswith("/"))
 async def process_title(message: Message, state: FSMContext):
     await state.update_data(title=message.text)
     await state.set_state(CreateEvent.description)
@@ -38,22 +39,22 @@ async def skip_description(callback: CallbackQuery, state: FSMContext):
     await state.set_state(CreateEvent.datetime)
     await callback.answer("Описание пропущено")
     await callback.message.answer(
-        "🗓 Введите дату и время (ДД.ММ.ГГГГ ЧЧ:ММ):\nПример: 31.12.2025 18:00",
+        f"🗓 Введите дату и время (ДД.ММ.ГГГГ ЧЧ:ММ):\nПример: {datetime.now().strftime('%d.%m.%Y %H:%M')}",
         reply_markup=cancel_keyboard(),
     )
 
 
-@router.message(CreateEvent.description)
+@router.message(CreateEvent.description, ~F.text.startswith("/"))
 async def process_description(message: Message, state: FSMContext):
     await state.update_data(description=message.text if message.text.lower() != "пропустить" else "")
     await state.set_state(CreateEvent.datetime)
     await message.answer(
-        "🗓 Введите дату и время (ДД.ММ.ГГГГ ЧЧ:ММ):\nПример: 31.12.2025 18:00",
+        f"🗓 Введите дату и время (ДД.ММ.ГГГГ ЧЧ:ММ):\nПример: {datetime.now().strftime('%d.%m.%Y %H:%M')}",
         reply_markup=cancel_keyboard(),
     )
 
 
-@router.message(CreateEvent.datetime)
+@router.message(CreateEvent.datetime, ~F.text.startswith("/"))
 async def process_datetime(message: Message, state: FSMContext):
     dt = await parse_datetime(message.text)
     if not dt:
@@ -76,7 +77,7 @@ async def skip_duration(callback: CallbackQuery, state: FSMContext):
     await callback.message.answer("📍 Введите место проведения:", reply_markup=cancel_keyboard())
 
 
-@router.message(CreateEvent.duration)
+@router.message(CreateEvent.duration, ~F.text.startswith("/"))
 async def process_duration(message: Message, state: FSMContext):
     if message.text.lower() == "пропустить":
         duration_minutes = None
@@ -92,7 +93,7 @@ async def process_duration(message: Message, state: FSMContext):
     await message.answer("📍 Введите место проведения:", reply_markup=cancel_keyboard())
 
 
-@router.message(CreateEvent.location)
+@router.message(CreateEvent.location, ~F.text.startswith("/"))
 async def process_location(message: Message, state: FSMContext):
     await state.update_data(location=message.text)
     await state.set_state(CreateEvent.price)
@@ -102,7 +103,7 @@ async def process_location(message: Message, state: FSMContext):
     )
 
 
-@router.message(CreateEvent.price)
+@router.message(CreateEvent.price, ~F.text.startswith("/"))
 async def process_price(message: Message, state: FSMContext):
     parts = message.text.split()
     total = None
@@ -140,7 +141,7 @@ async def skip_limit(callback: CallbackQuery, state: FSMContext):
     await callback.message.answer(CARPOOL_HELP_TEXT, reply_markup=carpool_keyboard(), parse_mode="HTML")
 
 
-@router.message(CreateEvent.limit)
+@router.message(CreateEvent.limit, ~F.text.startswith("/"))
 async def process_limit(message: Message, state: FSMContext):
     if message.text.lower() in {"без лимита", "пропустить"}:
         participant_limit = None

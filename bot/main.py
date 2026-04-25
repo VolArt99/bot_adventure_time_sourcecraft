@@ -20,6 +20,7 @@ import bot.handlers.my_events as my_events
 import bot.handlers.roadmap as roadmap
 import bot.handlers.subscriptions as subscriptions
 import bot.handlers.admin as admin
+import bot.handlers.split_bill as split_bill
 from bot.utils.scheduler import restore_jobs, start_scheduler
 from bot.fsm_storage_ydb import YdbStorage
 from bot.init_flags import should_run_schema_init, should_run_schema_init_webhook
@@ -60,6 +61,7 @@ def _register_handlers() -> None:
     dp.include_router(my_events.router)
     dp.include_router(roadmap.router)
     dp.include_router(subscriptions.router)
+    dp.include_router(split_bill.router)
     dp.include_router(admin.router)
 
     from bot.middleware.topic_discoverer import TopicDiscovererMiddleware

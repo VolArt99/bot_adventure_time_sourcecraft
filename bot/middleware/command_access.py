@@ -15,6 +15,7 @@ from bot.config import (
     OWNER_ID,
 )
 from bot.database import is_member_approved
+from bot.database import record_command_usage
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +52,13 @@ class CommandAccessMiddleware(BaseMiddleware):
         command = self._extract_command(event)
         if not command:
             return await handler(event, data)
+        state = data.get("state")
+        if state is not None and command not in {"create_event"}:
+            current_state = await state.get_state()
+            if current_state and current_state.startswith("CreateEvent:"):
+                await state.clear()
+                await event.answer("ℹ️ Предыдущий сценарий создания мероприятия остановлен.")
+
 
         user_id = user.id
         is_owner = OWNER_ID > 0 and user_id == OWNER_ID
@@ -59,6 +67,7 @@ class CommandAccessMiddleware(BaseMiddleware):
 
         # Владелец: полный доступ без лимита.
         if is_owner:
+            await record_command_usage("owner", command)
             return await handler(event, data)
 
         # Админ: полный доступ, но с дневным лимитом.
@@ -68,6 +77,8 @@ class CommandAccessMiddleware(BaseMiddleware):
                 event,
                 data,
                 daily_limit=ADMIN_DAILY_COMMAND_LIMIT,
+                role="admin",
+                command=command,
                 limit_text=(
                     "⚠️ Дневной лимит команд для админа исчерпан. "
                     "Попробуйте снова завтра."
@@ -90,6 +101,8 @@ class CommandAccessMiddleware(BaseMiddleware):
                 event,
                 data,
                 daily_limit=MEMBER_DAILY_COMMAND_LIMIT,
+                role="member",
+                command=command,
                 limit_text=(
                     "⚠️ Дневной лимит команд исчерпан. "
                     "Попробуйте снова завтра."
@@ -105,7 +118,7 @@ class CommandAccessMiddleware(BaseMiddleware):
                 getattr(event, "message_id", None),
             )
             await event.answer(
-                "❌ Для вас доступны только /start, /help и /status до одобрения заявки."
+                "❌ До подтверждения доступа вам доступна только команда /start."
             )
             return
 
@@ -114,6 +127,8 @@ class CommandAccessMiddleware(BaseMiddleware):
             event,
             data,
             daily_limit=OUTSIDER_START_DAILY_LIMIT,
+            role="outsider",
+            command=command,
             limit_text=(
                 "⚠️ Дневной лимит команд до одобрения исчерпан. "
                 "Попробуйте снова завтра."
@@ -127,6 +142,8 @@ class CommandAccessMiddleware(BaseMiddleware):
         data: dict,
         *,
         daily_limit: int,
+        role: str,
+        command: str,
         limit_text: str,
     ):
         today = self._today_key()
@@ -138,4 +155,5 @@ class CommandAccessMiddleware(BaseMiddleware):
             return
 
         self._daily_usage[usage_key] = current_usage + 1
+        await record_command_usage(role, command)
         return await handler(event, data)

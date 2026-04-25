@@ -2,7 +2,7 @@ from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.types import CallbackQuery, Message
 
-from bot.constants import EVENT_CATEGORIES
+from bot.constants import EVENT_CATEGORIES, EVENT_CATEGORY_GROUPS
 from bot.database import (
     get_events_for_user_subscriptions,
     get_or_create_user,
@@ -21,10 +21,35 @@ def _subscriptions_keyboard(selected: list[str]):
     from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
     rows = []
-    for category in EVENT_CATEGORIES:
+    for group_key, group_data in EVENT_CATEGORY_GROUPS.items():
+        total = len(group_data["subcategories"])
+        selected_in_group = len([c for c in group_data["subcategories"] if c in selected])
+        rows.append(
+            [
+                InlineKeyboardButton(
+                    text=f"{group_data['title']} ({selected_in_group}/{total})",
+                    callback_data=f"sub_group_{group_key}",
+                )
+            ]
+        )
+    rows.append([InlineKeyboardButton(text="✅ Подписаться на всё", callback_data="sub_all")])
+    rows.append([InlineKeyboardButton(text="🚫 Отписаться от всего", callback_data="sub_none")])
+    rows.append([InlineKeyboardButton(text="💾 Сохранить", callback_data="sub_save")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def _subscriptions_group_keyboard(group_key: str, selected: list[str]):
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
+    group = EVENT_CATEGORY_GROUPS[group_key]
+    rows = []
+    for category in group["subcategories"]:
         mark = "✅ " if category in selected else ""
         rows.append([InlineKeyboardButton(text=f"{mark}{category.title()}", callback_data=f"sub_toggle_{category}")])
 
+    rows.append([InlineKeyboardButton(text="↩️ К группам", callback_data="sub_back")])
+    rows.append([InlineKeyboardButton(text="✅ Подписаться на всё", callback_data="sub_all")])
+    rows.append([InlineKeyboardButton(text="🚫 Отписаться от всего", callback_data="sub_none")])    
     rows.append([InlineKeyboardButton(text="💾 Сохранить", callback_data="sub_save")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
@@ -34,8 +59,21 @@ async def cmd_subscriptions(message: Message):
     await get_or_create_user(message.from_user.id, message.from_user.username)
     selected = await get_user_category_subscriptions(message.from_user.id)
     await message.answer(
-        "Выберите категории для персонального дайджеста:",
+        "📬 Выберите группы категорий для персонального дайджеста:",
         reply_markup=_subscriptions_keyboard(selected),
+    )
+
+
+@router.callback_query(F.data.startswith("sub_group_"))
+async def open_subscription_group(callback: CallbackQuery):
+    group_key = callback.data.removeprefix("sub_group_")
+    if group_key not in EVENT_CATEGORY_GROUPS:
+        await callback.answer("Группа не найдена", show_alert=True)
+        return
+    selected = await get_user_category_subscriptions(callback.from_user.id)
+    await callback.answer()
+    await callback.message.edit_reply_markup(
+        reply_markup=_subscriptions_group_keyboard(group_key, selected)
     )
 
 
@@ -51,8 +89,38 @@ async def toggle_subscription(callback: CallbackQuery):
 
     await set_user_category_subscriptions(callback.from_user.id, selected)
     await callback.answer("Подписки обновлены")
+    current = callback.message.reply_markup.inline_keyboard[0][0].callback_data
+    if current and current.startswith("sub_toggle_"):
+        category = current.removeprefix("sub_toggle_")
+        group_key = next(
+            (key for key, value in EVENT_CATEGORY_GROUPS.items() if category in value["subcategories"]),
+            "other",
+        )
+        await callback.message.edit_reply_markup(reply_markup=_subscriptions_group_keyboard(group_key, sorted(set(selected))))
+        return    
     await callback.message.edit_reply_markup(reply_markup=_subscriptions_keyboard(sorted(set(selected))))
 
+
+@router.callback_query(F.data == "sub_back")
+async def back_subscriptions(callback: CallbackQuery):
+    selected = await get_user_category_subscriptions(callback.from_user.id)
+    await callback.answer()
+    await callback.message.edit_reply_markup(reply_markup=_subscriptions_keyboard(selected))
+
+
+@router.callback_query(F.data == "sub_all")
+async def subscribe_all(callback: CallbackQuery):
+    await set_user_category_subscriptions(callback.from_user.id, EVENT_CATEGORIES)
+    await callback.answer("✅ Включены все категории")
+    await callback.message.edit_reply_markup(reply_markup=_subscriptions_keyboard(EVENT_CATEGORIES))
+
+
+@router.callback_query(F.data == "sub_none")
+async def subscribe_none(callback: CallbackQuery):
+    await set_user_category_subscriptions(callback.from_user.id, [])
+    await callback.answer("🚫 Все подписки отключены")
+    await callback.message.edit_reply_markup(reply_markup=_subscriptions_keyboard([]))
+    
 
 @router.callback_query(F.data == "sub_save")
 async def save_subscriptions(callback: CallbackQuery):

@@ -32,7 +32,7 @@ class _FakeCallback:
 
 
 class CommandAccessTests(unittest.IsolatedAsyncioTestCase):
-    async def test_outsider_help_command_is_allowed(self):
+    async def test_outsider_help_command_is_denied(self):
         m = CommandAccessMiddleware()
         event = _FakeMessage(user_id=777, text="/help")
         handler = AsyncMock()
@@ -43,8 +43,8 @@ class CommandAccessTests(unittest.IsolatedAsyncioTestCase):
         ):
             await m(handler, event, {})
 
-        handler.assert_awaited()
-        event.answer.assert_not_awaited()
+        handler.assert_not_awaited()
+        event.answer.assert_awaited()
 
 
 class OnboardingOwnerChecksTests(unittest.IsolatedAsyncioTestCase):
