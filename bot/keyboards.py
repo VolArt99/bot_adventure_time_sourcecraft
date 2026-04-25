@@ -1,6 +1,4 @@
-# клавиатуры (inline-кнопки, reply-клавиатуры)
-
-# ⚠️ ОБНОВЛЕНО: Добавлены новые клавиатуры
+"""Клавиатуры (inline/reply) для пользовательских сценариев бота."""
 
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
@@ -29,28 +27,20 @@ def event_actions(event_id: int, carpool_enabled: bool = False) -> InlineKeyboar
     return builder.as_markup()
 
 
-# ✅ ИСПРАВЛЕННАЯ ФУНКЦИЯ choose_topic_keyboard() в keyboards.py
-
-
-def choose_topic_keyboard(topics):
+def choose_topic_keyboard(topics: list[dict]) -> InlineKeyboardMarkup:
     """Клавиатура для выбора темы с реальными названиями."""
     builder = InlineKeyboardBuilder()
 
-    # Добавляем кнопку "В основной чат"
     builder.button(text="📌 В основной чат", callback_data="topic_0")
 
-    # Добавляем все темы с их реальными названиями
     for topic in topics:
         topic_id = topic.get("message_thread_id") or topic.get("id")
-        # ✅ НОВОЕ: Используем реальное название темы
         topic_name = topic.get("name", f"Тема {topic_id}")
         builder.button(text=f"📁 {topic_name}", callback_data=f"topic_{topic_id}")
 
     builder.adjust(1)
     return builder.as_markup()
 
-
-# ⚠️ НОВОЕ: Клавиатура для моих мероприятий
 
 def skip_field_keyboard(field: str) -> InlineKeyboardMarkup:
     """Кнопка для пропуска опционального шага."""
@@ -143,7 +133,6 @@ def period_keyboard(prefix: str) -> InlineKeyboardMarkup:
     return builder.as_markup()
 
 
-# ⚠️ НОВОЕ: Клавиатура настроек уведомлений
 def notification_settings_keyboard(current: str) -> InlineKeyboardMarkup:
     """Клавиатура настроек уведомлений."""
     builder = InlineKeyboardBuilder()

@@ -19,6 +19,7 @@ from bot.database import record_command_usage
 
 logger = logging.getLogger(__name__)
 
+
 class CommandAccessMiddleware(BaseMiddleware):
     """Роли и лимиты по командам в личных сообщениях."""
 
@@ -36,6 +37,34 @@ class CommandAccessMiddleware(BaseMiddleware):
     def _today_key() -> str:
         return datetime.now(timezone.utc).date().isoformat()
 
+    @staticmethod
+    async def _clear_active_scenario_if_needed(
+        event: Message,
+        state,
+        command: str,
+    ) -> None:
+        """Сбрасывает активный FSM-сценарий, если пользователь запускает новую команду."""
+        if state is None:
+            return
+
+        current_state = await state.get_state()
+        if not current_state:
+            return
+
+        # Разрешаем продолжать тот же сценарий повторной командой.
+        restartable_commands = {"create_event", "split_bill"}
+        if command in restartable_commands:
+            return
+
+        if current_state.startswith("CreateEvent:"):
+            await state.clear()
+            await event.answer("ℹ️ Предыдущий сценарий создания мероприятия остановлен.")
+            return
+
+        if current_state.startswith("SplitBillCreate:"):
+            await state.clear()
+            await event.answer("ℹ️ Предыдущий сценарий разделения чека остановлен.")
+
     async def __call__(
         self,
         handler: Callable[[TelegramObject, dict], Awaitable],
@@ -52,12 +81,7 @@ class CommandAccessMiddleware(BaseMiddleware):
         command = self._extract_command(event)
         if not command:
             return await handler(event, data)
-        state = data.get("state")
-        if state is not None and command not in {"create_event"}:
-            current_state = await state.get_state()
-            if current_state and current_state.startswith("CreateEvent:"):
-                await state.clear()
-                await event.answer("ℹ️ Предыдущий сценарий создания мероприятия остановлен.")
+        await self._clear_active_scenario_if_needed(event, data.get("state"), command)
 
 
         user_id = user.id

@@ -3,7 +3,7 @@ from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import Message
 
-from bot.config import TIMEZONE
+from bot.config import OWNER_ID, TIMEZONE
 from bot.database import get_user_stats, get_top_participants, find_events
 from bot.database import (
     set_random_meeting_opt_in,
@@ -120,3 +120,17 @@ async def cmd_random_pairs(message: Message):
         lines.append("Ожидают следующего раунда: " + ", ".join(f"id{uid}" for uid in leftovers))
 
     await message.answer("\n".join(lines))
+
+
+@router.message(Command("random_optin_count"))
+async def cmd_random_optin_count(message: Message):
+    if message.from_user.id != OWNER_ID:
+        await message.answer("❌ Эта команда доступна только владельцу.")
+        return
+
+    users = await get_random_meeting_opt_in_users()
+    await message.answer(
+        "📊 Согласны на случайные встречи 1:1: "
+        f"<b>{len(users)}</b>",
+        parse_mode="HTML",
+    )

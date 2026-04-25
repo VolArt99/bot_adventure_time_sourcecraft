@@ -31,6 +31,15 @@ class _FakeCallback:
         )
 
 
+class _FakeState:
+    def __init__(self, current_state: str | None):
+        self._current_state = current_state
+        self.clear = AsyncMock()
+
+    async def get_state(self):
+        return self._current_state
+
+
 class CommandAccessTests(unittest.IsolatedAsyncioTestCase):
     async def test_outsider_help_command_is_denied(self):
         m = CommandAccessMiddleware()
@@ -47,6 +56,22 @@ class CommandAccessTests(unittest.IsolatedAsyncioTestCase):
         event.answer.assert_awaited()
 
 
+    async def test_new_command_clears_active_split_bill_scenario(self):
+        m = CommandAccessMiddleware()
+        event = _FakeMessage(user_id=777, text="/help")
+        handler = AsyncMock()
+        state = _FakeState("SplitBillCreate:amount")
+
+        with (
+            patch("bot.middleware.command_access.Message", _FakeMessage),
+            patch("bot.middleware.command_access.is_member_approved", new=AsyncMock(return_value=False)),
+        ):
+            await m(handler, event, {"state": state})
+
+        state.clear.assert_awaited_once()
+        event.answer.assert_awaited()
+
+
 class OnboardingOwnerChecksTests(unittest.IsolatedAsyncioTestCase):
     async def test_approve_requires_owner_id(self):
         callback = _FakeCallback(user_id=999999, data="approve_user_42")
@@ -59,7 +84,7 @@ class OnboardingOwnerChecksTests(unittest.IsolatedAsyncioTestCase):
     async def test_reject_flow_for_owner(self):
         owner_callback = _FakeCallback(user_id=common.OWNER_ID, data="reject_user_42")
 
-        with patch("bot.handlers.common.delete_pending_user", new=AsyncMock()) as delete_pending_user:
+        with patch("bot.handlers.common_feature.handlers.delete_pending_user", new=AsyncMock()) as delete_pending_user:
             await common.owner_reject_user(owner_callback)
 
         delete_pending_user.assert_awaited_once_with(42)
