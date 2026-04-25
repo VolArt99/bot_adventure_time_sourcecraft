@@ -1463,9 +1463,14 @@ async def get_user_events(user_id: int, status: str = None) -> List[Dict]:
     else:
         # Все мероприятия пользователя (и как организатор, и как участник)
         query = """
-            SELECT DISTINCT e.* FROM events e
-            LEFT JOIN participants p ON e.id = p.event_id AND p.user_id = $user_id
-            WHERE (e.creator_id = $user_id OR p.user_id = $user_id) 
+            SELECT e.* FROM events e
+            WHERE (
+                e.creator_id = $user_id
+                OR EXISTS (
+                    SELECT 1 FROM participants p
+                    WHERE p.event_id = e.id AND p.user_id = $user_id
+                )
+            ) 
             AND e.status = 'active'
             ORDER BY e.date_time
         """
