@@ -1180,6 +1180,8 @@ async def get_admin_report_metrics() -> Dict[str, Any]:
 async def get_top_participants(days: int = 30, limit: int = 3) -> List[Dict]:
     """Топ участников по количеству участий за период."""
     pool = await get_pool()
+    safe_days = max(0, int(days))
+    cutoff_ts = datetime.utcnow() - timedelta(days=safe_days)
 
     # Получаем топ участников за последние N дней
     result = await pool.retry_operation(
@@ -1191,14 +1193,14 @@ async def get_top_participants(days: int = 30, limit: int = 3) -> List[Dict]:
                 COUNT(DISTINCT p.event_id) as participation_count
             FROM participants p
             LEFT JOIN users u ON p.user_id = u.id
-            WHERE p.joined_at >= CurrentUtcTimestamp() - DateTime::IntervalFromDays(CAST($days AS Uint64))
+            WHERE p.joined_at >= $cutoff_ts
             GROUP BY p.user_id, u.username
             ORDER BY participation_count DESC
             LIMIT $limit
             """,
             parameters={
-                "days": int(days),
-                "limit": limit,
+                "cutoff_ts": cutoff_ts,
+                "limit": int(limit),
             },
             commit_tx=True,
         )
