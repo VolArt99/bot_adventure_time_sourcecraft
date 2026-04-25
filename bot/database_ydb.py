@@ -31,6 +31,8 @@ def _infer_ydb_type(value: Any, param_name: str):
     if isinstance(value, bool):
         return ydb.PrimitiveType.Bool
     if isinstance(value, int):
+        if param_name in {"limit", "offset"}:
+            return ydb.PrimitiveType.Uint64        
         return ydb.PrimitiveType.Int64
     if isinstance(value, float):
         return ydb.PrimitiveType.Double
@@ -52,6 +54,7 @@ def _yql_type_name(ydb_type: Any) -> str:
     primitive_names = {
         ydb.PrimitiveType.Bool: "Bool",
         ydb.PrimitiveType.Int64: "Int64",
+        ydb.PrimitiveType.Uint64: "Uint64",
         ydb.PrimitiveType.Double: "Double",
         ydb.PrimitiveType.String: "String",
         ydb.PrimitiveType.Timestamp: "Timestamp",

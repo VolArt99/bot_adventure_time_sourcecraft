@@ -12,6 +12,11 @@ class YdbQueryPatchTests(unittest.TestCase):
         self.assertEqual(types["$user_id"], database_ydb.ydb.PrimitiveType.Int64)
         self.assertEqual(types["$name"], database_ydb.ydb.PrimitiveType.Utf8)
 
+    def test_normalize_parameters_uses_uint64_for_limit(self):
+        _, types = database_ydb._normalize_parameters({"limit": 10})
+
+        self.assertEqual(types["$limit"], database_ydb.ydb.PrimitiveType.Uint64)
+        
     def test_build_query_with_declares_when_missing(self):
         query = "SELECT * FROM users WHERE id = $user_id;"
         rendered = database_ydb._build_query_with_declares(
