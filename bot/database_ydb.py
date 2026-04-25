@@ -1463,16 +1463,16 @@ async def get_user_events(user_id: int, status: str = None) -> List[Dict]:
     else:
         # Все мероприятия пользователя (и как организатор, и как участник)
         query = """
-            SELECT e.* FROM events e
+            SELECT * FROM events
             WHERE (
-                e.creator_id = $user_id
+                creator_id = $user_id
                 OR EXISTS (
                     SELECT 1 FROM participants p
-                    WHERE p.event_id = e.id AND p.user_id = $user_id
+                    WHERE p.event_id = events.id AND p.user_id = $user_id
                 )
             ) 
-            AND e.status = 'active'
-            ORDER BY e.date_time
+            AND status = 'active'
+            ORDER BY date_time
         """
         params = {"user_id": user_id}
 
