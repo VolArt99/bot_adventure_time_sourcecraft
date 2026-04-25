@@ -11,6 +11,7 @@ from functools import wraps
 
 import ydb
 import ydb.aio
+import ydb.iam
 from typing import Optional, List, Dict, Any
 from aiogram import Bot
 
