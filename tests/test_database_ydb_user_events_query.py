@@ -37,7 +37,7 @@ class _FakePool:
 
 
 class UserEventsQueryTests(unittest.IsolatedAsyncioTestCase):
-    async def test_all_user_events_query_uses_exists_instead_of_left_join_predicate(self):
+    async def test_all_user_events_query_uses_in_subquery_instead_of_left_join_predicate(self):
         fake_pool = _FakePool()
 
         with patch("bot.database_ydb.get_pool", return_value=fake_pool):
@@ -45,7 +45,8 @@ class UserEventsQueryTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(len(fake_pool.calls), 1)
         query = fake_pool.calls[0]["query"]
-        self.assertIn("EXISTS (", query)
+        self.assertIn("id IN (", query)
+        self.assertIn("SELECT event_id FROM participants", query)
         self.assertNotIn("LEFT JOIN participants", query)
         self.assertEqual(fake_pool.calls[0]["parameters"], {"user_id": 42})
 

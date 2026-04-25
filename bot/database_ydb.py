@@ -1466,9 +1466,9 @@ async def get_user_events(user_id: int, status: str = None) -> List[Dict]:
             SELECT * FROM events
             WHERE (
                 creator_id = $user_id
-                OR EXISTS (
-                    SELECT 1 FROM participants p
-                    WHERE p.event_id = events.id AND p.user_id = $user_id
+                OR id IN (
+                    SELECT event_id FROM participants
+                    WHERE user_id = $user_id
                 )
             ) 
             AND status = 'active'
