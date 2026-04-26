@@ -581,6 +581,20 @@ async def upsert_approved_member(
     )
 
 
+async def delete_approved_member(user_id: int) -> None:
+    pool = await get_pool()
+    await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            DELETE FROM approved_members
+            WHERE user_id = $user_id
+            """,
+            parameters={"user_id": int(user_id)},
+            commit_tx=True,
+        )
+    )
+
+
 async def record_command_usage(role: str, command: str, usage_date: str | None = None) -> None:
     pool = await get_pool()
     day = usage_date or datetime.utcnow().date().isoformat()
@@ -697,6 +711,55 @@ async def update_intro_status(user_id: int, intro_status: str) -> None:
             commit_tx=True,
         )
     )
+
+
+async def get_member_reengage_candidates(days_inactive: int = 30) -> list[Dict[str, Any]]:
+    """Возвращает одобренных участников с датой последнего участия в прошедших мероприятиях."""
+    pool = await get_pool()
+    result = await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            SELECT
+                am.user_id AS user_id,
+                am.username AS username,
+                am.full_name AS full_name,
+                am.join_date AS join_date,
+                MAX(e.date_time) AS last_event_date
+            FROM approved_members AS am
+            LEFT JOIN participants AS p ON p.user_id = am.user_id
+            LEFT JOIN events AS e ON e.id = p.event_id
+            GROUP BY am.user_id, am.username, am.full_name, am.join_date
+            """,
+            commit_tx=True,
+        )
+    )
+
+    now = datetime.now(timezone.utc)
+    items: list[Dict[str, Any]] = []
+    for row in result[0].rows:
+        record = _normalize_row(row)
+        last_event_date = _parse_event_datetime(record.get("last_event_date"))
+        if last_event_date is not None:
+            if last_event_date.tzinfo is None:
+                last_event_date = last_event_date.replace(tzinfo=timezone.utc)
+            if last_event_date > now:
+                continue
+            inactive_days = (now - last_event_date).days
+        else:
+            join_date = _parse_event_datetime(record.get("join_date"))
+            if join_date is not None and join_date.tzinfo is None:
+                join_date = join_date.replace(tzinfo=timezone.utc)
+            baseline = join_date or now
+            inactive_days = (now - baseline).days
+
+        if inactive_days < days_inactive:
+            continue
+        record["inactive_days"] = inactive_days
+        record["last_event_date"] = last_event_date.isoformat() if last_event_date else None
+        items.append(record)
+
+    items.sort(key=lambda x: int(x.get("inactive_days", 0)), reverse=True)
+    return items
 
 
 async def create_event(event_data: Dict[str, Any]) -> int:

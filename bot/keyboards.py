@@ -133,6 +133,23 @@ def period_keyboard(prefix: str) -> InlineKeyboardMarkup:
     return builder.as_markup()
 
 
+def broadcast_topics_keyboard(topics: list[dict], period: str) -> InlineKeyboardMarkup:
+    """Клавиатура выбора подгруппы для публикации списка мероприятий."""
+    builder = InlineKeyboardBuilder()
+    builder.button(text="📌 В основной чат", callback_data=f"broadcast_topic_{period}_0")
+
+    for topic in topics:
+        topic_id = topic.get("message_thread_id") or topic.get("id")
+        topic_name = topic.get("name", f"Тема {topic_id}")
+        builder.button(
+            text=f"📁 {topic_name}",
+            callback_data=f"broadcast_topic_{period}_{topic_id}",
+        )
+
+    builder.adjust(1)
+    return builder.as_markup()
+
+
 def notification_settings_keyboard(current: str) -> InlineKeyboardMarkup:
     """Клавиатура настроек уведомлений."""
     builder = InlineKeyboardBuilder()

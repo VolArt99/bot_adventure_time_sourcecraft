@@ -3,18 +3,20 @@ from datetime import datetime, timezone
 import logging
 from typing import Awaitable, Callable
 from aiogram import BaseMiddleware
+from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 from aiogram.types import Message, TelegramObject
 
 from bot.config import (
     ADMIN_DAILY_COMMAND_LIMIT,
     ADMIN_IDS,
+    GROUP_ID,
     MEMBER_ALLOWED_COMMANDS,
     MEMBER_DAILY_COMMAND_LIMIT,
     OUTSIDER_ALLOWED_COMMANDS,
     OUTSIDER_START_DAILY_LIMIT,
     OWNER_ID,
 )
-from bot.database import is_member_approved
+from bot.database import delete_approved_member, is_member_approved, upsert_approved_member
 from bot.database import record_command_usage
 
 logger = logging.getLogger(__name__)
@@ -87,7 +89,7 @@ class CommandAccessMiddleware(BaseMiddleware):
         user_id = user.id
         is_owner = OWNER_ID > 0 and user_id == OWNER_ID
         is_admin = user_id in ADMIN_IDS
-        is_approved_member = await is_member_approved(user_id)
+        is_approved_member = await self._sync_membership(event, user_id)
 
         # Владелец: полный доступ без лимита.
         if is_owner:
@@ -108,6 +110,7 @@ class CommandAccessMiddleware(BaseMiddleware):
                     "Попробуйте снова завтра."
                 ),
             )
+
 
         # Участник: только разрешённые команды + дневной лимит.
         if is_approved_member:
@@ -159,6 +162,34 @@ class CommandAccessMiddleware(BaseMiddleware):
             ),
         )
 
+    async def _sync_membership(self, event: Message, user_id: int) -> bool:
+        is_approved_member = await is_member_approved(user_id)
+        if not hasattr(event, "bot") or GROUP_ID == 0:
+            return is_approved_member
+        try:
+            member = await event.bot.get_chat_member(GROUP_ID, user_id)
+            in_group = member.status in {"member", "administrator", "creator"}
+        except (TelegramForbiddenError, TelegramBadRequest):
+            in_group = False
+
+        if is_approved_member and not in_group:
+            await delete_approved_member(user_id)
+            return False
+
+        if in_group and not is_approved_member:
+            full_name = " ".join(
+                filter(None, [event.from_user.first_name, event.from_user.last_name])
+            ).strip()
+            await upsert_approved_member(
+                user_id,
+                event.from_user.username,
+                full_name,
+                intro_status="pending",
+            )
+            return True
+
+        return is_approved_member
+    
     async def _apply_limit(
         self,
         handler: Callable[[TelegramObject, dict], Awaitable],

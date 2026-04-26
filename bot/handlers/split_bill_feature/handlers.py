@@ -250,7 +250,10 @@ async def cmd_split_bill_create(message: Message):
         amount=amount,
         source_event_id=source_event_id,
     )
-    await message.answer(f"✅ Создано событие разделения чека #{split_id}.\nДальше используйте: /split_bill_status {split_id}")
+    await message.answer(
+        f"✅ Создано событие разделения чека #{split_id}.\n"
+        "Управляйте статусом, оплатой и участниками через кнопки в опубликованной карточке."
+    )
 
 
 async def create_split_bill_legacy(message: Message, amount: float, source_event_id: int | None) -> int:
@@ -271,90 +274,6 @@ async def create_split_bill_legacy(message: Message, amount: float, source_event
     for uid in sorted(set(initial_participants)):
         await add_split_bill_participant(split_id, uid)
     return split_id
-
-
-@router.message(Command("split_bill_join"))
-async def cmd_split_bill_join(message: Message):
-    args = parse_args(message)
-    if not args or not args[0].isdigit():
-        await message.answer("Использование: /split_bill_join <split_id>")
-        return
-
-    if not await is_member_approved(message.from_user.id):
-        await message.answer("❌ Присоединиться может только участник группы.")
-        return
-
-    split_id = int(args[0])
-    bill = await get_split_bill(split_id)
-    if not bill:
-        await message.answer("❌ Событие не найдено.")
-        return
-    if bill.get("status") != "open":
-        await message.answer("⛔ Событие уже закрыто.")
-        return
-
-    await add_split_bill_participant(split_id, message.from_user.id)
-    await message.answer(f"✅ Вы добавлены в чек #{split_id}.")
-
-
-@router.message(Command("split_bill_paid"))
-async def cmd_split_bill_paid(message: Message):
-    args = parse_args(message)
-    if not args or not args[0].isdigit():
-        await message.answer("Использование: /split_bill_paid <split_id>")
-        return
-
-    split_id = int(args[0])
-    bill = await get_split_bill(split_id)
-    if not bill:
-        await message.answer("❌ Событие не найдено.")
-        return
-    if bill.get("status") != "open":
-        await message.answer("⛔ Событие закрыто.")
-        return
-
-    participants = await get_split_bill_participants(split_id)
-    participant_ids = {int(p["user_id"]) for p in participants}
-    if message.from_user.id not in participant_ids:
-        await message.answer("❌ Вы не участник этого чека.")
-        return
-
-    await mark_split_bill_paid(split_id, message.from_user.id)
-    await message.answer("✅ Оплата отмечена.")
-
-
-@router.message(Command("split_bill_status"))
-async def cmd_split_bill_status(message: Message):
-    args = parse_args(message)
-    if not args or not args[0].isdigit():
-        await message.answer("Использование: /split_bill_status <split_id>")
-        return
-
-    split_id = int(args[0])
-    text = await format_split_bill_text(split_id, message.bot)
-    await message.answer(text, parse_mode="HTML")
-
-
-@router.message(Command("split_bill_close"))
-async def cmd_split_bill_close(message: Message):
-    args = parse_args(message)
-    if not args or not args[0].isdigit():
-        await message.answer("Использование: /split_bill_close <split_id>")
-        return
-
-    split_id = int(args[0])
-    bill = await get_split_bill(split_id)
-    if not bill:
-        await message.answer("❌ Событие не найдено.")
-        return
-    if int(bill.get("organizer_id")) != message.from_user.id:
-        await message.answer("❌ Закрыть событие может только организатор.")
-        return
-
-    if not await close_bill_if_ready(split_id):
-        await message.answer("❌ Нельзя закрыть: не все участники отметили оплату.")
-        return
-    await message.answer(f"🔒 Чек #{split_id} закрыт.")
 
 
 @router.message(Command("split_bill_add"))

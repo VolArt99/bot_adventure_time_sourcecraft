@@ -208,14 +208,11 @@ Telegram-бот для приватного сообщества: меропри
 ### Split bill
 - `/split_bill` — пошаговый сценарий создания чека (с выбором исходного мероприятия и подгруппы публикации).
 - `/split_bill_create <amount> [event_id]` — старый/быстрый формат (сохранён).
-- `/split_bill_join <id>` — присоединиться.
-- `/split_bill_paid <id>` — отметить оплату.
-- `/split_bill_status <id>` — статус чека.
-- `/split_bill_close <id>` — закрыть чек (организатор).
+- Управление присоединением/оплатой/статусом/закрытием делается кнопками в карточке чека.
 - `/split_bill_add <id> <user_id>` / `/split_bill_remove <id> <user_id>` — ручное управление участниками.
 
 ### Сервисные/админские
-- `/roles`, `/usage_stats`, `/health`, `/debug_info`, `/list_topics`, `/update_topic_names`, `/admin_report`, `/pending_intro`, `/list_intro`.
+- `/roles`, `/usage_stats`, `/health`, `/debug_info`, `/list_topics`, `/update_topic_names`, `/admin_report`, `/pending_intro`, `/list_intro`, `/send_events_list`, `/member_reengage`.
 
 ---
 
