@@ -47,6 +47,8 @@ def _subscriptions_group_keyboard(group_key: str, selected: list[str]):
         mark = "✅ " if category in selected else ""
         rows.append([InlineKeyboardButton(text=f"{mark}{category.title()}", callback_data=f"sub_toggle_{category}")])
 
+    rows.append([InlineKeyboardButton(text="➕ Подписаться на всю группу", callback_data=f"sub_grp_all_{group_key}")])
+    rows.append([InlineKeyboardButton(text="➖ Отписаться от всей группы", callback_data=f"sub_grp_none_{group_key}")])
     rows.append([InlineKeyboardButton(text="↩️ К группам", callback_data="sub_back")])
     rows.append([InlineKeyboardButton(text="✅ Подписаться на всё", callback_data="sub_all")])
     rows.append([InlineKeyboardButton(text="🚫 Отписаться от всего", callback_data="sub_none")])    
@@ -101,6 +103,34 @@ async def toggle_subscription(callback: CallbackQuery):
     await callback.message.edit_reply_markup(reply_markup=_subscriptions_keyboard(sorted(set(selected))))
 
 
+@router.callback_query(F.data.startswith("sub_grp_all_"))
+async def subscribe_group_subcategories(callback: CallbackQuery):
+    group_key = callback.data.removeprefix("sub_grp_all_")
+    group = EVENT_CATEGORY_GROUPS.get(group_key)
+    if not group:
+        await callback.answer("Группа не найдена", show_alert=True)
+        return
+    selected = set(await get_user_category_subscriptions(callback.from_user.id))
+    selected.update(group["subcategories"])
+    await set_user_category_subscriptions(callback.from_user.id, sorted(selected))
+    await callback.answer("Подгруппа подписана")
+    await callback.message.edit_reply_markup(reply_markup=_subscriptions_group_keyboard(group_key, sorted(selected)))
+
+
+@router.callback_query(F.data.startswith("sub_grp_none_"))
+async def unsubscribe_group_subcategories(callback: CallbackQuery):
+    group_key = callback.data.removeprefix("sub_grp_none_")
+    group = EVENT_CATEGORY_GROUPS.get(group_key)
+    if not group:
+        await callback.answer("Группа не найдена", show_alert=True)
+        return
+    selected = set(await get_user_category_subscriptions(callback.from_user.id))
+    selected.difference_update(group["subcategories"])
+    await set_user_category_subscriptions(callback.from_user.id, sorted(selected))
+    await callback.answer("Подгруппа отписана")
+    await callback.message.edit_reply_markup(reply_markup=_subscriptions_group_keyboard(group_key, sorted(selected)))
+
+    
 @router.callback_query(F.data == "sub_back")
 async def back_subscriptions(callback: CallbackQuery):
     selected = await get_user_category_subscriptions(callback.from_user.id)

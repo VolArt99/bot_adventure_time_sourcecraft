@@ -74,6 +74,7 @@ async def cmd_find_events(message: Message):
         dt = datetime.fromisoformat(event["date_time"]).astimezone(TZ)
         lines.append(
             f"\n<b>{event['title']}</b>\n"
+            f"🆔 ID: <code>{event['id']}</code>\n"
             f"🗓 {dt.strftime('%d.%m.%Y %H:%M')}\n"
             f"📍 {event.get('location') or 'не указано'}"
         )

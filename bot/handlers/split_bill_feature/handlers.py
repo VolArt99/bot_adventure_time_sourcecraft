@@ -4,10 +4,12 @@ from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 from bot.database import is_member_approved
-from bot.keyboards import cancel_keyboard, skip_field_keyboard
+from bot.database import get_user_events
+from bot.keyboards import cancel_keyboard, choose_topic_keyboard
+from bot.utils.topics import get_topics_list_from_db
 
 from .services import (
     add_split_bill_participant,
@@ -30,6 +32,7 @@ class SplitBillCreate(StatesGroup):
     title = State()
     amount = State()
     source_event = State()
+    target_topic = State()
 
 
 @router.message(Command("split_bill"))
@@ -39,6 +42,7 @@ async def cmd_split_bill(message: Message, state: FSMContext):
         return
 
     await state.set_state(SplitBillCreate.title)
+    await state.update_data(creator_id=message.from_user.id)
     await message.answer("🧾 Введите название чека:", reply_markup=cancel_keyboard())
 
 
@@ -63,9 +67,12 @@ async def split_bill_amount(message: Message, state: FSMContext):
 
     await state.update_data(total_amount=amount)
     await state.set_state(SplitBillCreate.source_event)
+    upcoming = await get_user_events(message.from_user.id)
+    keyboard = split_bill_source_event_keyboard(upcoming)
     await message.answer(
-        "🔗 Укажите ID мероприятия, чтобы автоматически подтянуть участников, или нажмите «Пропустить».",
-        reply_markup=skip_field_keyboard("split_event"),
+        "🔗 Укажите ID мероприятия, чтобы автоматически подтянуть участников, "
+        "или выберите мероприятие кнопкой ниже.",
+        reply_markup=keyboard,
     )
 
 
@@ -73,7 +80,7 @@ async def split_bill_amount(message: Message, state: FSMContext):
 async def split_bill_skip_event(callback: CallbackQuery, state: FSMContext):
     await state.update_data(source_event_id=None)
     await callback.answer("Связка с мероприятием пропущена")
-    await finalize_split_bill(callback.message, state)
+    await ask_split_bill_topic(callback.message, state)
 
 
 @router.message(SplitBillCreate.source_event, ~F.text.startswith("/"))
@@ -81,7 +88,7 @@ async def split_bill_source_event(message: Message, state: FSMContext):
     raw = (message.text or "").strip()
     if raw.lower() == "пропустить":
         await state.update_data(source_event_id=None)
-        await finalize_split_bill(message, state)
+        await ask_split_bill_topic(message, state)
         return
 
     if not raw.isdigit():
@@ -89,7 +96,60 @@ async def split_bill_source_event(message: Message, state: FSMContext):
         return
 
     await state.update_data(source_event_id=int(raw))
+    await ask_split_bill_topic(message, state)
+
+
+@router.callback_query(SplitBillCreate.source_event, F.data.startswith("sb_source_"))
+async def split_bill_source_event_callback(callback: CallbackQuery, state: FSMContext):
+    raw_id = callback.data.removeprefix("sb_source_")
+    if raw_id == "skip":
+        await state.update_data(source_event_id=None)
+        await callback.answer("Связка с мероприятием пропущена")
+    elif raw_id.isdigit():
+        await state.update_data(source_event_id=int(raw_id))
+        await callback.answer("Мероприятие выбрано")
+    else:
+        await callback.answer("Некорректный ID", show_alert=True)
+        return
+    await ask_split_bill_topic(callback.message, state)
+
+
+async def ask_split_bill_topic(message: Message, state: FSMContext) -> None:
+    topics = await get_topics_list_from_db()
+    await state.set_state(SplitBillCreate.target_topic)
+    if topics:
+        await message.answer(
+            "🗂 Выберите подгруппу для публикации разделения чека:",
+            reply_markup=choose_topic_keyboard(topics),
+        )
+        return
+    await state.update_data(thread_id=None)    
     await finalize_split_bill(message, state)
+
+
+@router.callback_query(SplitBillCreate.target_topic, F.data.startswith("topic_"))
+async def split_bill_topic_callback(callback: CallbackQuery, state: FSMContext):
+    thread_id_raw = callback.data.split("_", 1)[1]
+    thread_id = int(thread_id_raw) if thread_id_raw != "0" else None
+    await state.update_data(thread_id=thread_id)
+    await callback.answer("Подгруппа выбрана")
+    await finalize_split_bill(callback.message, state)
+
+
+def split_bill_source_event_keyboard(events: list[dict]) -> InlineKeyboardMarkup:
+    rows: list[list[InlineKeyboardButton]] = []
+    for event in events[:6]:
+        rows.append(
+            [
+                InlineKeyboardButton(
+                    text=f"🆔{event['id']} · {event['title'][:24]}",
+                    callback_data=f"sb_source_{event['id']}",
+                )
+            ]
+        )
+    rows.append([InlineKeyboardButton(text="⏭ Пропустить", callback_data="sb_source_skip")])
+    rows.append([InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_create")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 @router.callback_query(F.data.startswith("sb_join_"))

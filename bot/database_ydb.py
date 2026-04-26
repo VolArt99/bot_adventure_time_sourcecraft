@@ -6,7 +6,7 @@ import json
 import base64
 import ast
 from decimal import Decimal
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 
 import ydb
@@ -1423,7 +1423,7 @@ async def find_events(query: str, period: str = "month", limit: int = 20) -> Lis
         )
     )
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     max_dt = now + timedelta(days=period_days)
     events: List[Dict] = []
 
@@ -1432,6 +1432,8 @@ async def find_events(query: str, period: str = "month", limit: int = 20) -> Lis
         event_dt = _parse_event_datetime(event_dict.get("date_time"))
         if event_dt is None:
             continue
+        if event_dt.tzinfo is None:
+            event_dt = event_dt.replace(tzinfo=timezone.utc)
         if now <= event_dt <= max_dt:
             events.append(event_dict)
 
@@ -1770,16 +1772,19 @@ async def get_forum_topics_raw(bot, chat_id: int):
 async def save_forum_topic(message_thread_id: int, name: str) -> bool:
     pool = await get_pool()
     topic_id = int(message_thread_id)
-    topic_name = (name or f"Тема {message_thread_id}").replace("'", "''")
-
-    query = f"""
-    UPSERT INTO forum_topics (id, message_thread_id, name, is_closed, is_hidden)
-    VALUES ({topic_id}, {topic_id}, '{topic_name}', false, false);
-    """
+    topic_name = name or f"Тема {message_thread_id}"
     
     await pool.retry_operation(
         lambda session: session.transaction().execute(
-            query,
+            """
+            UPSERT INTO forum_topics (id, message_thread_id, name, is_closed, is_hidden)
+            VALUES ($id, $message_thread_id, $name, false, false)
+            """,
+            parameters={
+                "id": topic_id,
+                "message_thread_id": topic_id,
+                "name": topic_name,
+            },
             commit_tx=True,
         )
     )

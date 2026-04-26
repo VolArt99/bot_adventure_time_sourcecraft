@@ -43,9 +43,11 @@ async def format_split_bill_text(split_id: int, bot) -> str:
         return "❌ Событие разделения чека не найдено."
 
     participants = await get_split_bill_participants(split_id)
+    organizer_mention = await get_user_mention(int(bill["organizer_id"]), bot)
     lines = [
         f"💳 <b>Разделение чека #{split_id}</b>",
         f"Статус: <b>{bill.get('status')}</b>",
+        f"Организатор: {organizer_mention}",
         f"Сумма: <b>{bill.get('total_amount')} ₽</b>",
         f"Участников: <b>{len(participants)}</b>",
         "",
@@ -61,13 +63,6 @@ async def format_split_bill_text(split_id: int, bot) -> str:
             mention = await get_user_mention(uid, bot)
             lines.append(f"{paid} {mention} — {p.get('share_amount')} ₽")
 
-    lines.extend(
-        [
-            "",
-            "ℹ️ Можно участвовать кнопками ниже или командами:",
-            f"/split_bill_join {split_id}, /split_bill_paid {split_id}, /split_bill_status {split_id}",
-        ]
-    )
     return "\n".join(lines)
 
 
@@ -75,10 +70,12 @@ async def finalize_split_bill(message: Message, state: FSMContext) -> None:
     data = await state.get_data()
     amount = float(data["total_amount"])
     source_event_id = data.get("source_event_id")
+    creator_id = int(data["creator_id"])
+    thread_id = data.get("thread_id")
 
     split_id = await create_split_bill(
         group_id=GROUP_ID,
-        organizer_id=message.from_user.id,
+        organizer_id=creator_id,
         total_amount=amount,
         source_event_id=source_event_id,
     )
@@ -87,8 +84,8 @@ async def finalize_split_bill(message: Message, state: FSMContext) -> None:
     if source_event_id:
         initial_participants = await get_event_participant_ids(source_event_id)
 
-    if message.from_user.id not in initial_participants:
-        initial_participants.append(message.from_user.id)
+    if creator_id not in initial_participants:
+        initial_participants.append(creator_id)
 
     for uid in sorted(set(initial_participants)):
         await add_split_bill_participant(split_id, uid)
@@ -97,6 +94,7 @@ async def finalize_split_bill(message: Message, state: FSMContext) -> None:
     sent = await message.bot.send_message(
         GROUP_ID,
         text,
+        message_thread_id=thread_id,
         parse_mode="HTML",
         reply_markup=split_bill_actions(split_id),
     )

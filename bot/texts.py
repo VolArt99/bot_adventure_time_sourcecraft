@@ -121,6 +121,7 @@ async def format_event_message(
 
     lines = [
         f"📌 <b>{title}</b>",
+        f"🆔 ID: <code>{event['id']}</code>",
     ]
 
     if description:

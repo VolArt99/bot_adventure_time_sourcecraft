@@ -97,6 +97,7 @@ async def my_events_with_period(callback: CallbackQuery):
 
         text_lines.append(
             f"\n<b>{event['title']}</b>\n"
+            f"🆔 ID: <code>{event['id']}</code>\n"
             f"🗓 {date_str}\n"
             f"🧵 Тема: {topic_title}\n"
             f"📍 {event.get('location') or 'не указано'}\n"
