@@ -1950,7 +1950,7 @@ async def get_events_for_digest(period: str = "week") -> List[Dict]:
         )
     )
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     max_dt = now + timedelta(days=period_days)
     events: List[Dict] = []
     for row in result[0].rows:
@@ -1958,6 +1958,8 @@ async def get_events_for_digest(period: str = "week") -> List[Dict]:
         event_dt = _parse_event_datetime(event_dict.get("date_time"))
         if event_dt is None:
             continue
+        if event_dt.tzinfo is None:
+            event_dt = event_dt.replace(tzinfo=timezone.utc)
         if now <= event_dt <= max_dt:
             events.append(event_dict)
 
