@@ -23,6 +23,7 @@ class CreateEvent(StatesGroup):
     datetime = State()
     duration = State()
     location = State()
+    price_mode = State()
     price = State()
     limit = State()
     carpool = State()

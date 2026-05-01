@@ -186,9 +186,11 @@ Telegram-бот для приватного сообщества: меропри
 - `/status` — health-lite.
 
 ### Мероприятия
-- `/create_event` — пошаговое создание события.
+- `/create_event` — пошаговое создание события (в т.ч. выбор формата цены: общая/с человека/бесплатно).
 - `/my_events` — ваши события.
 - `/find_events <запрос>` — поиск по активным событиям.
+- `/set_responsible <event_id> <user_id>` — сменить ответственного (создатель/админ).
+- `/add_participant_manual <event_id> <user_id> [going|waitlist]` — ручное добавление участника.
 
 ### Дайджесты
 - `/digest` — общий дайджест.
@@ -212,7 +214,9 @@ Telegram-бот для приватного сообщества: меропри
 - `/split_bill_add <id> <user_id>` / `/split_bill_remove <id> <user_id>` — ручное управление участниками.
 
 ### Сервисные/админские
-- `/roles`, `/usage_stats`, `/health`, `/debug_info`, `/list_topics`, `/update_topic_names`, `/admin_report`, `/pending_intro`, `/list_intro`, `/send_events_list`, `/member_reengage`.
+- `/roles`, `/usage_stats`, `/health`, `/debug_info`, `/list_topics`, `/update_topic_names`, `/admin_report`, `/pending_intro`, `/list_intro`, `/send_events_list`, `/member_reengage`, `/sync_members`.
+
+> `/send_events_list` публикует карточки с ссылками на исходные сообщения мероприятий (если у событий сохранён `message_id`).
 
 ---
 

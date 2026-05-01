@@ -8,15 +8,20 @@ from aiogram.types import CallbackQuery, Message
 
 from bot.config import GROUP_ID, TIMEZONE
 from bot.database import (
+    delete_approved_member,
     get_admin_report_metrics,
+    get_approved_member_ids,
     get_events_for_digest,
     get_member_reengage_candidates,
     get_topic_name_by_thread_id,
     get_user_category_subscriptions,
+    upsert_approved_member,
 )
 from bot.filters.admin import admin_only
 from bot.keyboards import broadcast_topics_keyboard, period_keyboard
 from bot.utils.helpers import get_user_mention
+from bot.utils.helpers import build_event_message_link
+from bot.utils.ui import quote_block, ok
 from bot.utils.topics import get_topics_list_from_db
 
 import pytz
@@ -89,7 +94,7 @@ async def cb_send_events_list_publish(callback: CallbackQuery):
 
     topic_name = await get_topic_name_by_thread_id(thread_id)
     target = topic_name or "Основной чат"
-    await callback.message.answer(f"✅ Список мероприятий отправлен в: {target}.")
+    await callback.message.answer(ok(f"Список мероприятий отправлен в: {target}."))
     await callback.answer("Отправлено")
 
 
@@ -99,15 +104,21 @@ async def _build_events_broadcast_text(period: str) -> str:
     if not events:
         return f"📭 На ближайшее {period_title} активных мероприятий нет."
 
-    lines = [f"📅 <b>Актуальные мероприятия на {period_title}</b>"]
+    lines = [quote_block(f"📅 Актуальные мероприятия на {period_title}", [])]
     for event in events:
         dt = datetime.fromisoformat(event["date_time"]).astimezone(TZ)
-        lines.append(
-            f"\n• <b>{event['title']}</b>\n"
-            f"🗓 {dt.strftime('%d.%m.%Y %H:%M')}\n"
-            f"📍 {event.get('location') or 'не указано'}\n"
-            f"🆔 <code>{event['id']}</code>"
-        )
+        event_link = build_event_message_link(GROUP_ID, event.get("message_id"))
+        link_text = f'<a href="{event_link}">открыть сообщение</a>' if event_link else "недоступна"
+        lines.append(quote_block(
+            str(event["title"]),
+            [
+                f"🗓 {dt.strftime('%d.%m.%Y %H:%M')}",
+                f"📍 {event.get('location') or 'не указано'}",
+                f"🆔 {event['id']}",
+                f"🔗 {link_text}",
+            ],
+            allow_html=True,
+        ))
     return "\n".join(lines)
 
 
@@ -141,3 +152,34 @@ async def cmd_member_reengage(message: Message):
         )
 
     await message.answer("\n".join(lines), parse_mode="HTML")
+
+
+@router.message(Command("sync_members"))
+@admin_only
+async def cmd_sync_members(message: Message):
+    if GROUP_ID == 0:
+        await message.answer("❌ GROUP_ID не задан. Проверьте переменные окружения.")
+        return
+
+    member_ids = await get_approved_member_ids()
+    removed = 0
+    for user_id in member_ids:
+        try:
+            member = await message.bot.get_chat_member(GROUP_ID, user_id)
+            in_group = member.status in {"member", "administrator", "creator"}
+        except Exception:
+            in_group = False
+        if not in_group:
+            await delete_approved_member(user_id)
+            removed += 1
+
+    actor = message.from_user
+    full_name = " ".join(filter(None, [actor.first_name, actor.last_name])).strip()
+    await upsert_approved_member(actor.id, actor.username, full_name, intro_status="completed")
+    await message.answer(
+        "✅ Синхронизация завершена.\n"
+        f"• Проверено участников: {len(member_ids)}\n"
+        f"• Исключено из локального списка: {removed}\n\n"
+        "Важно: Telegram Bot API не позволяет надёжно получить полный список всех участников группы, "
+        "поэтому команда гарантированно очищает выбывших и актуализирует вызывающего пользователя."
+    )

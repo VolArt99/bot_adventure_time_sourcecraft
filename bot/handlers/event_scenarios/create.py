@@ -1,13 +1,15 @@
 from aiogram import F, Router
 from datetime import datetime
+import asyncio
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
 from bot.constants import CARPOOL_HELP_TEXT
 from bot.filters.registered_user import registered_user_only
-from bot.keyboards import cancel_keyboard, skip_field_keyboard, carpool_keyboard
+from bot.keyboards import cancel_keyboard, skip_field_keyboard, carpool_keyboard, event_price_mode_keyboard
 from .shared import CreateEvent, parse_datetime
+from bot.utils.ui import err, delete_message_later
 
 router = Router(name=__name__)
 
@@ -58,7 +60,11 @@ async def process_description(message: Message, state: FSMContext):
 async def process_datetime(message: Message, state: FSMContext):
     dt = await parse_datetime(message.text)
     if not dt:
-        await message.answer("❌ Неверный формат или дата в прошлом. Используйте ДД.ММ.ГГГГ ЧЧ:ММ")
+        await message.answer(
+            "❌ Неверный формат или дата в прошлом.\n"
+            "Используйте: ДД.ММ.ГГГГ ЧЧ:ММ\n"
+            "Примеры: 25.05.2026 19:30, 01.06.2026 10:00"
+        )
         return
 
     await state.update_data(date_time=dt.isoformat())
@@ -85,7 +91,8 @@ async def process_duration(message: Message, state: FSMContext):
         try:
             duration_minutes = int(float(message.text) * 60)
         except ValueError:
-            await message.answer("❌ Введите число часов (например, 2.5) или 'пропустить':")
+            sent = await message.answer(err("Неверный формат.\nПример: 2 или 2.5\nИли напишите: пропустить"))
+            asyncio.create_task(delete_message_later(message.bot, sent.chat.id, sent.message_id, 25))
             return
 
     await state.update_data(duration_minutes=duration_minutes)
@@ -96,34 +103,60 @@ async def process_duration(message: Message, state: FSMContext):
 @router.message(CreateEvent.location, ~F.text.startswith("/"))
 async def process_location(message: Message, state: FSMContext):
     await state.update_data(location=message.text)
-    await state.set_state(CreateEvent.price)
+    await state.set_state(CreateEvent.price_mode)
     await message.answer(
-        "💰 Введите стоимость:\nОбщая и с человека через пробел (5000 500)\nИли только с человека",
-        reply_markup=cancel_keyboard(),
+        "💰 Выберите формат стоимости мероприятия:",
+        reply_markup=event_price_mode_keyboard(),
     )
+
+
+@router.callback_query(CreateEvent.price_mode, F.data.startswith("price_mode_"))
+async def process_price_mode(callback: CallbackQuery, state: FSMContext):
+    mode = callback.data.removeprefix("price_mode_")
+    await state.update_data(price_mode=mode)
+    if mode == "free":
+        await state.update_data(price_total=None, price_per_person=None)
+        await state.set_state(CreateEvent.limit)
+        await callback.message.answer(
+            "👥 Введите лимит участников (число, 'без лимита' или 'пропустить'):",
+            reply_markup=skip_field_keyboard("limit"),
+        )
+        try:
+            await callback.message.delete()
+        except Exception:
+            pass
+        await callback.answer("Бесплатно")
+        return
+
+    await state.set_state(CreateEvent.price)
+    if mode == "total":
+        prompt = "💰 Введите общую сумму.\nПример: 5000"
+    else:
+        prompt = "💰 Введите сумму с человека.\nПример: 500"
+    await callback.message.answer(prompt, reply_markup=cancel_keyboard())
+    try:
+        await callback.message.delete()
+    except Exception:
+        pass
+    await callback.answer()
 
 
 @router.message(CreateEvent.price, ~F.text.startswith("/"))
 async def process_price(message: Message, state: FSMContext):
-    parts = message.text.split()
-    total = None
-    per_person = None
-    if len(parts) == 2:
-        try:
-            total = float(parts[0])
-            per_person = float(parts[1])
-        except ValueError:
-            await message.answer("❌ Введите числа, например: 5000 500")
-            return
-    elif len(parts) == 1:
-        try:
-            per_person = float(parts[0])
-        except ValueError:
-            await message.answer("❌ Введите число")
-            return
-    else:
-        await message.answer("❌ Введите одно или два числа")
+    data = await state.get_data()
+    mode = data.get("price_mode")
+    try:
+        amount = float(message.text.replace(",", "."))
+    except ValueError:
+        sent = await message.answer(err("Неверный формат.\nВведите число, пример: 500"))
+        asyncio.create_task(delete_message_later(message.bot, sent.chat.id, sent.message_id, 25))
         return
+    if amount < 0:
+        await message.answer("❌ Сумма не может быть отрицательной.")
+        return
+
+    total = amount if mode == "total" else None
+    per_person = amount if mode == "person" else None
 
     await state.update_data(price_total=total, price_per_person=per_person)
     await state.set_state(CreateEvent.limit)

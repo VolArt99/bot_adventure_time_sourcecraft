@@ -696,6 +696,20 @@ async def get_intro_members_statuses() -> list[Dict[str, Any]]:
     return [_normalize_row(row) for row in result[0].rows]
 
 
+async def get_approved_member_ids() -> list[int]:
+    pool = await get_pool()
+    result = await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            SELECT user_id
+            FROM approved_members
+            """,
+            commit_tx=True,
+        )
+    )
+    return [int(row.user_id) for row in (result[0].rows if result else [])]
+
+
 async def update_intro_status(user_id: int, intro_status: str) -> None:
     pool = await get_pool()
     await pool.retry_operation(

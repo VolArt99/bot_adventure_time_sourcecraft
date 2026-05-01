@@ -52,6 +52,18 @@ def skip_field_keyboard(field: str) -> InlineKeyboardMarkup:
     )
 
 
+def event_price_mode_keyboard() -> InlineKeyboardMarkup:
+    """Кнопки выбора модели стоимости мероприятия."""
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="💰 Общая сумма", callback_data="price_mode_total")],
+            [InlineKeyboardButton(text="👤 С человека", callback_data="price_mode_person")],
+            [InlineKeyboardButton(text="🆓 Бесплатно", callback_data="price_mode_free")],
+            [InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_create")],
+        ]
+    )
+
+
 def category_keyboard(categories: list[str]) -> InlineKeyboardMarkup:
     """Кнопки выбора категории."""
     builder = InlineKeyboardBuilder()
