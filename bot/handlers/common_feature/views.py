@@ -12,8 +12,11 @@ def build_member_help_text() -> str:
         "• /create_event — пошагово создать мероприятие и опубликовать в группе.\n"
         "• /my_events — список ваших мероприятий и управление ими.\n"
         "• /find_events &lt;текст&gt; — поиск активных мероприятий по названию/описанию/месту.\n\n"
-        "• /set_responsible &lt;event_id&gt; &lt;user_id&gt; — сменить ответственного (создатель/админ).\n"
-        "• /add_participant_manual &lt;event_id&gt; &lt;user_id&gt; [going|waitlist] — ручное добавление.\n\n"
+        "• /set_responsible &lt;event_id&gt; &lt;user_id|@username&gt; — сменить ответственного (создатель/админ).\n"
+        "  Пример: /set_responsible 42 @ivan\n"
+        "• /add_participant_manual &lt;event_id&gt; &lt;user_id|@username&gt; [going|waitlist] — ручное добавление.\n"
+        "  Пример: /add_participant_manual 42 @ivan waitlist\n"
+        "• /send_event_card &lt;event_id&gt; — переопубликовать карточку своего актуального мероприятия.\n\n"
         "📰 <b>Дайджест и подписки</b>\n"
         "• /digest — посмотреть афишу на период.\n"
         "• /subscriptions — настроить персональные уведомления.\n"
@@ -46,7 +49,7 @@ def build_admin_help_text() -> str:
         "• /sync_members — очистить локальный список участников от выбывших из группы.\n"
         "• /random_pairs — сформировать пары 1:1 среди согласившихся.\n"
         "• /pending_intro — участники с незавершённым «Рассказом о себе».\n"
-        "• /list_intro — общий статус «Рассказа о себе» по участникам.\n"
+        "• /list_intro — общий статус «Рассказа о себе» по участникам и дедлайн 7 дней от join_date.\n"
         "• /random_optin_count — (владелец) количество участников, согласных на 1:1.\n"
     )
 

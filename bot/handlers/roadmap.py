@@ -9,7 +9,7 @@ from bot.database import (
     set_random_meeting_opt_in,
     get_random_meeting_opt_in_users,
 )
-from bot.utils.helpers import get_username_by_id
+from bot.utils.helpers import get_username_by_id, get_user_mention
 from bot.utils.pairing import build_random_pairs
 from bot.filters.admin import admin_only
 
@@ -105,8 +105,8 @@ async def cmd_random_pairs(message: Message):
     pairs, leftovers = build_random_pairs(users)
     lines = [f"🤝 Сформировано пар: {len(pairs)}"]
     for left_id, right_id in pairs:
-        left_name = await get_username_by_id(left_id, message.bot) or f"id{left_id}"
-        right_name = await get_username_by_id(right_id, message.bot) or f"id{right_id}"
+        left_name = await get_user_mention(left_id, message.bot)
+        right_name = await get_user_mention(right_id, message.bot)
         lines.append(f"• {left_name} ↔ {right_name}")
         for uid, partner in ((left_id, right_name), (right_id, left_name)):
             try:
@@ -120,7 +120,7 @@ async def cmd_random_pairs(message: Message):
     if leftovers:
         lines.append("Ожидают следующего раунда: " + ", ".join(f"id{uid}" for uid in leftovers))
 
-    await message.answer("\n".join(lines))
+    await message.answer("\n".join(lines), parse_mode="HTML")
 
 
 @router.message(Command("random_optin_count"))

@@ -70,7 +70,8 @@
 - `main.py`:
   - создание `Bot`, `Dispatcher`, подключение storage/middleware/router;
   - lazy init БД/планировщика;
-  - webhook handler и polling цикл.
+  - webhook handler и polling цикл;
+  - глобальный error handler + уведомления владельцу с троттлингом.
 - `config.py`:
   - env-конфигурация;
   - role-based ограничения;
@@ -123,6 +124,16 @@
 7. Поиск/статистика (`/find_events`, `/my_stats`, `/top`).
 8. Random 1:1 (`/random_optin`, `/random_optout`, `/random_pairs`).
 9. Split bill (`/split_bill` и legacy-команды).
+10. Тех-алерты владельцу о необработанных ошибках (с антиспам-троттлингом).
+
+---
+
+## Актуальные UX-детали команд
+
+- `/set_responsible` и `/add_participant_manual` принимают как `user_id`, так и `@username`.
+- `/send_event_card <event_id>` позволяет организатору/ответственному/админу переопубликовать карточку мероприятия.
+- `/pending_intro` и `/list_intro` должны отражать только актуальных участников группы; записи исключённых пользователей очищаются из локальной таблицы.
+- В пошаговом `/split_bill` промежуточные сообщения в ЛС удаляются после успешного перехода по шагам.
 
 ---
 

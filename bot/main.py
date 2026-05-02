@@ -5,6 +5,8 @@ import base64
 
 import asyncio
 import logging
+import traceback
+from datetime import datetime, timezone
 from aiogram import Bot, Dispatcher, F
 from aiogram.exceptions import TelegramNetworkError
 from aiogram.fsm.strategy import FSMStrategy
@@ -44,6 +46,41 @@ dp = Dispatcher(storage=storage, fsm_strategy=FSMStrategy.GLOBAL_USER)
 _is_initialized = False
 _polling_initialized = False
 _init_lock = asyncio.Lock()
+_owner_error_throttle: dict[str, datetime] = {}
+ERROR_THROTTLE_SECONDS = 300
+
+
+async def _notify_owner_about_error(event: Update | None, exc: Exception) -> None:
+    from bot.config import OWNER_ID
+    if OWNER_ID <= 0:
+        return
+
+    err_key = f"{type(exc).__name__}:{str(exc)[:120]}"
+    now = datetime.now(timezone.utc)
+    last_sent = _owner_error_throttle.get(err_key)
+    if last_sent and (now - last_sent).total_seconds() < ERROR_THROTTLE_SECONDS:
+        return
+    _owner_error_throttle[err_key] = now
+
+    update_id = getattr(event, "update_id", "unknown")
+    user_id = None
+    if event and event.message and event.message.from_user:
+        user_id = event.message.from_user.id
+    elif event and event.callback_query and event.callback_query.from_user:
+        user_id = event.callback_query.from_user.id
+
+    tb_short = "\n".join(traceback.format_exception_only(type(exc), exc)).strip()
+    text = (
+        "🚨 <b>Техническая ошибка бота</b>\n"
+        f"• update_id: <code>{update_id}</code>\n"
+        f"• user_id: <code>{user_id or 'unknown'}</code>\n"
+        f"• error: <code>{tb_short[:800]}</code>\n"
+        f"• throttle: {ERROR_THROTTLE_SECONDS}с"
+    )
+    try:
+        await bot.send_message(OWNER_ID, text, parse_mode="HTML")
+    except Exception:
+        logger.exception("Не удалось отправить ошибку владельцу")
 
 
 def _register_handlers() -> None:
@@ -68,6 +105,13 @@ def _register_handlers() -> None:
 
     dp.update.middleware(TopicDiscovererMiddleware())
 
+    @dp.errors()
+    async def on_global_error(event, exception):
+        logger.exception("Unhandled error while processing update", exc_info=exception)
+        await _notify_owner_about_error(event.update if event else None, exception)
+        return True
+    
+    
 async def ensure_initialized(*, for_polling: bool = False) -> None:
     """Ленивая инициализация для polling/webhook режимов."""
     global _is_initialized, _polling_initialized

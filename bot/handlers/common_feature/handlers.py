@@ -22,6 +22,7 @@ from bot.database import (
     add_pending_user,
     approve_pending_user,
     delete_pending_user,
+    delete_approved_member,
     get_command_usage_summary,
     get_intro_members_statuses,
     get_or_create_user,
@@ -53,7 +54,7 @@ async def cmd_start(message: Message):
     username = message.from_user.username
     full_name = " ".join(filter(None, [message.from_user.first_name, message.from_user.last_name])).strip()
     await get_or_create_user(user_id, username)
-    if await is_user_in_group(message):
+    if await is_user_in_group(message, user_id=user_id):
         await upsert_approved_member(user_id, username, full_name, intro_status="completed")
         await message.answer(
             "👋 С возвращением! Вы уже состоите в группе, поэтому заявка не требуется.\n"
@@ -74,7 +75,7 @@ async def onboarding_start(callback: CallbackQuery):
 async def rules_ack(callback: CallbackQuery):
     user = callback.from_user
     full_name = " ".join(filter(None, [user.first_name, user.last_name])).strip()
-    if await is_user_in_group(callback.message):
+    if await is_user_in_group(callback.message, user_id=user.id):
         await upsert_approved_member(user.id, user.username, full_name, intro_status="completed")
         await callback.message.answer("✅ Правила приняты. Вы уже участник группы, доступ открыт.")
     else:
@@ -167,8 +168,16 @@ async def cmd_pending_intro(message: Message):
         return
 
     pending_members = await get_pending_intro_members()
+    actual_members = []
+    for member in pending_members:
+        in_group = await is_user_in_group(message, user_id=int(member["user_id"]))
+        if not in_group:
+            await delete_approved_member(int(member["user_id"]))
+            continue
+        actual_members.append(member)
+    pending_members = actual_members    
     if not pending_members:
-        await message.answer("✅ Нет участников с незавершённым «Рассказом о себе».")
+        await message.answer("✅ Нет участников в группе с незавершённым «Рассказом о себе».")
         return
 
     await message.answer(f"📋 В ожидании «Рассказа о себе»: {len(pending_members)}")
@@ -188,8 +197,16 @@ async def cmd_list_intro(message: Message):
         return
 
     members = await get_intro_members_statuses()
+    actual_members = []
+    for member in members:
+        in_group = await is_user_in_group(message, user_id=int(member["user_id"]))
+        if not in_group:
+            await delete_approved_member(int(member["user_id"]))
+            continue
+        actual_members.append(member)
+    members = actual_members    
     if not members:
-        await message.answer("Пока нет одобренных участников.")
+        await message.answer("Пока нет одобренных участников в группе.")
         return
 
     now = datetime.now(timezone.utc)
@@ -272,9 +289,16 @@ async def cmd_usage_stats(message: Message):
         await message.answer("📉 Пока нет статистики по использованию команд.")
         return
     lines = ["📊 <b>Среднее использование команд (последние 7 дней)</b>"]
+    role_labels = {
+        "owner": "владелец",
+        "member": "участник",
+        "outsider": "не участник",
+        "admin": "администратор",
+    }    
     for row in rows:
+        role_name = role_labels.get(str(row["role"]).lower(), row["role"])
         lines.append(
-            f"• {row['role']}: всего {row['total_commands']}, "
+            f"• {role_name}: всего {row['total_commands']}, "
             f"в среднем {row['avg_per_day']}/день"
         )
     await message.answer("\n".join(lines), parse_mode="HTML")
@@ -342,12 +366,12 @@ async def list_topics(message: Message):
         )
         return
 
-    response = f"✅ Обнаружено {len(topics)} тем:\n\n"
+    response = f"🧵 Найдено тем: <b>{len(topics)}</b>\n\n"
     for topic in topics:
-        response += f"📁 {topic['name']}\n"
-        response += f"   ID: {topic['message_thread_id']}\n"
+        response += f"🗂 <b>{topic['name']}</b>\n"
+        response += f"   🔢 ID темы: <code>{topic['message_thread_id']}</code>\n"
 
-    await message.answer(response)
+    await message.answer(response, parse_mode="HTML")
 
 
 @router.message(Command("update_topic_names"))

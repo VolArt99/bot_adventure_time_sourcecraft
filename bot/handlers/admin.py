@@ -104,7 +104,7 @@ async def _build_events_broadcast_text(period: str) -> str:
     if not events:
         return f"📭 На ближайшее {period_title} активных мероприятий нет."
 
-    lines = [quote_block(f"📅 Актуальные мероприятия на {period_title}", [])]
+    lines = [quote_block(f"🗓 Актуальная афиша на {period_title}", [])]
     for event in events:
         dt = datetime.fromisoformat(event["date_time"]).astimezone(TZ)
         event_link = build_event_message_link(GROUP_ID, event.get("message_id"))
@@ -116,6 +116,8 @@ async def _build_events_broadcast_text(period: str) -> str:
                 f"📍 {event.get('location') or 'не указано'}",
                 f"🆔 {event['id']}",
                 f"🔗 {link_text}",
+                f"🔢 ID: {event['id']}",
+                f"👉 {link_text}",
             ],
             allow_html=True,
         ))

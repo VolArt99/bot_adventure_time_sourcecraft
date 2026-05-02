@@ -40,9 +40,10 @@ async def notify_owner_about_request(callback: CallbackQuery) -> None:
     )
 
 
-async def is_user_in_group(message: Message) -> bool:
+async def is_user_in_group(message: Message, user_id: int | None = None) -> bool:
+    target_user_id = int(user_id or message.from_user.id)
     try:
-        member = await message.bot.get_chat_member(GROUP_ID, message.from_user.id)
+        member = await message.bot.get_chat_member(GROUP_ID, target_user_id)
     except Exception:
         return False
     return member.status in {"member", "administrator", "creator"}

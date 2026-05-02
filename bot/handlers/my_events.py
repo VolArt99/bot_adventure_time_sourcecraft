@@ -17,6 +17,7 @@ from bot.database import (
     add_participant,
     add_driver,
     add_passenger,
+    get_approved_member_ids,
 )
 from bot.keyboards import event_actions, period_keyboard
 
@@ -32,6 +33,23 @@ def _parse_manual_args(message: Message, expected_min: int) -> list[str] | None:
     if len(parts) < expected_min:
         return None
     return parts
+
+
+async def _resolve_user_id(raw_user: str, message: Message) -> int | None:
+    value = (raw_user or "").strip()
+    if value.isdigit():
+        return int(value)
+    username = value.lstrip("@").lower()
+    if not username:
+        return None
+    for uid in await get_approved_member_ids():
+        try:
+            chat = await message.bot.get_chat(uid)
+        except Exception:
+            continue
+        if (getattr(chat, "username", "") or "").lower() == username:
+            return int(uid)
+    return None
 
 
 async def _can_manage_event(event_id: int, user_id: int) -> tuple[bool, dict | None]:
@@ -145,14 +163,17 @@ async def show_my_event(callback: CallbackQuery):
 async def cmd_set_responsible(message: Message):
     parts = _parse_manual_args(message, expected_min=3)
     if not parts:
-        await message.answer("Использование: /set_responsible <event_id> <user_id>")
+        await message.answer("Использование: /set_responsible <event_id> <user_id|@username>")
         return
 
     try:
         event_id = int(parts[1])
-        responsible_id = int(parts[2])
     except ValueError:
-        await message.answer("❌ event_id и user_id должны быть числами.")
+        await message.answer("❌ event_id должен быть числом.")
+        return
+    responsible_id = await _resolve_user_id(parts[2], message)
+    if not responsible_id:
+        await message.answer("❌ Не удалось определить пользователя. Используйте user_id или @username.")
         return
     allowed, event = await _can_manage_event(event_id, message.from_user.id)
     if not event:
@@ -173,14 +194,17 @@ async def cmd_set_responsible(message: Message):
 async def cmd_add_participant_manual(message: Message):
     parts = _parse_manual_args(message, expected_min=3)
     if not parts:
-        await message.answer("Использование: /add_participant_manual <event_id> <user_id> [going|waitlist]")
+        await message.answer("Использование: /add_participant_manual <event_id> <user_id|@username> [going|waitlist]")
         return
 
     try:
         event_id = int(parts[1])
-        user_id = int(parts[2])
     except ValueError:
-        await message.answer("❌ event_id и user_id должны быть числами.")
+        await message.answer("❌ event_id должен быть числом.")
+        return
+    user_id = await _resolve_user_id(parts[2], message)
+    if not user_id:
+        await message.answer("❌ Не удалось определить пользователя. Используйте user_id или @username.")
         return
     status = parts[3].lower() if len(parts) > 3 else "going"
     if status not in {"going", "waitlist"}:
@@ -199,6 +223,30 @@ async def cmd_add_participant_manual(message: Message):
     from bot.handlers.participation import update_event_message
     await update_event_message(message.bot, event_id, event["thread_id"], event["message_id"])
     await message.answer("✅ Участник добавлен." if created else "ℹ️ Участник уже был в списке.")
+
+
+@router.message(Command("send_event_card"))
+async def cmd_send_event_card(message: Message):
+    parts = (message.text or "").split()
+    if len(parts) < 2 or not parts[1].isdigit():
+        await message.answer("Использование: /send_event_card <event_id>")
+        return
+    event_id = int(parts[1])
+    event = await get_event(event_id)
+    if not event:
+        await message.answer("❌ Мероприятие не найдено.")
+        return
+    allowed = (
+        message.from_user.id in ADMIN_IDS
+        or message.from_user.id == event["creator_id"]
+        or message.from_user.id == (event.get("responsible_id") or 0)
+    )
+    if not allowed:
+        await message.answer("❌ Команда доступна организатору, ответственному или админу.")
+        return
+    from bot.handlers.participation import update_event_message
+    await update_event_message(message.bot, event_id, event["thread_id"], event["message_id"])
+    await message.answer("✅ Карточка мероприятия обновлена и отправлена в тему мероприятия.")
 
 
 @router.message(Command("set_carpool_manual"))
