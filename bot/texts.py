@@ -220,6 +220,12 @@ def format_digest_text(
             else "недоступна"
         )        
 
+        maps_link = build_maps_link(e.get("location"))
+        gcal_link = build_google_calendar_link(e)
+        ics_link = build_ics_link(e["id"]) if e.get("id") else "недоступна"
+        maps_text = f'<a href="{maps_link}">Маршрут / карта</a>' if maps_link else "Маршрут / карта: недоступна"
+        gcal_text = f'<a href="{gcal_link}">Google Calendar</a>' if gcal_link else "Google Calendar: недоступна"
+
         lines.append(
             f"<b>🔥 {title}</b>\n"
             f"🗺 Где: {location}\n"
@@ -227,9 +233,10 @@ def format_digest_text(
             f"🧵 Тема: {topic_name}\n"
             f"👤 Организатор: {org_name}\n"
             f"🔗 Ссылка: {link_text}\n"
-            f"🗺 Карта: {build_maps_link(e.get('location')) or 'недоступна'}\n"
-            f"📅 Google: {build_google_calendar_link(e) or 'недоступна'}\n"
-            f"📎 ICS: {build_ics_link(e['id']) if e.get('id') else 'недоступна'}\n"
+            f"🔗 Полезные ссылки:\n"
+            f"• {maps_text}\n"
+            f"• {gcal_text}\n"
+            f"• ICS: <code>{ics_link}</code>\n"
         )
 
     return "\n".join(lines)

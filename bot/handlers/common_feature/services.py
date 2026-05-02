@@ -28,8 +28,7 @@ async def notify_owner_about_request(callback: CallbackQuery) -> None:
         "🆕 Запрос на вступление:\n"
         f"• ID: {user.id}\n"
         f"• Имя: {full_name or '—'}\n"
-        f"• Username: {username}\n"
-        f"• Ссылка: <a href=\"tg://user?id={user.id}\">Перейти в чат</a>"
+        f"• Username: {username}"
     )
 
     await callback.bot.send_message(

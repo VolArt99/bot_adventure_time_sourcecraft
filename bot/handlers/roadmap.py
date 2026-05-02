@@ -2,12 +2,14 @@ from datetime import datetime
 from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import Message
+from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 
 from bot.config import OWNER_ID, TIMEZONE
 from bot.database import get_user_stats, get_top_participants, find_events
 from bot.database import (
     set_random_meeting_opt_in,
     get_random_meeting_opt_in_users,
+    is_member_approved,
 )
 from bot.utils.helpers import get_username_by_id, get_user_mention
 from bot.utils.pairing import build_random_pairs
@@ -84,12 +86,18 @@ async def cmd_find_events(message: Message):
 
 @router.message(Command("random_optin"))
 async def cmd_random_optin(message: Message):
+    if not await is_member_approved(message.from_user.id):
+        await message.answer("❌ Команда доступна только актуальным участникам группы.")
+        return
     await set_random_meeting_opt_in(message.from_user.id, True)
     await message.answer("✅ Вы участвуете в рандомных встречах 1:1.")
 
 
 @router.message(Command("random_optout"))
 async def cmd_random_optout(message: Message):
+    if not await is_member_approved(message.from_user.id):
+        await message.answer("❌ Команда доступна только актуальным участникам группы.")
+        return
     await set_random_meeting_opt_in(message.from_user.id, False)
     await message.answer("👌 Вы исключены из рандомных встреч 1:1.")
 
@@ -114,7 +122,7 @@ async def cmd_random_pairs(message: Message):
                     uid,
                     f"🤝 Ваша случайная встреча 1:1: {partner}. Договоритесь о времени!",
                 )
-            except Exception:
+            except (TelegramForbiddenError, TelegramBadRequest):
                 pass
 
     if leftovers:

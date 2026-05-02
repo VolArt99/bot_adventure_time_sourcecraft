@@ -44,3 +44,10 @@ async def get_user_mention(user_id: int, bot: Bot) -> str:
         return f'<a href="tg://user?id={user_id}">{escape(full_name)}</a>'
     except Exception:
         return f'<a href="tg://user?id={user_id}">id{user_id}</a>'
+
+
+def parse_int_arg(raw: str) -> int | None:
+    value = (raw or "").strip()
+    if not value.isdigit():
+        return None
+    return int(value)

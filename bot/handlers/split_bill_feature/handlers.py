@@ -9,10 +9,12 @@ from datetime import datetime
 import pytz
 
 from bot.database import is_member_approved
-from bot.database import get_user_events
+from bot.database import get_user_events, get_user_id_by_username
 from bot.config import TIMEZONE
 from bot.keyboards import cancel_keyboard, choose_topic_keyboard
 from bot.utils.topics import get_topics_list_from_db
+from bot.utils.ui import safe_delete_bot_message
+from bot.utils.helpers import parse_int_arg
 
 from .services import (
     add_split_bill_participant,
@@ -26,7 +28,6 @@ from .services import (
     refresh_split_message,
     remove_split_bill_participant,
 )
-from .views import split_bill_create_usage
 
 router = Router(name=__name__)
 TZ = pytz.timezone(TIMEZONE)
@@ -39,10 +40,7 @@ class SplitBillCreate(StatesGroup):
 
 
 async def _cleanup_message(message: Message) -> None:
-    try:
-        await message.delete()
-    except Exception:
-        pass
+    await safe_delete_bot_message(message)
 
 
 @router.message(Command("split_bill"))
@@ -257,60 +255,29 @@ async def split_bill_close_callback(callback: CallbackQuery):
     await callback.answer("Чек закрыт")
 
 
-@router.message(Command("split_bill_create"))
-async def cmd_split_bill_create(message: Message):
-    args = parse_args(message)
-    if not args:
-        await message.answer(split_bill_create_usage())
-        return
-
-    try:
-        amount = float(args[0])
-    except ValueError:
-        await message.answer("❌ Сумма должна быть числом.")
-        return
-
-    source_event_id = int(args[1]) if len(args) > 1 and args[1].isdigit() else None
-    split_id = await create_split_bill_legacy(
-        message=message,
-        amount=amount,
-        source_event_id=source_event_id,
-    )
-    await message.answer(
-        f"✅ Создано событие разделения чека #{split_id}.\n"
-        "Управляйте статусом, оплатой и участниками через кнопки в опубликованной карточке."
-    )
-
-
-async def create_split_bill_legacy(message: Message, amount: float, source_event_id: int | None) -> int:
-    from bot.config import GROUP_ID
-    from bot.database import create_split_bill, get_event_participant_ids
-
-    split_id = await create_split_bill(
-        group_id=GROUP_ID,
-        organizer_id=message.from_user.id,
-        total_amount=amount,
-        source_event_id=source_event_id,
-    )
-    initial_participants: list[int] = []
-    if source_event_id:
-        initial_participants = await get_event_participant_ids(source_event_id)
-    if message.from_user.id not in initial_participants:
-        initial_participants.append(message.from_user.id)
-    for uid in sorted(set(initial_participants)):
-        await add_split_bill_participant(split_id, uid)
-    return split_id
-
-
 @router.message(Command("split_bill_add"))
 async def cmd_split_bill_add(message: Message):
     args = parse_args(message)
-    if len(args) != 2 or not args[0].isdigit() or not args[1].isdigit():
-        await message.answer("Использование: /split_bill_add <split_id> <user_id>")
+    split_id = parse_int_arg(args[0]) if len(args) == 2 else None
+    if split_id is None:
+        await message.answer("Использование: /split_bill_add <split_id> <user_id|@username>")
+        return
+    raw_user = args[1]
+    if raw_user.isdigit():
+        user_id = int(raw_user)
+    elif raw_user.startswith("@"):
+        resolved = await get_user_id_by_username(raw_user[1:])
+        if not resolved:
+            await message.answer("❌ Не удалось определить пользователя по username.")
+            return
+        user_id = int(resolved)
+    else:
+        await message.answer("❌ Укажите user_id или @username.")
+        return
+    if not await is_member_approved(user_id):
+        await message.answer("❌ Пользователь не является актуальным участником группы.")
         return
 
-    split_id = int(args[0])
-    user_id = int(args[1])
     bill = await get_split_bill(split_id)
     if not bill:
         await message.answer("❌ Событие не найдено.")

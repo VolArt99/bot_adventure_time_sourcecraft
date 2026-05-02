@@ -211,15 +211,16 @@ Telegram-бот для приватного сообщества: меропри
 
 ### Split bill
 - `/split_bill` — пошаговый сценарий создания чека (с выбором исходного мероприятия и подгруппы публикации).
-- `/split_bill_create <amount> [event_id]` — старый/быстрый формат (сохранён).
 - Управление присоединением/оплатой/статусом/закрытием делается кнопками в карточке чека.
-- `/split_bill_add <id> <user_id>` / `/split_bill_remove <id> <user_id>` — ручное управление участниками.
+- `/split_bill_add <id> <user_id|@username>` / `/split_bill_remove <id> <user_id>` — ручное управление участниками.
 
 ### Сервисные/админские
-- `/roles`, `/usage_stats`, `/health`, `/debug_info`, `/list_topics`, `/update_topic_names`, `/admin_report`, `/pending_intro`, `/list_intro`, `/send_events_list`, `/member_reengage`, `/sync_members`.
+- `/roles`, `/usage_stats`, `/health`, `/debug_info`, `/list_topics`, `/update_topic_names`, `/admin_report`, `/pending_intro`, `/send_events_list`, `/member_reengage`, `/sync_members`.
 
 ### Важные детали поведения
-- `/pending_intro` и `/list_intro` показывают только тех, кто **фактически состоит в группе** сейчас; если пользователь исключён, его запись автоматически очищается из локального списка `approved_members`.
+- `/pending_intro` — единая команда контроля «Рассказа о себе»: показывает pending-участников (с кнопками отметки) и сводный статус по всем актуальным участникам группы.
+- В командах, где оператор задаёт `user_id` вручную (`/set_responsible`, `/add_participant_manual`, `/split_bill_add`), применяется проверка «только актуальные участники группы».
+- Для random 1:1 в пулы и пары попадают только пользователи из `approved_members` (исключённые участники автоматически не участвуют).
 - В split-bill сценарии (`/split_bill`) промежуточные сообщения в ЛС удаляются, чтобы не засорять диалог.
 - Владелец получает технические алерты о необработанных ошибках бота в ЛС (с защитой от спама повторяющимися ошибками).
 

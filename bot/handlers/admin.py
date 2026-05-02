@@ -116,8 +116,6 @@ async def _build_events_broadcast_text(period: str) -> str:
                 f"📍 {event.get('location') or 'не указано'}",
                 f"🆔 {event['id']}",
                 f"🔗 {link_text}",
-                f"🔢 ID: {event['id']}",
-                f"👉 {link_text}",
             ],
             allow_html=True,
         ))

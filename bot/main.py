@@ -85,7 +85,6 @@ async def _notify_owner_about_error(event: Update | None, exc: Exception) -> Non
 
 def _register_handlers() -> None:
     """Регистрирует роутеры и middleware один раз."""
-    dp.message.filter(F.chat.type == "private")
 
     from bot.middleware.command_access import CommandAccessMiddleware
     dp.message.middleware(CommandAccessMiddleware())
@@ -106,9 +105,11 @@ def _register_handlers() -> None:
     dp.update.middleware(TopicDiscovererMiddleware())
 
     @dp.errors()
-    async def on_global_error(event, exception):
-        logger.exception("Unhandled error while processing update", exc_info=exception)
-        await _notify_owner_about_error(event.update if event else None, exception)
+    async def on_global_error(event, exception=None):
+        err = exception or getattr(event, "exception", None)
+        logger.exception("Unhandled error while processing update", exc_info=err)
+        update_obj = getattr(event, "update", None) if event else None
+        await _notify_owner_about_error(update_obj, err or Exception("unknown error"))
         return True
     
     

@@ -7,6 +7,7 @@ from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 from bot.keyboards import event_actions
 from bot.texts import format_event_message
 from bot.utils.helpers import get_username_by_id
+from bot.utils.ui import safe_delete_bot_message
 from bot.config import GROUP_ID, ADMIN_IDS
 
 from aiogram.fsm.state import StatesGroup, State
@@ -298,7 +299,7 @@ async def choose_driver(callback: CallbackQuery):
         callback.bot, event_id, event["thread_id"], event["message_id"]
     )
     await callback.answer("Вы успешно присоединились к водителю!")
-    await callback.message.delete()  # удаляем клавиатуру выбора
+    await safe_delete_bot_message(callback.message)  # удаляем только сообщение бота
 
 
 # Модифицируем функцию decline_event, чтобы учитывать удаление водителя и его пассажиров

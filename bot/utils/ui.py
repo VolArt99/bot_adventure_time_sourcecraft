@@ -18,6 +18,15 @@ def err(text: str) -> str:
     return f"❌ {text}"
 
 
+async def safe_delete_bot_message(message) -> None:
+    """Удаляет сообщение только если оно отправлено ботом."""
+    try:
+        if message and message.from_user and message.bot and message.from_user.id == message.bot.id:
+            await message.delete()
+    except Exception:
+        pass
+
+    
 def info(text: str) -> str:
     return f"ℹ️ {text}"
 

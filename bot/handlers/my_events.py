@@ -18,11 +18,13 @@ from bot.database import (
     add_driver,
     add_passenger,
     get_approved_member_ids,
+    is_member_approved,
+    get_user_id_by_username,
 )
 from bot.keyboards import event_actions, period_keyboard
 
 from bot.texts import format_event_message
-from bot.utils.helpers import get_user_mention, build_event_message_link
+from bot.utils.helpers import get_user_mention, build_event_message_link, parse_int_arg
 
 router = Router()
 TZ = pytz.timezone(TIMEZONE)
@@ -42,6 +44,9 @@ async def _resolve_user_id(raw_user: str, message: Message) -> int | None:
     username = value.lstrip("@").lower()
     if not username:
         return None
+    resolved = await get_user_id_by_username(username)
+    if resolved:
+        return int(resolved)    
     for uid in await get_approved_member_ids():
         try:
             chat = await message.bot.get_chat(uid)
@@ -166,14 +171,16 @@ async def cmd_set_responsible(message: Message):
         await message.answer("Использование: /set_responsible <event_id> <user_id|@username>")
         return
 
-    try:
-        event_id = int(parts[1])
-    except ValueError:
+    event_id = parse_int_arg(parts[1])
+    if event_id is None:
         await message.answer("❌ event_id должен быть числом.")
         return
     responsible_id = await _resolve_user_id(parts[2], message)
     if not responsible_id:
         await message.answer("❌ Не удалось определить пользователя. Используйте user_id или @username.")
+        return
+    if not await is_member_approved(responsible_id):
+        await message.answer("❌ Пользователь не является актуальным участником группы.")
         return
     allowed, event = await _can_manage_event(event_id, message.from_user.id)
     if not event:
@@ -197,18 +204,22 @@ async def cmd_add_participant_manual(message: Message):
         await message.answer("Использование: /add_participant_manual <event_id> <user_id|@username> [going|waitlist]")
         return
 
-    try:
-        event_id = int(parts[1])
-    except ValueError:
+    event_id = parse_int_arg(parts[1])
+    if event_id is None:
         await message.answer("❌ event_id должен быть числом.")
         return
     user_id = await _resolve_user_id(parts[2], message)
     if not user_id:
         await message.answer("❌ Не удалось определить пользователя. Используйте user_id или @username.")
         return
+    if not await is_member_approved(user_id):
+        await message.answer("❌ Пользователь не является актуальным участником группы.")
+        return    
     status = parts[3].lower() if len(parts) > 3 else "going"
+    status_map = {"going": "going", "waitlist": "waitlist", "иду": "going", "резерв": "waitlist"}
+    status = status_map.get(status, status)
     if status not in {"going", "waitlist"}:
-        await message.answer("❌ Статус должен быть going или waitlist.")
+        await message.answer("❌ Статус должен быть: иду/резерв (или going/waitlist).")
         return
 
     allowed, event = await _can_manage_event(event_id, message.from_user.id)
@@ -244,9 +255,18 @@ async def cmd_send_event_card(message: Message):
     if not allowed:
         await message.answer("❌ Команда доступна организатору, ответственному или админу.")
         return
-    from bot.handlers.participation import update_event_message
-    await update_event_message(message.bot, event_id, event["thread_id"], event["message_id"])
-    await message.answer("✅ Карточка мероприятия обновлена и отправлена в тему мероприятия.")
+    from bot.handlers.participation import build_event_text
+    from bot.keyboards import participation_keyboard
+    text = await build_event_text(event_id, message.bot)
+    sent = await message.bot.send_message(
+        chat_id=event["chat_id"],
+        message_thread_id=event.get("thread_id") or None,
+        text=text,
+        parse_mode="HTML",
+        reply_markup=participation_keyboard(event_id),
+        disable_web_page_preview=True,
+    )
+    await message.answer(f"✅ Карточка мероприятия повторно отправлена (message_id: {sent.message_id}).")
 
 
 @router.message(Command("set_carpool_manual"))

@@ -1958,20 +1958,16 @@ async def get_random_meeting_opt_in_users() -> list[int]:
     result = await pool.retry_operation(
         lambda session: session.transaction().execute(
             """
-            SELECT user_id FROM random_meeting_opt_in
-            WHERE is_enabled = true
-            ORDER BY user_id
+            SELECT r.user_id AS user_id
+            FROM random_meeting_opt_in AS r
+            INNER JOIN approved_members AS am ON am.user_id = r.user_id
+            WHERE r.is_enabled = true
+            ORDER BY r.user_id
             """,
             commit_tx=True,
         )
     )
     return [row.user_id for row in result[0].rows]
-
-
-def build_random_pairs(user_ids: list[int]) -> tuple[list[tuple[int, int]], list[int]]:
-    from bot.utils.pairing import build_random_pairs as _build_random_pairs
-
-    return _build_random_pairs(user_ids)
 
 
 async def update_event_status(event_id: int, status: str):

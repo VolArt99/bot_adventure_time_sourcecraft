@@ -9,7 +9,7 @@ from bot.constants import CARPOOL_HELP_TEXT
 from bot.filters.registered_user import registered_user_only
 from bot.keyboards import cancel_keyboard, skip_field_keyboard, carpool_keyboard, event_price_mode_keyboard
 from .shared import CreateEvent, parse_datetime
-from bot.utils.ui import err, delete_message_later
+from bot.utils.ui import err, delete_message_later, safe_delete_bot_message
 
 router = Router(name=__name__)
 
@@ -122,7 +122,7 @@ async def process_price_mode(callback: CallbackQuery, state: FSMContext):
             reply_markup=skip_field_keyboard("limit"),
         )
         try:
-            await callback.message.delete()
+            await safe_delete_bot_message(callback.message)
         except Exception:
             pass
         await callback.answer("Бесплатно")
@@ -135,7 +135,7 @@ async def process_price_mode(callback: CallbackQuery, state: FSMContext):
         prompt = "💰 Введите сумму с человека.\nПример: 500"
     await callback.message.answer(prompt, reply_markup=cancel_keyboard())
     try:
-        await callback.message.delete()
+        await safe_delete_bot_message(callback.message)
     except Exception:
         pass
     await callback.answer()

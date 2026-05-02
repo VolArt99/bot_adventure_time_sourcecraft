@@ -167,18 +167,17 @@ async def cmd_pending_intro(message: Message):
         await message.answer("❌ Эта команда доступна только владельцу.")
         return
 
-    pending_members = await get_pending_intro_members()
-    actual_members = []
-    for member in pending_members:
-        in_group = await is_user_in_group(message, user_id=int(member["user_id"]))
-        if not in_group:
-            await delete_approved_member(int(member["user_id"]))
-            continue
-        actual_members.append(member)
-    pending_members = actual_members    
-    if not pending_members:
-        await message.answer("✅ Нет участников в группе с незавершённым «Рассказом о себе».")
-        return
+    async def _filter_actual_members(members_list: list[dict]) -> list[dict]:
+        actual_members: list[dict] = []
+        for member in members_list:
+            in_group = await is_user_in_group(message, user_id=int(member["user_id"]))
+            if not in_group:
+                await delete_approved_member(int(member["user_id"]))
+                continue
+            actual_members.append(member)
+        return actual_members
+
+    pending_members = await _filter_actual_members(await get_pending_intro_members())
 
     await message.answer(f"📋 В ожидании «Рассказа о себе»: {len(pending_members)}")
     for member in pending_members:
@@ -189,22 +188,7 @@ async def cmd_pending_intro(message: Message):
             reply_markup=intro_status_keyboard(member["user_id"]),
         )
 
-
-@router.message(Command("list_intro"))
-async def cmd_list_intro(message: Message):
-    if message.from_user.id != OWNER_ID:
-        await message.answer("❌ Эта команда доступна только владельцу.")
-        return
-
-    members = await get_intro_members_statuses()
-    actual_members = []
-    for member in members:
-        in_group = await is_user_in_group(message, user_id=int(member["user_id"]))
-        if not in_group:
-            await delete_approved_member(int(member["user_id"]))
-            continue
-        actual_members.append(member)
-    members = actual_members    
+    members = await _filter_actual_members(await get_intro_members_statuses())
     if not members:
         await message.answer("Пока нет одобренных участников в группе.")
         return
@@ -368,7 +352,7 @@ async def list_topics(message: Message):
 
     response = f"🧵 Найдено тем: <b>{len(topics)}</b>\n\n"
     for topic in topics:
-        response += f"🗂 <b>{topic['name']}</b>\n"
+        response += f"🧵 <b>{topic['name']}</b>\n"
         response += f"   🔢 ID темы: <code>{topic['message_thread_id']}</code>\n"
 
     await message.answer(response, parse_mode="HTML")
