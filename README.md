@@ -81,7 +81,8 @@ Telegram-бот для приватного сообщества: меропри
     ├── middleware/
     │   ├── __init__.py
     │   ├── command_access.py
-    │   └── topic_discoverer.py
+    │   ├── topic_discoverer.py
+    │   └── latency_metrics.py
     ├── filters/
     │   ├── __init__.py
     │   ├── admin.py
@@ -113,6 +114,7 @@ Telegram-бот для приватного сообщества: меропри
         ├── __init__.py
         ├── scheduler.py
         ├── weather.py
+        ├── metrics.py        
         ├── topics.py
         ├── event_links.py
         ├── helpers.py
@@ -161,13 +163,15 @@ Telegram-бот для приватного сообщества: меропри
 #### `bot/middleware/`
 - `command_access.py` — role-based доступ и лимиты команд.
 - `topic_discoverer.py` — автообновление справочника тем по входящим апдейтам.
+- `latency_metrics.py` — сбор времени обработки update (p50/p95/p99 через периодические логи).
 
 #### `bot/filters/`
 - Фильтры прав (admin/registered/restricted command).
 
 #### `bot/utils/`
 - `scheduler.py` — постановка/восстановление напоминаний и периодических задач.
-- `weather.py` — интеграция с погодой (с защитой от сетевых ошибок).
+- `weather.py` — интеграция с погодой, HTTP session reuse, TTL-кеш и rate-limit.
+- `metrics.py` — лёгкий in-memory сбор latency-метрик (p50/p95/p99).
 - `event_links.py` — карты, Google Calendar, ICS.
 - `helpers.py` — mention/username/ссылки на сообщения.
 - `pairing.py` — алгоритм random-пар 1:1.
@@ -241,6 +245,13 @@ Telegram-бот для приватного сообщества: меропри
 - `ADMIN_IDS` (через запятую)
 - `TIMEZONE` (по умолчанию `Europe/Moscow`)
 - `WEATHER_API_KEY` (опционально)
+
+Новые/важные для производительности:
+- `YDB_SESSION_POOL_SIZE` — размер пула сессий YDB (по умолчанию `30`).
+
+Новые runtime-параметры для погоды (задаются в коде, при необходимости можно вынести в env):
+- `WEATHER_CACHE_TTL_SECONDS = 300` (TTL кеша погоды),
+- `WEATHER_RATE_LIMIT_SECONDS = 2` (минимальный интервал запросов на одинаковый ключ).
 
 Дополнительные параметры лимитов/списков команд читаются из `config.py` с безопасными default-значениями.
 
@@ -344,3 +355,33 @@ python -m compileall -q bot tests
 - обновить `промт.txt`;
 - при необходимости — добавить/обновить тесты в `tests/`;
 - зафиксировать изменения в PR с описанием «что/зачем/как проверено».
+
+## Наблюдаемость и производительность
+
+Что логируется из коробки:
+- Метрики времени обработки update: `p50/p95/p99` (middleware `latency_metrics`).
+- Метрики времени YDB-запросов: `p50/p95/p99` + warning для медленных запросов (`slow_ydb_query_ms > 300`).
+- Инициализированный размер пула YDB (`YDB_SESSION_POOL_SIZE`).
+
+Как читать эти метрики:
+- `p50` — типичная задержка.
+- `p95` — задержка "на хвосте" для 5% самых медленных запросов.
+- `p99` — почти worst-case, хороший индикатор деградации под нагрузкой.
+
+Рекомендации под 200+ пользователей:
+1. Прогнать стресс-тест (200/300/500 одновременных пользователей).
+2. Снять `p50/p95/p99` по update и YDB.
+3. Подобрать `YDB_SESSION_POOL_SIZE` по фактической утилизации и latency.
+
+## Troubleshooting
+
+### Ошибка `cannot import name get_user_id_by_username from bot.database`
+Причина: отсутствует функция `get_user_id_by_username` в `bot/database_ydb.py`, а `bot/database.py` реэкспортирует symbols через `from bot.database_ydb import *`.
+
+Проверка:
+```bash
+python - <<'PY'
+from bot.database import get_user_id_by_username
+print('ok', callable(get_user_id_by_username))
+PY
+```

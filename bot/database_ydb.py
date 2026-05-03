@@ -8,23 +8,27 @@ import ast
 from decimal import Decimal
 from datetime import datetime, timedelta, timezone
 from functools import wraps
+import time
 
 import ydb
 import ydb.aio
 import ydb.iam
 from typing import Optional, List, Dict, Any
 from aiogram import Bot
+from bot.utils.metrics import LatencyMetrics
 
 logger = logging.getLogger(__name__)
 
 # Конфигурация подключения к YDB
 YDB_ENDPOINT = os.getenv("YDB_ENDPOINT")
 YDB_DATABASE = os.getenv("YDB_DATABASE")
+YDB_SESSION_POOL_SIZE = max(1, int(os.getenv("YDB_SESSION_POOL_SIZE", "30")))
 
 # Глобальные переменные для драйвера и пула сессий
 _driver = None
 _pool = None
 _tx_execute_patched = False
+_ydb_latency_metrics = LatencyMetrics(name="ydb_query", window_size=5000, log_every=200)
 
 
 def _infer_ydb_type(value: Any, param_name: str):
@@ -90,19 +94,33 @@ def _patch_tx_execute_for_parameters() -> None:
 
     @wraps(original_sync)
     def patched_sync(self, query, parameters=None, commit_tx=False, settings=None):
+        started = time.perf_counter()
         if isinstance(query, str) and isinstance(parameters, dict) and parameters:
             prefixed, param_types = _normalize_parameters(parameters)
             typed_query = ydb.DataQuery(_build_query_with_declares(query, param_types), param_types)
-            return original_sync(self, typed_query, parameters=prefixed, commit_tx=commit_tx, settings=settings)
-        return original_sync(self, query, parameters=parameters, commit_tx=commit_tx, settings=settings)
+            result = original_sync(self, typed_query, parameters=prefixed, commit_tx=commit_tx, settings=settings)
+        else:
+            result = original_sync(self, query, parameters=parameters, commit_tx=commit_tx, settings=settings)
+        elapsed_ms = (time.perf_counter() - started) * 1000
+        if elapsed_ms > 300:
+            logger.warning("slow_ydb_query_ms=%.2f", elapsed_ms)
+        return result
 
     @wraps(original_async)
     async def patched_async(self, query, parameters=None, commit_tx=False, settings=None):
-        if isinstance(query, str) and isinstance(parameters, dict) and parameters:
-            prefixed, param_types = _normalize_parameters(parameters)
-            typed_query = ydb.DataQuery(_build_query_with_declares(query, param_types), param_types)
-            return await original_async(self, typed_query, parameters=prefixed, commit_tx=commit_tx, settings=settings)
-        return await original_async(self, query, parameters=parameters, commit_tx=commit_tx, settings=settings)
+        started = time.perf_counter()
+        try:
+            if isinstance(query, str) and isinstance(parameters, dict) and parameters:
+                prefixed, param_types = _normalize_parameters(parameters)
+                typed_query = ydb.DataQuery(_build_query_with_declares(query, param_types), param_types)
+                return await original_async(self, typed_query, parameters=prefixed, commit_tx=commit_tx, settings=settings)
+            return await original_async(self, query, parameters=parameters, commit_tx=commit_tx, settings=settings)
+        finally:
+            elapsed = time.perf_counter() - started
+            await _ydb_latency_metrics.observe(elapsed)
+            elapsed_ms = elapsed * 1000
+            if elapsed_ms > 300:
+                logger.warning("slow_ydb_query_ms=%.2f", elapsed_ms)
 
     ydb.table.TxContext.execute = patched_sync
     ydb.aio.table.TxContext.execute = patched_async
@@ -213,7 +231,8 @@ async def get_pool():
     global _pool
     if _pool is None:
         driver = await get_driver()
-        _pool = ydb.aio.SessionPool(driver, size=10)
+        _pool = ydb.aio.SessionPool(driver, size=YDB_SESSION_POOL_SIZE)
+        logger.info("YDB session pool initialized with size=%s", YDB_SESSION_POOL_SIZE)
     return _pool
 
 
@@ -466,6 +485,59 @@ async def get_or_create_user(user_id: int, username: str = None) -> int:
         )
 
     return user_id
+
+
+async def get_user_id_by_username(username: str) -> int | None:
+    """Ищет user_id по username в approved_members/users."""
+    normalized = (username or "").strip().lstrip("@").lower()
+    if not normalized:
+        return None
+
+    pool = await get_pool()
+
+    async def _query(session):
+        query = """
+        DECLARE $username AS Utf8;
+
+        $uname = CAST($username AS Utf8);
+
+        SELECT user_id
+        FROM approved_members
+        WHERE LOWER(COALESCE(username, "")) = $uname
+        LIMIT 1;
+        """
+        rows = await session.transaction().execute(query, {"$username": normalized}, commit_tx=True)
+        return rows[0].rows if rows else []
+
+    try:
+        rows = await pool.retry_operation_async(_query)
+        if rows:
+            return int(rows[0].user_id)
+    except Exception:
+        logger.exception("get_user_id_by_username failed in approved_members")
+
+    async def _query_users(session):
+        query = """
+        DECLARE $username AS Utf8;
+
+        $uname = CAST($username AS Utf8);
+
+        SELECT id
+        FROM users
+        WHERE LOWER(COALESCE(username, "")) = $uname
+        LIMIT 1;
+        """
+        rows = await session.transaction().execute(query, {"$username": normalized}, commit_tx=True)
+        return rows[0].rows if rows else []
+
+    try:
+        rows = await pool.retry_operation_async(_query_users)
+        if rows:
+            return int(rows[0].id)
+    except Exception:
+        logger.exception("get_user_id_by_username failed in users")
+
+    return None
 
 
 async def add_pending_user(user_id: int, username: str | None, full_name: str | None) -> None:

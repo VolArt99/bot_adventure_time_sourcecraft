@@ -101,7 +101,9 @@ def _register_handlers() -> None:
     dp.include_router(admin.router)
 
     from bot.middleware.topic_discoverer import TopicDiscovererMiddleware
+    from bot.middleware.latency_metrics import UpdateLatencyMiddleware
 
+    dp.update.middleware(UpdateLatencyMiddleware())
     dp.update.middleware(TopicDiscovererMiddleware())
 
     @dp.errors()
