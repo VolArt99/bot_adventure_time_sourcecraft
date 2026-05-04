@@ -9,7 +9,7 @@ from bot.keyboards import period_keyboard
 from bot.texts import format_digest_text
 from bot.utils.helpers import get_username_by_id, build_event_message_link
 from bot.utils.callbacks import finalize_callback
-from bot.utils.ui import safe_delete_bot_message
+from bot.utils.callback_policy import CALLBACK_DELETE_WIZARD_MESSAGE
 
 logger = logging.getLogger(__name__)
 router = Router()
@@ -44,8 +44,7 @@ async def digest_with_period(callback: CallbackQuery):
 
     if not events:
         await callback.message.answer("📅 На выбранный период мероприятий не запланировано.")
-        await safe_delete_bot_message(callback.message)
-        await finalize_callback(callback)
+        await finalize_callback(callback, delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)
         return
 
     creator_ids = set(e["creator_id"] for e in events)
@@ -56,7 +55,7 @@ async def digest_with_period(callback: CallbackQuery):
     enriched_events = await enrich_events_with_topic_and_links(events)
     text = format_digest_text(enriched_events, usernames, period=period)
     await callback.message.answer(text, parse_mode="HTML")
-    await finalize_callback(callback, delete_message=True)
+    await finalize_callback(callback, delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)
 
 
 async def send_digest(bot, chat_id: int, thread_id: int = None):

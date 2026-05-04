@@ -4,6 +4,7 @@ from aiogram.filters import BaseFilter
 from aiogram.types import Message, CallbackQuery, TelegramObject
 
 from bot.config import ADMIN_IDS, OWNER_ID
+from bot.utils.callbacks import finalize_callback
 
 
 class IsAdminFilter(BaseFilter):
@@ -23,7 +24,7 @@ def admin_only(handler: Callable[..., Awaitable]):
         if not user or (user.id not in ADMIN_IDS and user.id != OWNER_ID):
             text = "❌ У вас нет прав для выполнения команды."
             if isinstance(event, CallbackQuery):
-                await event.answer(text, show_alert=True)
+                await finalize_callback(event, text, show_alert=True)
                 return
             await event.answer(text)
             return

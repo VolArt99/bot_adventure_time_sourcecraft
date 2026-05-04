@@ -11,6 +11,8 @@ from bot.keyboards import (
     choose_topic_keyboard,
 )
 from bot.utils.topics import get_topics_list_from_db
+from bot.utils.callbacks import finalize_callback
+from bot.utils.callback_policy import CALLBACK_DELETE_WIZARD_MESSAGE
 from .shared import CreateEvent
 
 logger = logging.getLogger(__name__)
@@ -35,8 +37,8 @@ async def process_carpool(message: Message, state: FSMContext):
 @router.callback_query(CreateEvent.carpool, F.data.in_(["carpool_yes", "carpool_no"]))
 async def process_carpool_callback(callback: CallbackQuery, state: FSMContext):
     carpool = callback.data == "carpool_yes"
-    await callback.answer("Выбор сохранён")
     await process_carpool_choice(callback.message, state, carpool)
+    await finalize_callback(callback, "Выбор сохранён", delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)
 
 
 async def process_carpool_choice(message: Message, state: FSMContext, carpool: bool):
@@ -68,13 +70,13 @@ async def process_topic(callback: CallbackQuery, state: FSMContext):
         thread_id = int(thread_id_str) if thread_id_str != "0" else None
 
         await state.update_data(thread_id=thread_id)
-        await callback.answer("✅ Тема выбрана!")
 
         await state.set_state(CreateEvent.category)
         await callback.message.answer(
             "📂 Выберите группу категории:",
             reply_markup=category_groups_keyboard(EVENT_CATEGORY_GROUPS),
         )
+        await finalize_callback(callback, "✅ Тема выбрана!", delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)
     except Exception as exc:
         logger.error(f"Ошибка при обработке темы: {exc}")
-        await callback.answer("❌ Ошибка! Попробуйте снова.", show_alert=True)
+        await finalize_callback(callback, "❌ Ошибка! Попробуйте снова.", show_alert=True)

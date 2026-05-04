@@ -15,6 +15,8 @@ from bot.keyboards import cancel_keyboard, choose_topic_keyboard
 from bot.utils.topics import get_topics_list_from_db
 from bot.utils.ui import safe_delete_bot_message
 from bot.utils.helpers import parse_int_arg
+from bot.utils.callbacks import finalize_callback
+from bot.utils.callback_policy import CALLBACK_DELETE_WIZARD_MESSAGE
 
 from .services import (
     add_split_bill_participant,
@@ -101,10 +103,9 @@ async def split_bill_amount(message: Message, state: FSMContext):
 
 @router.callback_query(SplitBillCreate.source_event, F.data == "skip_split_event")
 async def split_bill_skip_event(callback: CallbackQuery, state: FSMContext):
-    await _cleanup_message(callback.message)
     await state.update_data(source_event_id=None)
-    await callback.answer("Связка с мероприятием пропущена")
     await ask_split_bill_topic(callback.message, state)
+    await finalize_callback(callback, "Связка с мероприятием пропущена", delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)
 
 
 @router.message(SplitBillCreate.source_event, ~F.text.startswith("/"))
@@ -126,18 +127,18 @@ async def split_bill_source_event(message: Message, state: FSMContext):
 
 @router.callback_query(SplitBillCreate.source_event, F.data.startswith("sb_source_"))
 async def split_bill_source_event_callback(callback: CallbackQuery, state: FSMContext):
-    await _cleanup_message(callback.message)
     raw_id = callback.data.removeprefix("sb_source_")
     if raw_id == "skip":
         await state.update_data(source_event_id=None)
-        await callback.answer("Связка с мероприятием пропущена")
+        callback_text = "Связка с мероприятием пропущена"
     elif raw_id.isdigit():
         await state.update_data(source_event_id=int(raw_id))
-        await callback.answer("Мероприятие выбрано")
+        callback_text = "Мероприятие выбрано"
     else:
-        await callback.answer("Некорректный ID", show_alert=True)
+        await finalize_callback(callback, "Некорректный ID", show_alert=True)
         return
     await ask_split_bill_topic(callback.message, state)
+    await finalize_callback(callback, callback_text, delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)
 
 
 async def ask_split_bill_topic(message: Message, state: FSMContext) -> None:
@@ -156,12 +157,11 @@ async def ask_split_bill_topic(message: Message, state: FSMContext) -> None:
 
 @router.callback_query(SplitBillCreate.target_topic, F.data.startswith("topic_"))
 async def split_bill_topic_callback(callback: CallbackQuery, state: FSMContext):
-    await _cleanup_message(callback.message)
     thread_id_raw = callback.data.split("_", 1)[1]
     thread_id = int(thread_id_raw) if thread_id_raw != "0" else None
     await state.update_data(thread_id=thread_id)
-    await callback.answer("Подгруппа выбрана")
     await ask_transfer_target(callback.message, state)
+    await finalize_callback(callback, "Подгруппа выбрана", delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)
 
 
 async def ask_transfer_target(message: Message, state: FSMContext) -> None:
@@ -179,8 +179,8 @@ async def split_bill_transfer_target_type(callback: CallbackQuery, state: FSMCon
     target_type = callback.data.removeprefix("sb_tt_")
     await state.update_data(transfer_target_type=target_type)
     await state.set_state(SplitBillCreate.transfer_target)
-    await callback.answer("Выбрано")
     await callback.message.answer("Введите реквизиты для перевода (телефон/карта/ссылка):")
+    await finalize_callback(callback, "Выбрано", delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)
 
 
 @router.message(SplitBillCreate.transfer_target, ~F.text.startswith("/"))
@@ -206,13 +206,13 @@ async def split_bill_bank_select(callback: CallbackQuery, state: FSMContext):
     bank = callback.data.removeprefix("sb_bank_")
     if bank == "other":
         await state.set_state(SplitBillCreate.transfer_bank_custom)
-        await callback.answer("Укажите свой банк")
         await callback.message.answer("Введите название банка:")
+        await finalize_callback(callback, "Укажите свой банк", delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)
         return
     await state.update_data(transfer_bank=bank, transfer_bank_custom=None)
     await state.set_state(SplitBillCreate.transfer_recipient_name)
-    await callback.answer("Банк выбран")
     await callback.message.answer("Введите ФИО получателя перевода:")
+    await finalize_callback(callback, "Банк выбран", delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)
 
 
 @router.message(SplitBillCreate.transfer_bank_custom, ~F.text.startswith("/"))
@@ -256,17 +256,17 @@ def split_bill_source_event_keyboard(events: list[dict]) -> InlineKeyboardMarkup
 async def split_bill_join_callback(callback: CallbackQuery):
     split_id = int(callback.data.rsplit("_", 1)[-1])
     if not await is_member_approved(callback.from_user.id):
-        await callback.answer("Только участники группы", show_alert=True)
+        await finalize_callback(callback, "Только участники группы", show_alert=True)
         return
 
     bill = await get_split_bill(split_id)
     if not bill or bill.get("status") != "open":
-        await callback.answer("Чек недоступен", show_alert=True)
+        await finalize_callback(callback, "Чек недоступен", show_alert=True)
         return
 
     await add_split_bill_participant(split_id, callback.from_user.id)
     await refresh_split_message(callback, split_id)
-    await callback.answer("Вы добавлены")
+    await finalize_callback(callback, "Вы добавлены")
 
 
 @router.callback_query(F.data.startswith("sb_leave_"))
@@ -274,16 +274,16 @@ async def split_bill_leave_callback(callback: CallbackQuery):
     split_id = int(callback.data.rsplit("_", 1)[-1])
     bill = await get_split_bill(split_id)
     if not bill or bill.get("status") != "open":
-        await callback.answer("Чек недоступен", show_alert=True)
+        await finalize_callback(callback, "Чек недоступен", show_alert=True)
         return
 
     if int(bill.get("organizer_id")) == callback.from_user.id:
-        await callback.answer("Организатор не может выйти из чека", show_alert=True)
+        await finalize_callback(callback, "Организатор не может выйти из чека", show_alert=True)
         return
 
     await remove_split_bill_participant(split_id, callback.from_user.id)
     await refresh_split_message(callback, split_id)
-    await callback.answer("Вы удалены")
+    await finalize_callback(callback, "Вы удалены")
 
 
 @router.callback_query(F.data.startswith("sb_paid_"))
@@ -291,25 +291,25 @@ async def split_bill_paid_callback(callback: CallbackQuery):
     split_id = int(callback.data.rsplit("_", 1)[-1])
     bill = await get_split_bill(split_id)
     if not bill or bill.get("status") != "open":
-        await callback.answer("Чек недоступен", show_alert=True)
+        await finalize_callback(callback, "Чек недоступен", show_alert=True)
         return
 
     participants = await get_split_bill_participants(split_id)
     participant_ids = {int(p["user_id"]) for p in participants}
     if callback.from_user.id not in participant_ids:
-        await callback.answer("Сначала присоединитесь", show_alert=True)
+        await finalize_callback(callback, "Сначала присоединитесь", show_alert=True)
         return
 
     await mark_split_bill_paid(split_id, callback.from_user.id)
     await refresh_split_message(callback, split_id)
-    await callback.answer("Оплата отмечена")
+    await finalize_callback(callback, "Оплата отмечена")
 
 
 @router.callback_query(F.data.startswith("sb_status_"))
 async def split_bill_status_callback(callback: CallbackQuery):
     split_id = int(callback.data.rsplit("_", 1)[-1])
     await refresh_split_message(callback, split_id)
-    await callback.answer("Обновлено")
+    await finalize_callback(callback, "Обновлено")
 
 
 @router.callback_query(F.data.startswith("sb_close_"))
@@ -317,18 +317,18 @@ async def split_bill_close_callback(callback: CallbackQuery):
     split_id = int(callback.data.rsplit("_", 1)[-1])
     bill = await get_split_bill(split_id)
     if not bill:
-        await callback.answer("Чек не найден", show_alert=True)
+        await finalize_callback(callback, "Чек не найден", show_alert=True)
         return
     if int(bill.get("organizer_id")) != callback.from_user.id:
-        await callback.answer("Только организатор", show_alert=True)
+        await finalize_callback(callback, "Только организатор", show_alert=True)
         return
 
     if not await close_bill_if_ready(split_id):
-        await callback.answer("Не все участники оплатили", show_alert=True)
+        await finalize_callback(callback, "Не все участники оплатили", show_alert=True)
         return
 
     await refresh_split_message(callback, split_id)
-    await callback.answer("Чек закрыт")
+    await finalize_callback(callback, "Чек закрыт")
 
 
 @router.message(Command("split_bill_add"))

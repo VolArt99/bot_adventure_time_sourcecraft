@@ -14,6 +14,9 @@ from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.context import FSMContext
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
+from bot.utils.callbacks import finalize_callback
+from bot.utils.callback_policy import CALLBACK_DELETE_WIZARD_MESSAGE
+
 from bot.database import (
     get_event,
     add_participant,
@@ -121,30 +124,26 @@ async def join_event(callback: CallbackQuery):
     user_id = callback.from_user.id
     event = await get_event(event_id)
     if not event or event["status"] != "active":
-        await callback.answer("Мероприятие уже завершено или отменено", show_alert=True)
+        await finalize_callback(callback, "Мероприятие уже завершено или отменено", show_alert=True)
         return
     # Проверяем лимит
     going = await get_main_participants(event_id)
     if event["participant_limit"] and len(going) >= event["participant_limit"]:
-        await callback.answer(
-            "Мест нет. Вы можете записаться в резерв", show_alert=True
-        )
+        await finalize_callback(callback, "Мест нет. Вы можете записаться в резерв", show_alert=True)
         return
     # Проверяем, не состоит ли уже в резерве
     if user_id in await get_participants(event_id, "waitlist"):
-        await callback.answer(
-            "Вы уже в резерве. Откажитесь от резерва, чтобы записаться", show_alert=True
-        )
+        await finalize_callback(callback, "Вы уже в резерве. Откажитесь от резерва, чтобы записаться", show_alert=True)
         return
     # Проверяем, не записан ли уже
     if user_id in going:
-        await callback.answer("Вы уже записаны", show_alert=True)
+        await finalize_callback(callback, "Вы уже записаны", show_alert=True)
         return
     await add_participant(event_id, user_id, "going")
     await update_event_message(
         callback.bot, event_id, event["thread_id"], event["message_id"]
     )
-    await callback.answer("Вы записаны на мероприятие!")
+    await finalize_callback(callback, "Вы записаны на мероприятие!")
 
 
 @router.callback_query(F.data.startswith("waitlist_"))
@@ -153,21 +152,21 @@ async def waitlist_event(callback: CallbackQuery):
     user_id = callback.from_user.id
     event = await get_event(event_id)
     if not event or event["status"] != "active":
-        await callback.answer("Мероприятие уже завершено или отменено", show_alert=True)
+        await finalize_callback(callback, "Мероприятие уже завершено или отменено", show_alert=True)
         return
     # Проверяем, не в основном ли уже
     if user_id in await get_main_participants(event_id):
-        await callback.answer("Вы уже в основном списке", show_alert=True)
+        await finalize_callback(callback, "Вы уже в основном списке", show_alert=True)
         return
     # Проверяем, не в резерве ли
     if user_id in await get_participants(event_id, "waitlist"):
-        await callback.answer("Вы уже в резерве", show_alert=True)
+        await finalize_callback(callback, "Вы уже в резерве", show_alert=True)
         return
     await add_participant(event_id, user_id, "waitlist")
     await update_event_message(
         callback.bot, event_id, event["thread_id"], event["message_id"]
     )
-    await callback.answer("Вы добавлены в резерв")
+    await finalize_callback(callback, "Вы добавлены в резерв")
 
 
 @router.callback_query(F.data.startswith("driver_"))
@@ -176,19 +175,16 @@ async def become_driver(callback: CallbackQuery, state: FSMContext):
     user_id = callback.from_user.id
     event = await get_event(event_id)
     if not event or event["status"] != "active":
-        await callback.answer("Мероприятие уже завершено или отменено", show_alert=True)
+        await finalize_callback(callback, "Мероприятие уже завершено или отменено", show_alert=True)
         return
     # Проверяем, не является ли уже водителем или пассажиром
     existing = await get_participants(event_id, "driver")
     if user_id in existing:
-        await callback.answer("Вы уже водитель", show_alert=True)
+        await finalize_callback(callback, "Вы уже водитель", show_alert=True)
         return
     existing_pass = await get_participants(event_id, "passenger")
     if user_id in existing_pass:
-        await callback.answer(
-            "Вы уже пассажир. Откажитесь от места, чтобы стать водителем",
-            show_alert=True,
-        )
+        await finalize_callback(callback, "Вы уже пассажир. Откажитесь от места, чтобы стать водителем", show_alert=True)
         return
     # Запрашиваем количество мест
     await state.update_data(event_id=event_id)
@@ -199,13 +195,10 @@ async def become_driver(callback: CallbackQuery, state: FSMContext):
             "Сколько свободных мест в вашей машине (включая вас)? Введите число:",
         )
     except TelegramForbiddenError:
-        await callback.answer(
-            "Не могу написать в ЛС. Откройте чат с ботом и нажмите Start.",
-            show_alert=True,
-        )
+        await finalize_callback(callback, "Не могу написать в ЛС. Откройте чат с ботом и нажмите Start.", show_alert=True)
         await state.clear()
         return
-    await callback.answer()
+    await finalize_callback(callback)
 
 
 @router.message(CarpoolState.seats)
@@ -248,26 +241,21 @@ async def become_passenger(callback: CallbackQuery):
     user_id = callback.from_user.id
     event = await get_event(event_id)
     if not event or event["status"] != "active":
-        await callback.answer("Мероприятие уже завершено или отменено", show_alert=True)
+        await finalize_callback(callback, "Мероприятие уже завершено или отменено", show_alert=True)
         return
     # Проверяем, не является ли уже водителем или пассажиром
     existing = await get_participants(event_id, "driver")
     if user_id in existing:
-        await callback.answer(
-            "Вы водитель. Чтобы стать пассажиром, сначала откажитесь от вождения.",
-            show_alert=True,
-        )
+        await finalize_callback(callback, "Вы водитель. Чтобы стать пассажиром, сначала откажитесь от вождения.", show_alert=True)
         return
     existing_pass = await get_participants(event_id, "passenger")
     if user_id in existing_pass:
-        await callback.answer("Вы уже пассажир", show_alert=True)
+        await finalize_callback(callback, "Вы уже пассажир", show_alert=True)
         return
     # Получаем список водителей со свободными местами
     drivers = await get_drivers_with_passengers(event_id)
     if not drivers:
-        await callback.answer(
-            "Пока нет водителей. Станьте первым водителем!", show_alert=True
-        )
+        await finalize_callback(callback, "Пока нет водителей. Станьте первым водителем!", show_alert=True)
         return
     # Формируем клавиатуру выбора водителя
     builder = InlineKeyboardBuilder()
@@ -285,7 +273,7 @@ async def become_passenger(callback: CallbackQuery):
                 callback_data=f"choose_driver_{event_id}_{driver['user_id']}",
             )
     if not has_free_drivers:
-        await callback.answer("Нет свободных мест у водителей", show_alert=True)
+        await finalize_callback(callback, "Нет свободных мест у водителей", show_alert=True)
         return
     builder.adjust(1)
     try:
@@ -293,12 +281,9 @@ async def become_passenger(callback: CallbackQuery):
             user_id, "Выберите водителя:", reply_markup=builder.as_markup()
         )
     except TelegramForbiddenError:
-        await callback.answer(
-            "Не могу написать в ЛС. Откройте чат с ботом и нажмите Start.",
-            show_alert=True,
-        )
+        await finalize_callback(callback, "Не могу написать в ЛС. Откройте чат с ботом и нажмите Start.", show_alert=True)
         return
-    await callback.answer()
+    await finalize_callback(callback)
 
 
 @router.callback_query(F.data.startswith("choose_driver_"))
@@ -310,10 +295,7 @@ async def choose_driver(callback: CallbackQuery):
     # Добавляем пассажира
     success = await add_passenger(event_id, user_id, driver_id)
     if not success:
-        await callback.answer(
-            "Не удалось добавить пассажира. Возможно, места уже заняты.",
-            show_alert=True,
-        )
+        await finalize_callback(callback, "Не удалось добавить пассажира. Возможно, места уже заняты.", show_alert=True)
         return
     # Добавляем пассажира в основной список, если его там нет
     going = await get_main_participants(event_id)
@@ -324,8 +306,11 @@ async def choose_driver(callback: CallbackQuery):
     await update_event_message(
         callback.bot, event_id, event["thread_id"], event["message_id"]
     )
-    await callback.answer("Вы успешно присоединились к водителю!")
-    await safe_delete_bot_message(callback.message)  # удаляем только сообщение бота
+    await finalize_callback(
+        callback,
+        "Вы успешно присоединились к водителю!",
+        delete_message=CALLBACK_DELETE_WIZARD_MESSAGE,
+    )
 
 
 # Модифицируем функцию decline_event, чтобы учитывать удаление водителя и его пассажиров
@@ -335,7 +320,7 @@ async def decline_event(callback: CallbackQuery):
     user_id = callback.from_user.id
     event = await get_event(event_id)
     if not event:
-        await callback.answer("Мероприятие не найдено", show_alert=True)
+        await finalize_callback(callback, "Мероприятие не найдено", show_alert=True)
         return
     # Удаляем участника (и если водитель, то и всех его пассажиров)
     await remove_participant(event_id, user_id)
@@ -354,7 +339,7 @@ async def decline_event(callback: CallbackQuery):
     await update_event_message(
         callback.bot, event_id, event["thread_id"], event["message_id"]
     )
-    await callback.answer("Вы отказались от участия")
+    await finalize_callback(callback, "Вы отказались от участия")
 
 
 @router.callback_query(F.data.startswith("delete_"))
@@ -362,17 +347,14 @@ async def delete_event(callback: CallbackQuery):
     event_id = int(callback.data.split("_")[1])
     event = await get_event(event_id)
     if not event:
-        await callback.answer("Мероприятие не найдено", show_alert=True)
+        await finalize_callback(callback, "Мероприятие не найдено", show_alert=True)
         return
 
     user_id = callback.from_user.id
     is_creator = user_id == event["creator_id"]
     is_admin = user_id in ADMIN_IDS
     if not is_creator and not is_admin:
-        await callback.answer(
-            "Удалять мероприятие может только организатор или администратор.",
-            show_alert=True,
-        )
+        await finalize_callback(callback, "Удалять мероприятие может только организатор или администратор.", show_alert=True)
         return
 
     await cancel_event(event_id)
@@ -389,4 +371,4 @@ async def delete_event(callback: CallbackQuery):
             text="❌ Мероприятие удалено организатором/администратором.",
         )
 
-    await callback.answer("Мероприятие удалено")
+    await finalize_callback(callback, "Мероприятие удалено")

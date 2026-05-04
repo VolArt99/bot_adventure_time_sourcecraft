@@ -9,6 +9,8 @@ from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 from aiogram.filters import Command, CommandStart, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
+from bot.utils.callbacks import finalize_callback
+from bot.utils.callback_policy import CALLBACK_DELETE_WIZARD_MESSAGE
 
 from bot.config import (
     ADMIN_DAILY_COMMAND_LIMIT,
@@ -68,7 +70,7 @@ async def cmd_start(message: Message):
 @router.callback_query(F.data == "onboarding_start")
 async def onboarding_start(callback: CallbackQuery):
     await callback.message.answer(GROUP_RULES_TEXT, reply_markup=rules_ack_keyboard())
-    await callback.answer()
+    await finalize_callback(callback, delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)
 
 
 @router.callback_query(F.data == "rules_ack")
@@ -82,7 +84,7 @@ async def rules_ack(callback: CallbackQuery):
         await add_pending_user(user.id, user.username, full_name)
         await notify_owner_about_request(callback)
         await callback.message.answer("✅ Правила приняты. Заявка отправлена владельцу на проверку.")
-    await callback.answer()
+    await finalize_callback(callback, delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)
 
 
 @router.message(StateFilter(None), F.chat.type == "private", ~F.text.startswith("/"))
@@ -110,13 +112,13 @@ async def onboarding_guard(message: Message):
 @router.callback_query(F.data.startswith("approve_user_"))
 async def owner_approve_user(callback: CallbackQuery):
     if callback.from_user.id != OWNER_ID:
-        await callback.answer("Недостаточно прав", show_alert=True)
+        await finalize_callback(callback, "Недостаточно прав", show_alert=True)
         return
 
     user_id = int(callback.data.rsplit("_", 1)[-1])
     pending = await approve_pending_user(user_id)
     if not pending:
-        await callback.answer("Заявка не найдена", show_alert=True)
+        await finalize_callback(callback, "Заявка не найдена", show_alert=True)
         return
 
     try:
@@ -135,13 +137,13 @@ async def owner_approve_user(callback: CallbackQuery):
         )
 
     await callback.message.edit_text(f"✅ Пользователь {user_id} одобрен и перенесён в контроль «Рассказа о себе».")
-    await callback.answer("Одобрено")
+    await finalize_callback(callback, "Одобрено")
 
 
 @router.callback_query(F.data.startswith("reject_user_"))
 async def owner_reject_user(callback: CallbackQuery):
     if callback.from_user.id != OWNER_ID:
-        await callback.answer("Недостаточно прав", show_alert=True)
+        await finalize_callback(callback, "Недостаточно прав", show_alert=True)
         return
 
     user_id = int(callback.data.rsplit("_", 1)[-1])
@@ -158,7 +160,7 @@ async def owner_reject_user(callback: CallbackQuery):
         )
 
     await callback.message.edit_text(f"❌ Заявка пользователя {user_id} отклонена.")
-    await callback.answer("Отклонено")
+    await finalize_callback(callback, "Отклонено")
 
 
 @router.message(Command("pending_intro"))
@@ -224,31 +226,31 @@ async def cmd_pending_intro(message: Message):
 @router.callback_query(F.data.startswith("intro_done_"))
 async def intro_done(callback: CallbackQuery):
     if callback.from_user.id != OWNER_ID:
-        await callback.answer("Недостаточно прав", show_alert=True)
+        await finalize_callback(callback, "Недостаточно прав", show_alert=True)
         return
 
     user_id = int(callback.data.rsplit("_", 1)[-1])
     await update_intro_status(user_id, "completed")
-    await callback.answer("Статус обновлён")
+    await finalize_callback(callback, "Статус обновлён")
     await callback.message.edit_reply_markup(reply_markup=None)
 
 
 @router.callback_query(F.data.startswith("intro_toggle_"))
 async def intro_toggle(callback: CallbackQuery):
     if callback.from_user.id != OWNER_ID:
-        await callback.answer("Недостаточно прав", show_alert=True)
+        await finalize_callback(callback, "Недостаточно прав", show_alert=True)
         return
 
     user_id = int(callback.data.rsplit("_", 1)[-1])
     members = await get_intro_members_statuses()
     current = next((m for m in members if int(m["user_id"]) == user_id), None)
     if not current:
-        await callback.answer("Пользователь не найден", show_alert=True)
+        await finalize_callback(callback, "Пользователь не найден", show_alert=True)
         return
 
     new_status = "pending" if current.get("intro_status") == "completed" else "completed"
     await update_intro_status(user_id, new_status)
-    await callback.answer(f"Статус: {new_status}")
+    await finalize_callback(callback, f"Статус: {new_status}")
 
 
 @router.message(Command("help"))
@@ -387,5 +389,9 @@ async def update_topic_names(message: Message):
 @router.callback_query(F.data == "cancel_create")
 async def cancel_create(callback: CallbackQuery, state: FSMContext):
     await state.clear()
-    await callback.message.delete()
-    await callback.answer("Создание мероприятия отменено", show_alert=True)
+    await finalize_callback(
+        callback,
+        "Создание мероприятия отменено",
+        delete_message=CALLBACK_DELETE_WIZARD_MESSAGE,
+        show_alert=True,
+    )

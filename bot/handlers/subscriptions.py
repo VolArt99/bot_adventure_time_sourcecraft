@@ -14,7 +14,7 @@ from bot.keyboards import period_keyboard
 from bot.texts import format_digest_text
 from bot.utils.helpers import get_username_by_id
 from bot.utils.callbacks import finalize_callback
-from bot.utils.ui import safe_delete_bot_message
+from bot.utils.callback_policy import CALLBACK_DELETE_WIZARD_MESSAGE
 
 router = Router(name=__name__)
 
@@ -158,13 +158,10 @@ async def subscribe_none(callback: CallbackQuery):
 async def save_subscriptions(callback: CallbackQuery):
     selected = await get_user_category_subscriptions(callback.from_user.id)
     if selected:
-        await finalize_callback(callback, "Сохранено")
         await callback.message.answer(f"✅ Подписки сохранены: {', '.join(selected)}")
-        await safe_delete_bot_message(callback.message)
     else:
-        await finalize_callback(callback, "Сохранено")
         await callback.message.answer("✅ Подписки очищены. Персональный дайджест отключён.")
-        await safe_delete_bot_message(callback.message)
+    await finalize_callback(callback, "Сохранено", delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)
 
 
 @router.message(Command("my_digest"))
@@ -182,8 +179,7 @@ async def my_digest_with_period(callback: CallbackQuery):
 
     if not events:
         await callback.message.answer("По вашим подпискам пока нет мероприятий на выбранный период.")
-        await safe_delete_bot_message(callback.message)
-        await finalize_callback(callback)
+        await finalize_callback(callback, delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)
         return
 
     usernames = {}
@@ -194,4 +190,4 @@ async def my_digest_with_period(callback: CallbackQuery):
 
     text = format_digest_text(events, usernames, period=period)
     await callback.message.answer(text, parse_mode="HTML", disable_web_page_preview=True)
-    await finalize_callback(callback, delete_message=True)
+    await finalize_callback(callback, delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)

@@ -10,7 +10,8 @@ from bot.filters.registered_user import registered_user_only
 from bot.keyboards import cancel_keyboard, skip_field_keyboard, carpool_keyboard, event_price_mode_keyboard
 from .shared import CreateEvent, parse_datetime
 from bot.utils.callbacks import finalize_callback
-from bot.utils.ui import err, delete_message_later, safe_delete_bot_message
+from bot.utils.callback_policy import CALLBACK_DELETE_WIZARD_MESSAGE
+from bot.utils.ui import err, delete_message_later
 
 router = Router(name=__name__)
 
@@ -40,12 +41,11 @@ async def process_title(message: Message, state: FSMContext):
 async def skip_description(callback: CallbackQuery, state: FSMContext):
     await state.update_data(description="")
     await state.set_state(CreateEvent.datetime)
-    await finalize_callback(callback, "Описание пропущено")
     await callback.message.answer(
         f"🗓 Введите дату и время (ДД.ММ.ГГГГ ЧЧ:ММ):\nПример: {datetime.now().strftime('%d.%m.%Y %H:%M')}",
         reply_markup=cancel_keyboard(),
     )
-    await safe_delete_bot_message(callback.message)
+    await finalize_callback(callback, "Описание пропущено", delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)
 
 
 @router.message(CreateEvent.description, ~F.text.startswith("/"))
@@ -81,9 +81,8 @@ async def process_datetime(message: Message, state: FSMContext):
 async def skip_duration(callback: CallbackQuery, state: FSMContext):
     await state.update_data(duration_minutes=None)
     await state.set_state(CreateEvent.location)
-    await finalize_callback(callback, "Длительность пропущена")
     await callback.message.answer("📍 Введите место проведения:", reply_markup=cancel_keyboard())
-    await safe_delete_bot_message(callback.message)
+    await finalize_callback(callback, "Длительность пропущена", delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)
 
 
 @router.message(CreateEvent.duration, ~F.text.startswith("/"))
@@ -124,11 +123,7 @@ async def process_price_mode(callback: CallbackQuery, state: FSMContext):
             "👥 Введите лимит участников (число, 'без лимита' или 'пропустить'):",
             reply_markup=skip_field_keyboard("limit"),
         )
-        try:
-            await safe_delete_bot_message(callback.message)
-        except Exception:
-            pass
-        await finalize_callback(callback, "Бесплатно")
+        await finalize_callback(callback, "Бесплатно", delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)
         return
 
     await state.set_state(CreateEvent.price)
@@ -137,11 +132,7 @@ async def process_price_mode(callback: CallbackQuery, state: FSMContext):
     else:
         prompt = "💰 Введите сумму с человека.\nПример: 500"
     await callback.message.answer(prompt, reply_markup=cancel_keyboard())
-    try:
-        await safe_delete_bot_message(callback.message)
-    except Exception:
-        pass
-    await finalize_callback(callback)
+    await finalize_callback(callback, delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)
 
 
 @router.message(CreateEvent.price, ~F.text.startswith("/"))
@@ -173,9 +164,8 @@ async def process_price(message: Message, state: FSMContext):
 async def skip_limit(callback: CallbackQuery, state: FSMContext):
     await state.update_data(participant_limit=None)
     await state.set_state(CreateEvent.carpool)
-    await finalize_callback(callback, "Лимит пропущен")
     await callback.message.answer(CARPOOL_HELP_TEXT, reply_markup=carpool_keyboard(), parse_mode="HTML")
-    await safe_delete_bot_message(callback.message)
+    await finalize_callback(callback, "Лимит пропущен", delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)
 
 
 @router.message(CreateEvent.limit, ~F.text.startswith("/"))

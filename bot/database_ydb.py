@@ -458,6 +458,34 @@ async def init_db():
             logger.warning("Не удалось применить мягкую миграцию events.responsible_id: %s", exc)
 
 
+    # Мягкая миграция для инсталляций, где split_bill_events была создана до поля title.
+    try:
+        await pool.retry_operation(
+            lambda session: session.execute_scheme(
+                """
+                ALTER TABLE split_bill_events
+                ADD COLUMN title Utf8,
+                ADD COLUMN total_amount Double NOT NULL,
+                ADD COLUMN transfer_target_type Utf8,
+                ADD COLUMN transfer_target_value Utf8,
+                ADD COLUMN transfer_bank Utf8,
+                ADD COLUMN transfer_bank_custom Utf8,
+                ADD COLUMN transfer_recipient_name Utf8;
+                """
+            )
+        )
+        logger.info("Добавлены колонки split_bill_events.title и связанные с суммой и переводом")
+    except Exception as exc:
+        if _is_schema_limit_error(exc):
+            logger.warning("Пропускаем ALTER split_bill_events.title из-за лимита YDB: %s", exc)
+        elif "path does not exist" in str(exc).lower():
+            logger.warning("Таблица split_bill_events пока недоступна для ALTER, миграция будет повторена позже")
+        elif "already exists" in str(exc).lower():
+            pass
+        else:
+            logger.warning("Не удалось применить мягкую миграцию split_bill_events.title: %s", exc)
+
+
 async def get_or_create_user(user_id: int, username: str = None) -> int:
     """Возвращает пользователя из БД, создаёт если нет."""
     pool = await get_pool()
@@ -1435,7 +1463,7 @@ async def get_split_bill(split_id: int) -> Optional[dict[str, Any]]:
     result = await pool.retry_operation(
         lambda session: session.transaction().execute(
             """
-            SELECT id, group_id, organizer_id, CAST(NULL AS Utf8) AS title, total_amount, transfer_target_type, transfer_target_value, transfer_bank, transfer_bank_custom, transfer_recipient_name, status, source_event_id, created_at, closed_at
+            SELECT id, group_id, organizer_id, title, total_amount, transfer_target_type, transfer_target_value, transfer_bank, transfer_bank_custom, transfer_recipient_name, status, source_event_id, created_at, closed_at
             FROM split_bill_events
             WHERE id = $split_id
             """,

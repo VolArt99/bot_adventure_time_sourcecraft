@@ -26,6 +26,8 @@ from bot.keyboards import event_actions, period_keyboard
 
 from bot.texts import format_event_message
 from bot.utils.helpers import get_user_mention, build_event_message_link, parse_int_arg
+from bot.utils.callbacks import finalize_callback
+from bot.utils.callback_policy import CALLBACK_DELETE_WIZARD_MESSAGE
 
 router = Router()
 TZ = pytz.timezone(TIMEZONE)
@@ -78,7 +80,6 @@ async def cmd_my_events(message: Message):
 
 @router.callback_query(F.data.startswith("my_events_period_"))
 async def my_events_with_period(callback: CallbackQuery):
-    await callback.message.delete()
     period = callback.data.removeprefix("my_events_period_")
     user_id = callback.from_user.id
     events = await get_user_events(user_id, status="active")
@@ -99,7 +100,7 @@ async def my_events_with_period(callback: CallbackQuery):
 
     if not filtered:
         await callback.message.answer("📭 На выбранный период у вас нет активных мероприятий.")
-        await callback.answer()
+        await finalize_callback(callback, delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)
         return
 
     title_map = {
@@ -130,7 +131,7 @@ async def my_events_with_period(callback: CallbackQuery):
         )
 
     await callback.message.answer("\n".join(text_lines), parse_mode="HTML")
-    await callback.answer()
+    await finalize_callback(callback, delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)
 
 
 @router.callback_query(F.data.startswith("myevent_"))
@@ -138,7 +139,7 @@ async def show_my_event(callback: CallbackQuery):
     event_id = int(callback.data.split("_")[1])
     event = await get_event(event_id)
     if not event:
-        await callback.answer("Мероприятие не найдено", show_alert=True)
+        await finalize_callback(callback, "Мероприятие не найдено", show_alert=True)
         return
 
     going = await get_main_participants(event_id)
@@ -163,7 +164,7 @@ async def show_my_event(callback: CallbackQuery):
         reply_markup=event_actions(event_id, event["carpool_enabled"]),
         parse_mode="HTML",
     )
-    await callback.answer()
+    await finalize_callback(callback, delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)
 
 
 @router.message(Command("set_responsible"))
@@ -249,14 +250,14 @@ async def cb_add_participant_manual_status(callback: CallbackQuery):
     user_id = int(user_raw)
     allowed, event = await _can_manage_event(event_id, callback.from_user.id)
     if not event or not allowed:
-        await callback.answer("Нет доступа или событие не найдено", show_alert=True)
+        await finalize_callback(callback, "Нет доступа или событие не найдено", show_alert=True)
         return
     created = await add_participant(event_id, user_id, status)
     from bot.handlers.participation import update_event_message
     await update_event_message(callback.bot, event_id, event["thread_id"], event["message_id"])
     await callback.message.edit_reply_markup(reply_markup=None)
     await callback.message.answer("✅ Участник добавлен." if created else "ℹ️ Участник уже был в списке.")
-    await callback.answer()
+    await finalize_callback(callback)
 
     
 @router.message(Command("send_event_card"))

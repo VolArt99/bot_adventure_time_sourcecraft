@@ -23,6 +23,8 @@ from bot.utils.helpers import get_user_mention
 from bot.utils.helpers import build_event_message_link
 from bot.utils.ui import quote_block, ok
 from bot.utils.topics import get_topics_list_from_db
+from bot.utils.callbacks import finalize_callback
+from bot.utils.callback_policy import CALLBACK_DELETE_WIZARD_MESSAGE
 
 import pytz
 
@@ -66,16 +68,15 @@ async def cmd_send_events_list(message: Message):
 async def cb_send_events_list_choose_topic(callback: CallbackQuery):
     period = callback.data.removeprefix("broadcast_period_")
     if period not in {"week", "month", "all"}:
-        await callback.answer("Некорректный период", show_alert=True)
+        await finalize_callback(callback, "Некорректный период", show_alert=True)
         return
 
     topics = await get_topics_list_from_db()
-    await callback.message.delete()
     await callback.message.answer(
         "Выберите группу/подгруппу, куда отправить афишу:",
         reply_markup=broadcast_topics_keyboard(topics, period),
     )
-    await callback.answer()
+    await finalize_callback(callback, delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)
 
 
 @router.callback_query(F.data.startswith("broadcast_topic_"))
@@ -95,9 +96,8 @@ async def cb_send_events_list_publish(callback: CallbackQuery):
 
     topic_name = await get_topic_name_by_thread_id(thread_id)
     target = topic_name or "Основной чат"
-    await callback.message.delete()
     await callback.message.answer(ok(f"Список мероприятий отправлен в: {target}."))
-    await callback.answer("Отправлено")
+    await finalize_callback(callback, "Отправлено", delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)
 
 
 async def _build_events_broadcast_text(period: str) -> str:

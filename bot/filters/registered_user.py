@@ -4,6 +4,7 @@ from aiogram.filters import BaseFilter
 from aiogram.types import Message, CallbackQuery, TelegramObject
 
 from bot.database import get_or_create_user
+from bot.utils.callbacks import finalize_callback
 
 
 class IsRegisteredFilter(BaseFilter):
@@ -28,7 +29,7 @@ def registered_user_only(handler: Callable[..., Awaitable]):
         if not user:
             text = "❌ Не удалось определить пользователя."
             if isinstance(event, CallbackQuery):
-                await event.answer(text, show_alert=True)
+                await finalize_callback(event, text, show_alert=True)
                 return
             await event.answer(text)
             return
@@ -38,7 +39,7 @@ def registered_user_only(handler: Callable[..., Awaitable]):
         if not user_id:
             text = "❌ Пожалуйста, сначала запустите бота командой /start."
             if isinstance(event, CallbackQuery):
-                await event.answer(text, show_alert=True)
+                await finalize_callback(event, text, show_alert=True)
                 return
             await event.answer(text)
             return
