@@ -196,6 +196,8 @@ async def cmd_pending_intro(message: Message):
     now = datetime.now(timezone.utc)
     lines = ["📊 Контроль «Рассказа о себе»:"]
     for m in members:
+        if m.get("intro_status") == "completed":
+            continue
         join_date = m.get("join_date")
         if isinstance(join_date, str):
             join_dt = datetime.fromisoformat(join_date.replace("Z", "+00:00"))
@@ -213,6 +215,9 @@ async def cmd_pending_intro(message: Message):
         username = f"@{m['username']}" if m.get("username") else "—"
         lines.append(f"• {m.get('full_name') or '—'} ({username}, id={m['user_id']}) — {state}")
 
+    if len(lines) == 1:
+        await message.answer("✅ Все одобренные участники уже добавили «Рассказ о себе».")
+        return
     await message.answer("\n".join(lines))
 
 

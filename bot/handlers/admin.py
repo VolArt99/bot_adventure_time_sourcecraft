@@ -70,6 +70,7 @@ async def cb_send_events_list_choose_topic(callback: CallbackQuery):
         return
 
     topics = await get_topics_list_from_db()
+    await callback.message.delete()
     await callback.message.answer(
         "Выберите группу/подгруппу, куда отправить афишу:",
         reply_markup=broadcast_topics_keyboard(topics, period),
@@ -94,6 +95,7 @@ async def cb_send_events_list_publish(callback: CallbackQuery):
 
     topic_name = await get_topic_name_by_thread_id(thread_id)
     target = topic_name or "Основной чат"
+    await callback.message.delete()
     await callback.message.answer(ok(f"Список мероприятий отправлен в: {target}."))
     await callback.answer("Отправлено")
 

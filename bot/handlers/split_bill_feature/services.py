@@ -46,10 +46,17 @@ async def format_split_bill_text(split_id: int, bot) -> str:
     organizer_mention = await get_user_mention(int(bill["organizer_id"]), bot)
     lines = [
         f"💳 <b>Разделение чека #{split_id}</b>",
+        f"Название: <b>{bill.get('title') or '—'}</b>",
         f"Статус: <b>{bill.get('status')}</b>",
         f"Организатор: {organizer_mention}",
         f"Сумма: <b>{bill.get('total_amount')} ₽</b>",
         f"Участников: <b>{len(participants)}</b>",
+        "",
+        "<b>Реквизиты для перевода:</b>",
+        f"Тип: {bill.get('transfer_target_type') or '—'}",
+        f"Куда: {bill.get('transfer_target_value') or '—'}",
+        f"Банк: {(bill.get('transfer_bank_custom') if bill.get('transfer_bank') == 'other' else bill.get('transfer_bank')) or '—'}",
+        f"Получатель: {bill.get('transfer_recipient_name') or '—'}",
         "",
         "<b>Участники:</b>",
     ]
@@ -76,7 +83,13 @@ async def finalize_split_bill(message: Message, state: FSMContext) -> None:
     split_id = await create_split_bill(
         group_id=GROUP_ID,
         organizer_id=creator_id,
+        title=data.get("title"),
         total_amount=amount,
+        transfer_target_type=data.get("transfer_target_type"),
+        transfer_target_value=data.get("transfer_target_value"),
+        transfer_bank=data.get("transfer_bank"),
+        transfer_bank_custom=data.get("transfer_bank_custom"),
+        transfer_recipient_name=data.get("transfer_recipient_name"),
         source_event_id=source_event_id,
     )
 

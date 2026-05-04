@@ -37,6 +37,10 @@ class SplitBillCreate(StatesGroup):
     amount = State()
     source_event = State()
     target_topic = State()
+    transfer_target = State()
+    transfer_bank = State()
+    transfer_bank_custom = State()
+    transfer_recipient_name = State()
 
 
 async def _cleanup_message(message: Message) -> None:
@@ -146,8 +150,8 @@ async def ask_split_bill_topic(message: Message, state: FSMContext) -> None:
         )
         await state.update_data(last_prompt_id=prompt.message_id)
         return
-    await state.update_data(thread_id=None)    
-    await finalize_split_bill(message, state)
+    await state.update_data(thread_id=None)
+    await ask_transfer_target(message, state)
 
 
 @router.callback_query(SplitBillCreate.target_topic, F.data.startswith("topic_"))
@@ -157,7 +161,79 @@ async def split_bill_topic_callback(callback: CallbackQuery, state: FSMContext):
     thread_id = int(thread_id_raw) if thread_id_raw != "0" else None
     await state.update_data(thread_id=thread_id)
     await callback.answer("Подгруппа выбрана")
-    await finalize_split_bill(callback.message, state)
+    await ask_transfer_target(callback.message, state)
+
+
+async def ask_transfer_target(message: Message, state: FSMContext) -> None:
+    await state.set_state(SplitBillCreate.transfer_target)
+    rows = [
+        [InlineKeyboardButton(text="📱 Номер телефона", callback_data="sb_tt_phone")],
+        [InlineKeyboardButton(text="💳 Номер карты", callback_data="sb_tt_card")],
+        [InlineKeyboardButton(text="🔗 Ссылка на перевод", callback_data="sb_tt_link")],
+    ]
+    await message.answer("💸 Выберите формат реквизитов для перевода:", reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+
+
+@router.callback_query(SplitBillCreate.transfer_target, F.data.startswith("sb_tt_"))
+async def split_bill_transfer_target_type(callback: CallbackQuery, state: FSMContext):
+    target_type = callback.data.removeprefix("sb_tt_")
+    await state.update_data(transfer_target_type=target_type)
+    await state.set_state(SplitBillCreate.transfer_target)
+    await callback.answer("Выбрано")
+    await callback.message.answer("Введите реквизиты для перевода (телефон/карта/ссылка):")
+
+
+@router.message(SplitBillCreate.transfer_target, ~F.text.startswith("/"))
+async def split_bill_transfer_target_value(message: Message, state: FSMContext):
+    value = (message.text or "").strip()
+    if not value:
+        await message.answer("❌ Реквизиты не должны быть пустыми.")
+        return
+    await state.update_data(transfer_target_value=value)
+    await state.set_state(SplitBillCreate.transfer_bank)
+    rows = [
+        [InlineKeyboardButton(text="Сбер", callback_data="sb_bank_sber")],
+        [InlineKeyboardButton(text="Т-банк", callback_data="sb_bank_tbank")],
+        [InlineKeyboardButton(text="Альфа", callback_data="sb_bank_alfa")],
+        [InlineKeyboardButton(text="Яндекс", callback_data="sb_bank_yandex")],
+        [InlineKeyboardButton(text="Свой вариант", callback_data="sb_bank_other")],
+    ]
+    await message.answer("🏦 Выберите банк:", reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+
+
+@router.callback_query(SplitBillCreate.transfer_bank, F.data.startswith("sb_bank_"))
+async def split_bill_bank_select(callback: CallbackQuery, state: FSMContext):
+    bank = callback.data.removeprefix("sb_bank_")
+    if bank == "other":
+        await state.set_state(SplitBillCreate.transfer_bank_custom)
+        await callback.answer("Укажите свой банк")
+        await callback.message.answer("Введите название банка:")
+        return
+    await state.update_data(transfer_bank=bank, transfer_bank_custom=None)
+    await state.set_state(SplitBillCreate.transfer_recipient_name)
+    await callback.answer("Банк выбран")
+    await callback.message.answer("Введите ФИО получателя перевода:")
+
+
+@router.message(SplitBillCreate.transfer_bank_custom, ~F.text.startswith("/"))
+async def split_bill_bank_custom(message: Message, state: FSMContext):
+    bank_name = (message.text or "").strip()
+    if not bank_name:
+        await message.answer("❌ Название банка не должно быть пустым.")
+        return
+    await state.update_data(transfer_bank="other", transfer_bank_custom=bank_name)
+    await state.set_state(SplitBillCreate.transfer_recipient_name)
+    await message.answer("Введите ФИО получателя перевода:")
+
+
+@router.message(SplitBillCreate.transfer_recipient_name, ~F.text.startswith("/"))
+async def split_bill_recipient_name(message: Message, state: FSMContext):
+    fio = (message.text or "").strip()
+    if not fio:
+        await message.answer("❌ ФИО не должно быть пустым.")
+        return
+    await state.update_data(transfer_recipient_name=fio)
+    await finalize_split_bill(message, state)
 
 
 def split_bill_source_event_keyboard(events: list[dict]) -> InlineKeyboardMarkup:

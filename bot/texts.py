@@ -4,7 +4,14 @@ from html import escape
 import pytz
 
 from bot.config import TIMEZONE
-from bot.utils.event_links import build_google_calendar_link, build_ics_link, build_maps_link
+from bot.utils.event_links import (
+    build_2gis_maps_link,
+    build_google_calendar_link,
+    build_ics_link,
+    build_maps_link,
+    build_yandex_calendar_link,
+    build_yandex_maps_link,
+)
 
 TZ = pytz.timezone(TIMEZONE)
 
@@ -156,14 +163,23 @@ async def format_event_message(
     )
 
     maps_link = build_maps_link(event.get("location"))
+    y_maps_link = build_yandex_maps_link(event.get("location"))
+    dgis_link = build_2gis_maps_link(event.get("location"))
     gcal_link = build_google_calendar_link(event)
+    ycal_link = build_yandex_calendar_link(event)
     ics_link = build_ics_link(event["id"]) if event.get("id") else None
-    if maps_link or gcal_link or ics_link:
+    if maps_link or y_maps_link or dgis_link or gcal_link or ycal_link or ics_link:
         lines.extend(["", "<b>🔗 Полезные ссылки:</b>"])
         if maps_link:
-            lines.append(f'• <a href="{maps_link}">Маршрут / карта</a>')
+            lines.append(f'• <a href="{maps_link}">Google Maps</a>')
+        if y_maps_link:
+            lines.append(f'• <a href="{y_maps_link}">Яндекс Карты</a>')
+        if dgis_link:
+            lines.append(f'• <a href="{dgis_link}">2ГИС</a>')
         if gcal_link:
             lines.append(f'• <a href="{gcal_link}">Google Calendar</a>')
+        if ycal_link:
+            lines.append(f'• <a href="{ycal_link}">Яндекс Календарь</a>')
         if ics_link:
             lines.append(f"• ICS: <code>{ics_link}</code>")
 

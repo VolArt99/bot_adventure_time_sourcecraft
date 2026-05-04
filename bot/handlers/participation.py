@@ -36,6 +36,32 @@ class CarpoolState(StatesGroup):
 router = Router()
 
 
+async def build_event_text(event_id: int, bot: Bot) -> str:
+    event = await get_event(event_id)
+    if not event:
+        return "❌ Мероприятие не найдено."
+    from bot.database import get_topic_name_by_thread_id
+    from bot.utils.helpers import get_user_mention
+
+    going = await get_main_participants(event_id)
+    waitlist = await get_participants(event_id, "waitlist")
+    responsible_id = event.get("responsible_id") or event["creator_id"]
+    all_users = set(going + waitlist + [event["creator_id"], responsible_id])
+    mentions = {uid: await get_user_mention(uid, bot) for uid in all_users}
+    topic_name = await get_topic_name_by_thread_id(event.get("thread_id"))
+    organizer_mention = await get_user_mention(event["creator_id"], bot)
+    responsible_mention = await get_user_mention(responsible_id, bot)
+    return await format_event_message(
+        event,
+        going,
+        waitlist,
+        mentions,
+        topic_name=topic_name,
+        organizer_mention=organizer_mention,
+        responsible_mention=responsible_mention,
+    )
+
+    
 async def update_event_message(
     bot: Bot, event_id: int, thread_id: int, message_id: int
 ):

@@ -16,6 +16,24 @@ def build_maps_link(location: str | None) -> str | None:
     return f"https://www.google.com/maps/search/?api=1&query={quote_plus(cleaned)}"
 
 
+def build_yandex_maps_link(location: str | None) -> str | None:
+    if not location:
+        return None
+    cleaned = location.strip()
+    if not cleaned:
+        return None
+    return f"https://yandex.ru/maps/?text={quote_plus(cleaned)}"
+
+
+def build_2gis_maps_link(location: str | None) -> str | None:
+    if not location:
+        return None
+    cleaned = location.strip()
+    if not cleaned:
+        return None
+    return f"https://2gis.ru/search/{quote_plus(cleaned)}"
+
+
 def build_google_calendar_link(event: dict) -> str | None:
     """Возвращает ссылку на создание события в Google Calendar."""
     if not event:
@@ -52,6 +70,25 @@ def build_google_calendar_link(event: dict) -> str | None:
 
     query = "&".join(f"{k}={quote_plus(v)}" for k, v in params.items())
     return f"https://calendar.google.com/calendar/render?{query}"
+
+
+def build_yandex_calendar_link(event: dict) -> str | None:
+    if not event:
+        return None
+    title = (event.get("title") or "Мероприятие").strip()
+    date_time_raw = event.get("date_time")
+    if not date_time_raw:
+        return None
+    try:
+        start_dt = datetime.fromisoformat(str(date_time_raw))
+    except ValueError:
+        return None
+    duration_minutes = int(event.get("duration_minutes") or 120)
+    end_dt = start_dt + timedelta(minutes=max(1, duration_minutes))
+    return (
+        "https://calendar.yandex.ru/event?"
+        f"name={quote_plus(title)}&start={quote_plus(start_dt.isoformat())}&end={quote_plus(end_dt.isoformat())}"
+    )
 
 
 def build_ics_link(event_id: int | str | None) -> str | None:

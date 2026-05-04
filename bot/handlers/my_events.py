@@ -5,6 +5,7 @@ import pytz
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from bot.config import TIMEZONE, GROUP_ID, ADMIN_IDS
 from bot.database import (
@@ -77,6 +78,7 @@ async def cmd_my_events(message: Message):
 
 @router.callback_query(F.data.startswith("my_events_period_"))
 async def my_events_with_period(callback: CallbackQuery):
+    await callback.message.delete()
     period = callback.data.removeprefix("my_events_period_")
     user_id = callback.from_user.id
     events = await get_user_events(user_id, status="active")
@@ -201,7 +203,7 @@ async def cmd_set_responsible(message: Message):
 async def cmd_add_participant_manual(message: Message):
     parts = _parse_manual_args(message, expected_min=3)
     if not parts:
-        await message.answer("Использование: /add_participant_manual <event_id> <user_id|@username> [going|waitlist]")
+        await message.answer("Использование: <code>/add_participant_manual &lt;event_id&gt; &lt;user_id|@username&gt; [иду|резерв]</code>", parse_mode="HTML")
         return
 
     event_id = parse_int_arg(parts[1])
@@ -215,11 +217,15 @@ async def cmd_add_participant_manual(message: Message):
     if not await is_member_approved(user_id):
         await message.answer("❌ Пользователь не является актуальным участником группы.")
         return    
-    status = parts[3].lower() if len(parts) > 3 else "going"
+    status = parts[3].lower() if len(parts) > 3 else ""
     status_map = {"going": "going", "waitlist": "waitlist", "иду": "going", "резерв": "waitlist"}
     status = status_map.get(status, status)
     if status not in {"going", "waitlist"}:
-        await message.answer("❌ Статус должен быть: иду/резерв (или going/waitlist).")
+        kb = InlineKeyboardBuilder()
+        kb.button(text="✅ Иду", callback_data=f"apm_going_{event_id}_{user_id}")
+        kb.button(text="🕓 Резерв", callback_data=f"apm_waitlist_{event_id}_{user_id}")
+        kb.adjust(2)
+        await message.answer("Выберите статус кнопкой:", reply_markup=kb.as_markup())
         return
 
     allowed, event = await _can_manage_event(event_id, message.from_user.id)
@@ -236,6 +242,23 @@ async def cmd_add_participant_manual(message: Message):
     await message.answer("✅ Участник добавлен." if created else "ℹ️ Участник уже был в списке.")
 
 
+@router.callback_query(F.data.startswith("apm_"))
+async def cb_add_participant_manual_status(callback: CallbackQuery):
+    _, status, event_raw, user_raw = callback.data.split("_", 3)
+    event_id = int(event_raw)
+    user_id = int(user_raw)
+    allowed, event = await _can_manage_event(event_id, callback.from_user.id)
+    if not event or not allowed:
+        await callback.answer("Нет доступа или событие не найдено", show_alert=True)
+        return
+    created = await add_participant(event_id, user_id, status)
+    from bot.handlers.participation import update_event_message
+    await update_event_message(callback.bot, event_id, event["thread_id"], event["message_id"])
+    await callback.message.edit_reply_markup(reply_markup=None)
+    await callback.message.answer("✅ Участник добавлен." if created else "ℹ️ Участник уже был в списке.")
+    await callback.answer()
+
+    
 @router.message(Command("send_event_card"))
 async def cmd_send_event_card(message: Message):
     parts = (message.text or "").split()

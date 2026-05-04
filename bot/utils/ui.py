@@ -21,7 +21,7 @@ def err(text: str) -> str:
 async def safe_delete_bot_message(message) -> None:
     """Удаляет сообщение только если оно отправлено ботом."""
     try:
-        if message and message.from_user and message.bot and message.from_user.id == message.bot.id:
+        if message and message.from_user and bool(getattr(message.from_user, "is_bot", False)):
             await message.delete()
     except Exception:
         pass

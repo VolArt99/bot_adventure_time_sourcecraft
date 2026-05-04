@@ -384,7 +384,13 @@ async def init_db():
             id Int64 NOT NULL,
             group_id Int64 NOT NULL,
             organizer_id Int64 NOT NULL,
+            title Utf8,
             total_amount Double NOT NULL,
+            transfer_target_type Utf8,
+            transfer_target_value Utf8,
+            transfer_bank Utf8,
+            transfer_bank_custom Utf8,
+            transfer_recipient_name Utf8,
             status Utf8 NOT NULL,
             source_event_id Int64,
             created_at Timestamp,
@@ -1375,7 +1381,13 @@ async def create_split_bill(
     *,
     group_id: int,
     organizer_id: int,
+    title: str | None,
     total_amount: float,
+    transfer_target_type: str | None = None,
+    transfer_target_value: str | None = None,
+    transfer_bank: str | None = None,
+    transfer_bank_custom: str | None = None,
+    transfer_recipient_name: str | None = None,
     source_event_id: int | None = None,
 ) -> int:
     pool = await get_pool()
@@ -1394,14 +1406,20 @@ async def create_split_bill(
         lambda session: session.transaction().execute(
             """
             UPSERT INTO split_bill_events
-            (id, group_id, organizer_id, total_amount, status, source_event_id, created_at)
-            VALUES ($id, $group_id, $organizer_id, $total_amount, $status, $source_event_id, $created_at)
+            (id, group_id, organizer_id, title, total_amount, transfer_target_type, transfer_target_value, transfer_bank, transfer_bank_custom, transfer_recipient_name, status, source_event_id, created_at)
+            VALUES ($id, $group_id, $organizer_id, $title, $total_amount, $transfer_target_type, $transfer_target_value, $transfer_bank, $transfer_bank_custom, $transfer_recipient_name, $status, $source_event_id, $created_at)
             """,
             parameters={
                 "id": split_id,
                 "group_id": int(group_id),
                 "organizer_id": int(organizer_id),
+                "title": (title or "").strip() or None,
                 "total_amount": float(total_amount),
+                "transfer_target_type": transfer_target_type,
+                "transfer_target_value": transfer_target_value,
+                "transfer_bank": transfer_bank,
+                "transfer_bank_custom": transfer_bank_custom,
+                "transfer_recipient_name": transfer_recipient_name,
                 "status": "open",
                 "source_event_id": source_event_id,
                 "created_at": now,
@@ -1417,7 +1435,7 @@ async def get_split_bill(split_id: int) -> Optional[dict[str, Any]]:
     result = await pool.retry_operation(
         lambda session: session.transaction().execute(
             """
-            SELECT id, group_id, organizer_id, total_amount, status, source_event_id, created_at, closed_at
+            SELECT id, group_id, organizer_id, title, total_amount, transfer_target_type, transfer_target_value, transfer_bank, transfer_bank_custom, transfer_recipient_name, status, source_event_id, created_at, closed_at
             FROM split_bill_events
             WHERE id = $split_id
             """,
