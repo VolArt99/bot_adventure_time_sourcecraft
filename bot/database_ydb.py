@@ -1435,7 +1435,7 @@ async def get_split_bill(split_id: int) -> Optional[dict[str, Any]]:
     result = await pool.retry_operation(
         lambda session: session.transaction().execute(
             """
-            SELECT id, group_id, organizer_id, title, total_amount, transfer_target_type, transfer_target_value, transfer_bank, transfer_bank_custom, transfer_recipient_name, status, source_event_id, created_at, closed_at
+            SELECT id, group_id, organizer_id, CAST(NULL AS Utf8) AS title, total_amount, transfer_target_type, transfer_target_value, transfer_bank, transfer_bank_custom, transfer_recipient_name, status, source_event_id, created_at, closed_at
             FROM split_bill_events
             WHERE id = $split_id
             """,

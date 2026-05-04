@@ -96,7 +96,7 @@
 - `common_feature/views.py` — формирование крупных текстов (help и др.).
 - `events.py` — сборка подроутеров сценариев событий.
 - `event_scenarios/*` — FSM шаги create/edit/category/carpool/cancel.
-- `participation.py` — callback-логика по участию в мероприятиях.
+- `participation.py` — callback-логика по участию в мероприятиях (поэтапно переводится на единый helper завершения callback).
 - `digest.py`, `subscriptions.py`, `my_events.py`, `reminders.py` — профильные сценарии.
 - `roadmap.py` — my_stats/top/find_events/random optin/optout/pairs.
 - `split_bill.py` — фасад обратной совместимости для split bill.

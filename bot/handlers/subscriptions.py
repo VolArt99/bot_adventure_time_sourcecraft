@@ -13,6 +13,8 @@ from bot.database import (
 from bot.keyboards import period_keyboard
 from bot.texts import format_digest_text
 from bot.utils.helpers import get_username_by_id
+from bot.utils.callbacks import finalize_callback
+from bot.utils.ui import safe_delete_bot_message
 
 router = Router(name=__name__)
 
@@ -70,10 +72,10 @@ async def cmd_subscriptions(message: Message):
 async def open_subscription_group(callback: CallbackQuery):
     group_key = callback.data.removeprefix("sub_group_")
     if group_key not in EVENT_CATEGORY_GROUPS:
-        await callback.answer("Группа не найдена", show_alert=True)
+        await finalize_callback(callback, "Группа не найдена", show_alert=True)
         return
     selected = await get_user_category_subscriptions(callback.from_user.id)
-    await callback.answer()
+    await finalize_callback(callback)
     await callback.message.edit_reply_markup(
         reply_markup=_subscriptions_group_keyboard(group_key, selected)
     )
@@ -90,7 +92,7 @@ async def toggle_subscription(callback: CallbackQuery):
         selected.append(category)
 
     await set_user_category_subscriptions(callback.from_user.id, selected)
-    await callback.answer("Подписки обновлены")
+    await finalize_callback(callback, "Подписки обновлены")
     current = callback.message.reply_markup.inline_keyboard[0][0].callback_data
     if current and current.startswith("sub_toggle_"):
         category = current.removeprefix("sub_toggle_")
@@ -108,12 +110,12 @@ async def subscribe_group_subcategories(callback: CallbackQuery):
     group_key = callback.data.removeprefix("sub_grp_all_")
     group = EVENT_CATEGORY_GROUPS.get(group_key)
     if not group:
-        await callback.answer("Группа не найдена", show_alert=True)
+        await finalize_callback(callback, "Группа не найдена", show_alert=True)
         return
     selected = set(await get_user_category_subscriptions(callback.from_user.id))
     selected.update(group["subcategories"])
     await set_user_category_subscriptions(callback.from_user.id, sorted(selected))
-    await callback.answer("Подгруппа подписана")
+    await finalize_callback(callback, "Подгруппа подписана")
     await callback.message.edit_reply_markup(reply_markup=_subscriptions_group_keyboard(group_key, sorted(selected)))
 
 
@@ -122,33 +124,33 @@ async def unsubscribe_group_subcategories(callback: CallbackQuery):
     group_key = callback.data.removeprefix("sub_grp_none_")
     group = EVENT_CATEGORY_GROUPS.get(group_key)
     if not group:
-        await callback.answer("Группа не найдена", show_alert=True)
+        await finalize_callback(callback, "Группа не найдена", show_alert=True)
         return
     selected = set(await get_user_category_subscriptions(callback.from_user.id))
     selected.difference_update(group["subcategories"])
     await set_user_category_subscriptions(callback.from_user.id, sorted(selected))
-    await callback.answer("Подгруппа отписана")
+    await finalize_callback(callback, "Подгруппа отписана")
     await callback.message.edit_reply_markup(reply_markup=_subscriptions_group_keyboard(group_key, sorted(selected)))
 
     
 @router.callback_query(F.data == "sub_back")
 async def back_subscriptions(callback: CallbackQuery):
     selected = await get_user_category_subscriptions(callback.from_user.id)
-    await callback.answer()
+    await finalize_callback(callback)
     await callback.message.edit_reply_markup(reply_markup=_subscriptions_keyboard(selected))
 
 
 @router.callback_query(F.data == "sub_all")
 async def subscribe_all(callback: CallbackQuery):
     await set_user_category_subscriptions(callback.from_user.id, EVENT_CATEGORIES)
-    await callback.answer("✅ Включены все категории")
+    await finalize_callback(callback, "✅ Включены все категории")
     await callback.message.edit_reply_markup(reply_markup=_subscriptions_keyboard(EVENT_CATEGORIES))
 
 
 @router.callback_query(F.data == "sub_none")
 async def subscribe_none(callback: CallbackQuery):
     await set_user_category_subscriptions(callback.from_user.id, [])
-    await callback.answer("🚫 Все подписки отключены")
+    await finalize_callback(callback, "🚫 Все подписки отключены")
     await callback.message.edit_reply_markup(reply_markup=_subscriptions_keyboard([]))
     
 
@@ -156,11 +158,13 @@ async def subscribe_none(callback: CallbackQuery):
 async def save_subscriptions(callback: CallbackQuery):
     selected = await get_user_category_subscriptions(callback.from_user.id)
     if selected:
-        await callback.answer("Сохранено")
+        await finalize_callback(callback, "Сохранено")
         await callback.message.answer(f"✅ Подписки сохранены: {', '.join(selected)}")
+        await safe_delete_bot_message(callback.message)
     else:
-        await callback.answer("Сохранено")
+        await finalize_callback(callback, "Сохранено")
         await callback.message.answer("✅ Подписки очищены. Персональный дайджест отключён.")
+        await safe_delete_bot_message(callback.message)
 
 
 @router.message(Command("my_digest"))
@@ -178,7 +182,8 @@ async def my_digest_with_period(callback: CallbackQuery):
 
     if not events:
         await callback.message.answer("По вашим подпискам пока нет мероприятий на выбранный период.")
-        await callback.answer()
+        await safe_delete_bot_message(callback.message)
+        await finalize_callback(callback)
         return
 
     usernames = {}
@@ -189,4 +194,4 @@ async def my_digest_with_period(callback: CallbackQuery):
 
     text = format_digest_text(events, usernames, period=period)
     await callback.message.answer(text, parse_mode="HTML", disable_web_page_preview=True)
-    await callback.answer()
+    await finalize_callback(callback, delete_message=True)

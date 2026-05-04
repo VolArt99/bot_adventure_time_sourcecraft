@@ -203,7 +203,7 @@ async def cmd_set_responsible(message: Message):
 async def cmd_add_participant_manual(message: Message):
     parts = _parse_manual_args(message, expected_min=3)
     if not parts:
-        await message.answer("Использование: <code>/add_participant_manual &lt;event_id&gt; &lt;user_id|@username&gt; [иду|резерв]</code>", parse_mode="HTML")
+        await message.answer("Использование: <code>/add_participant_manual &lt;event_id&gt; &lt;user_id|@username&gt;</code>", parse_mode="HTML")
         return
 
     event_id = parse_int_arg(parts[1])
@@ -279,14 +279,14 @@ async def cmd_send_event_card(message: Message):
         await message.answer("❌ Команда доступна организатору, ответственному или админу.")
         return
     from bot.handlers.participation import build_event_text
-    from bot.keyboards import participation_keyboard
+    from bot.keyboards import event_actions
     text = await build_event_text(event_id, message.bot)
     sent = await message.bot.send_message(
         chat_id=event["chat_id"],
         message_thread_id=event.get("thread_id") or None,
         text=text,
         parse_mode="HTML",
-        reply_markup=participation_keyboard(event_id),
+        reply_markup=event_actions(event_id, event.get("carpool_enabled", False)),
         disable_web_page_preview=True,
     )
     await message.answer(f"✅ Карточка мероприятия повторно отправлена (message_id: {sent.message_id}).")

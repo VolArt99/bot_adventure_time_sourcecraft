@@ -89,11 +89,3 @@ def build_yandex_calendar_link(event: dict) -> str | None:
         "https://calendar.yandex.ru/event?"
         f"name={quote_plus(title)}&start={quote_plus(start_dt.isoformat())}&end={quote_plus(end_dt.isoformat())}"
     )
-
-
-def build_ics_link(event_id: int | str | None) -> str | None:
-    """Возвращает deeplink на экспорт ICS через команду бота."""
-    if event_id in (None, ""):
-        return None
-
-    return f"/ics_{event_id}"

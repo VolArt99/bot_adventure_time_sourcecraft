@@ -172,7 +172,7 @@ Telegram-бот для приватного сообщества: меропри
 - `scheduler.py` — постановка/восстановление напоминаний и периодических задач.
 - `weather.py` — интеграция с погодой, HTTP session reuse, TTL-кеш и rate-limit.
 - `metrics.py` — лёгкий in-memory сбор latency-метрик (p50/p95/p99).
-- `event_links.py` — карты, Google Calendar, ICS.
+- `event_links.py` — карты и календарные ссылки (Google/Яндекс).
 - `helpers.py` — mention/username/ссылки на сообщения.
 - `pairing.py` — алгоритм random-пар 1:1.
 
@@ -195,7 +195,7 @@ Telegram-бот для приватного сообщества: меропри
 - `/my_events` — ваши события.
 - `<code>/find_events &lt;запрос&gt;</code>` — поиск по активным событиям.
 - `<code>/set_responsible &lt;event_id&gt; &lt;user_id|@username&gt;</code>` — сменить ответственного (создатель/админ).
-- `<code>/add_participant_manual &lt;event_id&gt; &lt;user_id|@username&gt; [иду|резерв]</code>` — ручное добавление участника.
+- `<code>/add_participant_manual &lt;event_id&gt; &lt;user_id|@username&gt;</code>` — ручное добавление участника.
 - `<code>/send_event_card &lt;event_id&gt;</code>` — обновить/переотправить карточку мероприятия (организатор/ответственный/админ).
 
 ### Дайджесты

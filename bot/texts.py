@@ -7,7 +7,6 @@ from bot.config import TIMEZONE
 from bot.utils.event_links import (
     build_2gis_maps_link,
     build_google_calendar_link,
-    build_ics_link,
     build_maps_link,
     build_yandex_calendar_link,
     build_yandex_maps_link,
@@ -167,8 +166,7 @@ async def format_event_message(
     dgis_link = build_2gis_maps_link(event.get("location"))
     gcal_link = build_google_calendar_link(event)
     ycal_link = build_yandex_calendar_link(event)
-    ics_link = build_ics_link(event["id"]) if event.get("id") else None
-    if maps_link or y_maps_link or dgis_link or gcal_link or ycal_link or ics_link:
+    if maps_link or y_maps_link or dgis_link or gcal_link or ycal_link:
         lines.extend(["", "<b>🔗 Полезные ссылки:</b>"])
         if maps_link:
             lines.append(f'• <a href="{maps_link}">Google Maps</a>')
@@ -180,8 +178,6 @@ async def format_event_message(
             lines.append(f'• <a href="{gcal_link}">Google Calendar</a>')
         if ycal_link:
             lines.append(f'• <a href="{ycal_link}">Яндекс Календарь</a>')
-        if ics_link:
-            lines.append(f"• ICS: <code>{ics_link}</code>")
 
     if carpool:
         lines.extend(["", carpool])
@@ -236,12 +232,6 @@ def format_digest_text(
             else "недоступна"
         )        
 
-        maps_link = build_maps_link(e.get("location"))
-        gcal_link = build_google_calendar_link(e)
-        ics_link = build_ics_link(e["id"]) if e.get("id") else "недоступна"
-        maps_text = f'<a href="{maps_link}">Маршрут / карта</a>' if maps_link else "Маршрут / карта: недоступна"
-        gcal_text = f'<a href="{gcal_link}">Google Calendar</a>' if gcal_link else "Google Calendar: недоступна"
-
         lines.append(
             f"<b>🔥 {title}</b>\n"
             f"🗺 Где: {location}\n"
@@ -249,10 +239,6 @@ def format_digest_text(
             f"🧵 Тема: {topic_name}\n"
             f"👤 Организатор: {org_name}\n"
             f"🔗 Ссылка: {link_text}\n"
-            f"🔗 Полезные ссылки:\n"
-            f"• {maps_text}\n"
-            f"• {gcal_text}\n"
-            f"• ICS: <code>{ics_link}</code>\n"
         )
 
     return "\n".join(lines)
