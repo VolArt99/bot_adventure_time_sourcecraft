@@ -12,6 +12,7 @@ from bot.keyboards import (
 )
 from bot.utils.topics import get_topics_list_from_db
 from bot.utils.callbacks import finalize_callback
+from bot.utils.ui import answer_private_intermediate
 from bot.utils.callback_policy import CALLBACK_DELETE_WIZARD_MESSAGE
 from .shared import CreateEvent
 
@@ -22,12 +23,12 @@ router = Router(name=__name__)
 @router.message(CreateEvent.carpool)
 async def process_carpool(message: Message, state: FSMContext):
     if not message.text:
-        await message.answer("Выберите вариант кнопкой ниже.", reply_markup=carpool_keyboard())
+        await answer_private_intermediate(message, state, "Выберите вариант кнопкой ниже.", reply_markup=carpool_keyboard())
         return
 
     normalized = message.text.lower().strip()
     if normalized not in {"да", "нет", "yes", "no", "y", "n", "1", "0", "true", "false"}:
-        await message.answer("Нажмите одну из кнопок: «Да» или «Нет».", reply_markup=carpool_keyboard())
+        await answer_private_intermediate(message, state, "Нажмите одну из кнопок: «Да» или «Нет».", reply_markup=carpool_keyboard())
         return
 
     carpool = normalized in {"да", "yes", "y", "1", "true"}
@@ -48,16 +49,16 @@ async def process_carpool_choice(message: Message, state: FSMContext, carpool: b
 
     if topics:
         await state.set_state(CreateEvent.thread)
-        await message.answer("🗂 Выберите, где опубликовать мероприятие:", reply_markup=choose_topic_keyboard(topics))
+        await answer_private_intermediate(message, state, "🗂 Выберите, где опубликовать мероприятие:", reply_markup=choose_topic_keyboard(topics))
         return
 
-    await message.answer(
-        "⚠️ Тем не найдено. Опубликуем в основной чат.\n"
-        "💡 Отправьте сообщение в любую тему группы, и бот её автоматически обнаружит."
-    )
     await state.update_data(thread_id=None)
     await state.set_state(CreateEvent.category)
-    await message.answer(
+    await answer_private_intermediate(
+        message,
+        state,
+        "⚠️ Тем не найдено. Опубликуем в основной чат.\n"
+        "💡 Отправьте сообщение в любую тему группы, и бот её автоматически обнаружит.\n\n"
         "📂 Выберите группу категории:",
         reply_markup=category_groups_keyboard(EVENT_CATEGORY_GROUPS),
     )
@@ -72,7 +73,9 @@ async def process_topic(callback: CallbackQuery, state: FSMContext):
         await state.update_data(thread_id=thread_id)
 
         await state.set_state(CreateEvent.category)
-        await callback.message.answer(
+        await answer_private_intermediate(
+            callback.message,
+            state,
             "📂 Выберите группу категории:",
             reply_markup=category_groups_keyboard(EVENT_CATEGORY_GROUPS),
         )

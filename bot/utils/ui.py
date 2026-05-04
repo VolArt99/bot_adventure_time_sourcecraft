@@ -1,7 +1,11 @@
 from __future__ import annotations
 import asyncio
+from collections.abc import Mapping
 from html import escape
 from aiogram import Bot
+from aiogram.fsm.context import FSMContext
+
+PRIVATE_INTERMEDIATE_MESSAGE_IDS_KEY = "private_intermediate_message_ids"
 
 
 def quote_block(title: str, body_lines: list[str], *, allow_html: bool = False) -> str:
@@ -25,6 +29,55 @@ async def safe_delete_bot_message(message) -> None:
             await message.delete()
     except Exception:
         pass
+
+
+async def safe_delete_message_by_id(bot: Bot, chat_id: int, message_id: int) -> None:
+    """Best-effort удаление сообщения по id."""
+    try:
+        await bot.delete_message(chat_id=chat_id, message_id=message_id)
+    except Exception:
+        return
+
+
+def _is_private_message(message) -> bool:
+    return bool(message and getattr(getattr(message, "chat", None), "type", None) == "private")
+
+
+async def cleanup_private_intermediate_messages(message, state: FSMContext) -> None:
+    """Удаляет сохранённые промежуточные сообщения бота в личном чате.
+
+    Используется FSM-сценариями: перед отправкой следующего шага или итогового
+    ответа удаляются предыдущие подсказки/ошибки бота. Итоговые сообщения не
+    сохраняются через этот helper и поэтому остаются в переписке.
+    """
+    if not _is_private_message(message):
+        return
+
+    data: Mapping = await state.get_data()
+    message_ids = data.get(PRIVATE_INTERMEDIATE_MESSAGE_IDS_KEY) or []
+    if not message_ids:
+        return
+
+    chat_id = message.chat.id
+    bot = message.bot
+    for message_id in dict.fromkeys(int(mid) for mid in message_ids if mid):
+        await safe_delete_message_by_id(bot, chat_id, message_id)
+    await state.update_data(**{PRIVATE_INTERMEDIATE_MESSAGE_IDS_KEY: []})
+
+
+async def answer_private_intermediate(message, state: FSMContext, *args, **kwargs):
+    """Отправляет промежуточное сообщение FSM-сценария и запоминает его для удаления."""
+    await cleanup_private_intermediate_messages(message, state)
+    sent = await message.answer(*args, **kwargs)
+    if _is_private_message(message) and sent:
+        await state.update_data(**{PRIVATE_INTERMEDIATE_MESSAGE_IDS_KEY: [sent.message_id]})
+    return sent
+
+
+async def answer_private_final(message, state: FSMContext, *args, **kwargs):
+    """Удаляет промежуточные сообщения и отправляет финальный ответ, не помечая его на удаление."""
+    await cleanup_private_intermediate_messages(message, state)
+    return await message.answer(*args, **kwargs)
 
     
 def info(text: str) -> str:

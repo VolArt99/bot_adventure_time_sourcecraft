@@ -5,6 +5,7 @@ from aiogram.types import CallbackQuery, Message
 from bot.constants import EVENT_CATEGORIES, EVENT_CATEGORY_GROUPS
 from bot.keyboards import category_groups_keyboard, category_subgroups_keyboard
 from bot.utils.callbacks import finalize_callback
+from bot.utils.ui import answer_private_intermediate
 from bot.utils.callback_policy import CALLBACK_DELETE_WIZARD_MESSAGE
 from .shared import CreateEvent, finalize_event_creation
 
@@ -13,7 +14,9 @@ router = Router(name=__name__)
 
 @router.message(CreateEvent.category)
 async def process_category(message: Message, state: FSMContext):
-    await message.answer(
+    await answer_private_intermediate(
+        message,
+        state,
         "❌ Выбор категорий теперь только через кнопки ниже.",
         reply_markup=category_groups_keyboard(EVENT_CATEGORY_GROUPS),
     )
@@ -29,7 +32,9 @@ async def open_category_group(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     selected_categories = data.get("selected_categories", [])
     await state.update_data(active_category_group=group_key)
-    await callback.message.answer(
+    await answer_private_intermediate(
+        callback.message,
+        state,
         f"Выберите подкатегории в группе «{EVENT_CATEGORY_GROUPS[group_key]['title']}». "
         f"Можно выбрать несколько.",
         reply_markup=category_subgroups_keyboard(
@@ -68,8 +73,10 @@ async def toggle_category(callback: CallbackQuery, state: FSMContext):
 
 
 @router.callback_query(CreateEvent.category, F.data == "category_back")
-async def back_to_category_groups(callback: CallbackQuery):
-    await callback.message.answer(
+async def back_to_category_groups(callback: CallbackQuery, state: FSMContext):
+    await answer_private_intermediate(
+        callback.message,
+        state,
         "📂 Выберите группу категории:",
         reply_markup=category_groups_keyboard(EVENT_CATEGORY_GROUPS),
     )

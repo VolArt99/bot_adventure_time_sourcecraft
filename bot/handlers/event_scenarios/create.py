@@ -1,6 +1,5 @@
 from aiogram import F, Router
 from datetime import datetime
-import asyncio
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
@@ -11,7 +10,7 @@ from bot.keyboards import cancel_keyboard, skip_field_keyboard, carpool_keyboard
 from .shared import CreateEvent, parse_datetime
 from bot.utils.callbacks import finalize_callback
 from bot.utils.callback_policy import CALLBACK_DELETE_WIZARD_MESSAGE
-from bot.utils.ui import err, delete_message_later
+from bot.utils.ui import answer_private_intermediate, err
 
 router = Router(name=__name__)
 
@@ -24,14 +23,16 @@ async def cmd_create_event(message: Message, state: FSMContext):
         return
 
     await state.set_state(CreateEvent.title)
-    await message.answer("📝 Введите название мероприятия:", reply_markup=cancel_keyboard())
+    await answer_private_intermediate(message, state, "📝 Введите название мероприятия:", reply_markup=cancel_keyboard())
 
 
 @router.message(CreateEvent.title, ~F.text.startswith("/"))
 async def process_title(message: Message, state: FSMContext):
     await state.update_data(title=message.text)
     await state.set_state(CreateEvent.description)
-    await message.answer(
+    await answer_private_intermediate(
+        message,
+        state,
         "📄 Введите описание (или 'пропустить'):",
         reply_markup=skip_field_keyboard("description"),
     )
@@ -41,7 +42,9 @@ async def process_title(message: Message, state: FSMContext):
 async def skip_description(callback: CallbackQuery, state: FSMContext):
     await state.update_data(description="")
     await state.set_state(CreateEvent.datetime)
-    await callback.message.answer(
+    await answer_private_intermediate(
+        callback.message,
+        state,
         f"🗓 Введите дату и время (ДД.ММ.ГГГГ ЧЧ:ММ):\nПример: {datetime.now().strftime('%d.%m.%Y %H:%M')}",
         reply_markup=cancel_keyboard(),
     )
@@ -52,7 +55,9 @@ async def skip_description(callback: CallbackQuery, state: FSMContext):
 async def process_description(message: Message, state: FSMContext):
     await state.update_data(description=message.text if message.text.lower() != "пропустить" else "")
     await state.set_state(CreateEvent.datetime)
-    await message.answer(
+    await answer_private_intermediate(
+        message,
+        state,
         f"🗓 Введите дату и время (ДД.ММ.ГГГГ ЧЧ:ММ):\nПример: {datetime.now().strftime('%d.%m.%Y %H:%M')}",
         reply_markup=cancel_keyboard(),
     )
@@ -62,7 +67,9 @@ async def process_description(message: Message, state: FSMContext):
 async def process_datetime(message: Message, state: FSMContext):
     dt = await parse_datetime(message.text)
     if not dt:
-        await message.answer(
+        await answer_private_intermediate(
+            message,
+            state,
             "❌ Неверный формат или дата в прошлом.\n"
             "Используйте: ДД.ММ.ГГГГ ЧЧ:ММ\n"
             "Примеры: 25.05.2026 19:30, 01.06.2026 10:00"
@@ -71,7 +78,9 @@ async def process_datetime(message: Message, state: FSMContext):
 
     await state.update_data(date_time=dt.isoformat())
     await state.set_state(CreateEvent.duration)
-    await message.answer(
+    await answer_private_intermediate(
+        message,
+        state,
         "⏱ Введите длительность в часах (или 'пропустить'):\nПример: 2.5",
         reply_markup=skip_field_keyboard("duration"),
     )
@@ -81,7 +90,7 @@ async def process_datetime(message: Message, state: FSMContext):
 async def skip_duration(callback: CallbackQuery, state: FSMContext):
     await state.update_data(duration_minutes=None)
     await state.set_state(CreateEvent.location)
-    await callback.message.answer("📍 Введите место проведения:", reply_markup=cancel_keyboard())
+    await answer_private_intermediate(callback.message, state, "📍 Введите место проведения:", reply_markup=cancel_keyboard())
     await finalize_callback(callback, "Длительность пропущена", delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)
 
 
@@ -93,20 +102,21 @@ async def process_duration(message: Message, state: FSMContext):
         try:
             duration_minutes = int(float(message.text) * 60)
         except ValueError:
-            sent = await message.answer(err("Неверный формат.\nПример: 2 или 2.5\nИли напишите: пропустить"))
-            asyncio.create_task(delete_message_later(message.bot, sent.chat.id, sent.message_id, 25))
+            await answer_private_intermediate(message, state, err("Неверный формат.\nПример: 2 или 2.5\nИли напишите: пропустить"))
             return
 
     await state.update_data(duration_minutes=duration_minutes)
     await state.set_state(CreateEvent.location)
-    await message.answer("📍 Введите место проведения:", reply_markup=cancel_keyboard())
+    await answer_private_intermediate(message, state, "📍 Введите место проведения:", reply_markup=cancel_keyboard())
 
 
 @router.message(CreateEvent.location, ~F.text.startswith("/"))
 async def process_location(message: Message, state: FSMContext):
     await state.update_data(location=message.text)
     await state.set_state(CreateEvent.price_mode)
-    await message.answer(
+    await answer_private_intermediate(
+        message,
+        state,
         "💰 Выберите формат стоимости мероприятия:",
         reply_markup=event_price_mode_keyboard(),
     )
@@ -119,7 +129,9 @@ async def process_price_mode(callback: CallbackQuery, state: FSMContext):
     if mode == "free":
         await state.update_data(price_total=None, price_per_person=None)
         await state.set_state(CreateEvent.limit)
-        await callback.message.answer(
+        await answer_private_intermediate(
+            callback.message,
+            state,
             "👥 Введите лимит участников (число, 'без лимита' или 'пропустить'):",
             reply_markup=skip_field_keyboard("limit"),
         )
@@ -131,7 +143,7 @@ async def process_price_mode(callback: CallbackQuery, state: FSMContext):
         prompt = "💰 Введите общую сумму.\nПример: 5000"
     else:
         prompt = "💰 Введите сумму с человека.\nПример: 500"
-    await callback.message.answer(prompt, reply_markup=cancel_keyboard())
+    await answer_private_intermediate(callback.message, state, prompt, reply_markup=cancel_keyboard())
     await finalize_callback(callback, delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)
 
 
@@ -142,11 +154,10 @@ async def process_price(message: Message, state: FSMContext):
     try:
         amount = float(message.text.replace(",", "."))
     except ValueError:
-        sent = await message.answer(err("Неверный формат.\nВведите число, пример: 500"))
-        asyncio.create_task(delete_message_later(message.bot, sent.chat.id, sent.message_id, 25))
+        await answer_private_intermediate(message, state, err("Неверный формат.\nВведите число, пример: 500"))
         return
     if amount < 0:
-        await message.answer("❌ Сумма не может быть отрицательной.")
+        await answer_private_intermediate(message, state, "❌ Сумма не может быть отрицательной.")
         return
 
     total = amount if mode == "total" else None
@@ -154,7 +165,9 @@ async def process_price(message: Message, state: FSMContext):
 
     await state.update_data(price_total=total, price_per_person=per_person)
     await state.set_state(CreateEvent.limit)
-    await message.answer(
+    await answer_private_intermediate(
+        message,
+        state,
         "👥 Введите лимит участников (число, 'без лимита' или 'пропустить'):",
         reply_markup=skip_field_keyboard("limit"),
     )
@@ -164,7 +177,7 @@ async def process_price(message: Message, state: FSMContext):
 async def skip_limit(callback: CallbackQuery, state: FSMContext):
     await state.update_data(participant_limit=None)
     await state.set_state(CreateEvent.carpool)
-    await callback.message.answer(CARPOOL_HELP_TEXT, reply_markup=carpool_keyboard(), parse_mode="HTML")
+    await answer_private_intermediate(callback.message, state, CARPOOL_HELP_TEXT, reply_markup=carpool_keyboard(), parse_mode="HTML")
     await finalize_callback(callback, "Лимит пропущен", delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)
 
 
@@ -176,9 +189,9 @@ async def process_limit(message: Message, state: FSMContext):
         try:
             participant_limit = int(message.text)
         except ValueError:
-            await message.answer("❌ Введите число, 'без лимита' или 'пропустить':")
+            await answer_private_intermediate(message, state, "❌ Введите число, 'без лимита' или 'пропустить':")
             return
 
     await state.update_data(participant_limit=participant_limit)
     await state.set_state(CreateEvent.carpool)
-    await message.answer(CARPOOL_HELP_TEXT, reply_markup=carpool_keyboard(), parse_mode="HTML")
+    await answer_private_intermediate(message, state, CARPOOL_HELP_TEXT, reply_markup=carpool_keyboard(), parse_mode="HTML")

@@ -13,7 +13,7 @@ from bot.database import get_user_events, get_user_id_by_username
 from bot.config import TIMEZONE
 from bot.keyboards import cancel_keyboard, choose_topic_keyboard
 from bot.utils.topics import get_topics_list_from_db
-from bot.utils.ui import safe_delete_bot_message
+from bot.utils.ui import answer_private_intermediate
 from bot.utils.helpers import parse_int_arg
 from bot.utils.callbacks import finalize_callback
 from bot.utils.callback_policy import CALLBACK_DELETE_WIZARD_MESSAGE
@@ -45,10 +45,6 @@ class SplitBillCreate(StatesGroup):
     transfer_recipient_name = State()
 
 
-async def _cleanup_message(message: Message) -> None:
-    await safe_delete_bot_message(message)
-
-
 @router.message(Command("split_bill"))
 async def cmd_split_bill(message: Message, state: FSMContext):
     if message.chat.type != "private":
@@ -57,31 +53,26 @@ async def cmd_split_bill(message: Message, state: FSMContext):
 
     await state.set_state(SplitBillCreate.title)
     await state.update_data(creator_id=message.from_user.id)
-    await _cleanup_message(message)
-    prompt = await message.answer("🧾 Введите название чека:", reply_markup=cancel_keyboard())
-    await state.update_data(last_prompt_id=prompt.message_id)
+    await answer_private_intermediate(message, state, "🧾 Введите название чека:", reply_markup=cancel_keyboard())
 
 
 @router.message(SplitBillCreate.title, ~F.text.startswith("/"))
 async def split_bill_title(message: Message, state: FSMContext):
-    await _cleanup_message(message)
     await state.update_data(title=message.text.strip())
     await state.set_state(SplitBillCreate.amount)
-    prompt = await message.answer("💰 Введите общую сумму чека (например, 4200):", reply_markup=cancel_keyboard())
-    await state.update_data(last_prompt_id=prompt.message_id)
+    await answer_private_intermediate(message, state, "💰 Введите общую сумму чека (например, 4200):", reply_markup=cancel_keyboard())
 
 
 @router.message(SplitBillCreate.amount, ~F.text.startswith("/"))
 async def split_bill_amount(message: Message, state: FSMContext):
-    await _cleanup_message(message)
     try:
         amount = float((message.text or "").replace(",", ".").strip())
     except ValueError:
-        await message.answer("❌ Сумма должна быть числом, например 4200 или 4200.50")
+        await answer_private_intermediate(message, state, "❌ Сумма должна быть числом, например 4200 или 4200.50")
         return
 
     if amount <= 0:
-        await message.answer("❌ Сумма должна быть больше 0.")
+        await answer_private_intermediate(message, state, "❌ Сумма должна быть больше 0.")
         return
 
     await state.update_data(total_amount=amount)
@@ -93,12 +84,13 @@ async def split_bill_amount(message: Message, state: FSMContext):
         if datetime.fromisoformat(e["date_time"]).astimezone(TZ).date() == now.date()
     ]
     keyboard = split_bill_source_event_keyboard(upcoming)
-    prompt = await message.answer(
+    await answer_private_intermediate(
+        message,
+        state,
         "🔗 Укажите ID мероприятия, чтобы автоматически подтянуть участников, "
         "или выберите мероприятие кнопкой ниже.",
         reply_markup=keyboard,
     )
-    await state.update_data(last_prompt_id=prompt.message_id)
 
 
 @router.callback_query(SplitBillCreate.source_event, F.data == "skip_split_event")
@@ -110,7 +102,6 @@ async def split_bill_skip_event(callback: CallbackQuery, state: FSMContext):
 
 @router.message(SplitBillCreate.source_event, ~F.text.startswith("/"))
 async def split_bill_source_event(message: Message, state: FSMContext):
-    await _cleanup_message(message)
     raw = (message.text or "").strip()
     if raw.lower() == "пропустить":
         await state.update_data(source_event_id=None)
@@ -118,7 +109,7 @@ async def split_bill_source_event(message: Message, state: FSMContext):
         return
 
     if not raw.isdigit():
-        await message.answer("❌ Введите числовой event_id или нажмите «Пропустить».")
+        await answer_private_intermediate(message, state, "❌ Введите числовой event_id или нажмите «Пропустить».")
         return
 
     await state.update_data(source_event_id=int(raw))
@@ -145,11 +136,12 @@ async def ask_split_bill_topic(message: Message, state: FSMContext) -> None:
     topics = await get_topics_list_from_db()
     await state.set_state(SplitBillCreate.target_topic)
     if topics:
-        prompt = await message.answer(
+        await answer_private_intermediate(
+            message,
+            state,
             "🗂 Выберите подгруппу для публикации разделения чека:",
             reply_markup=choose_topic_keyboard(topics),
         )
-        await state.update_data(last_prompt_id=prompt.message_id)
         return
     await state.update_data(thread_id=None)
     await ask_transfer_target(message, state)
@@ -171,7 +163,7 @@ async def ask_transfer_target(message: Message, state: FSMContext) -> None:
         [InlineKeyboardButton(text="💳 Номер карты", callback_data="sb_tt_card")],
         [InlineKeyboardButton(text="🔗 Ссылка на перевод", callback_data="sb_tt_link")],
     ]
-    await message.answer("💸 Выберите формат реквизитов для перевода:", reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+    await answer_private_intermediate(message, state, "💸 Выберите формат реквизитов для перевода:", reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
 
 
 @router.callback_query(SplitBillCreate.transfer_target, F.data.startswith("sb_tt_"))
@@ -179,7 +171,7 @@ async def split_bill_transfer_target_type(callback: CallbackQuery, state: FSMCon
     target_type = callback.data.removeprefix("sb_tt_")
     await state.update_data(transfer_target_type=target_type)
     await state.set_state(SplitBillCreate.transfer_target)
-    await callback.message.answer("Введите реквизиты для перевода (телефон/карта/ссылка):")
+    await answer_private_intermediate(callback.message, state, "Введите реквизиты для перевода (телефон/карта/ссылка):")
     await finalize_callback(callback, "Выбрано", delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)
 
 
@@ -187,7 +179,7 @@ async def split_bill_transfer_target_type(callback: CallbackQuery, state: FSMCon
 async def split_bill_transfer_target_value(message: Message, state: FSMContext):
     value = (message.text or "").strip()
     if not value:
-        await message.answer("❌ Реквизиты не должны быть пустыми.")
+        await answer_private_intermediate(message, state, "❌ Реквизиты не должны быть пустыми.")
         return
     await state.update_data(transfer_target_value=value)
     await state.set_state(SplitBillCreate.transfer_bank)
@@ -198,7 +190,7 @@ async def split_bill_transfer_target_value(message: Message, state: FSMContext):
         [InlineKeyboardButton(text="Яндекс", callback_data="sb_bank_yandex")],
         [InlineKeyboardButton(text="Свой вариант", callback_data="sb_bank_other")],
     ]
-    await message.answer("🏦 Выберите банк:", reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+    await answer_private_intermediate(message, state, "🏦 Выберите банк:", reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
 
 
 @router.callback_query(SplitBillCreate.transfer_bank, F.data.startswith("sb_bank_"))
@@ -206,12 +198,12 @@ async def split_bill_bank_select(callback: CallbackQuery, state: FSMContext):
     bank = callback.data.removeprefix("sb_bank_")
     if bank == "other":
         await state.set_state(SplitBillCreate.transfer_bank_custom)
-        await callback.message.answer("Введите название банка:")
+        await answer_private_intermediate(callback.message, state, "Введите название банка:")
         await finalize_callback(callback, "Укажите свой банк", delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)
         return
     await state.update_data(transfer_bank=bank, transfer_bank_custom=None)
     await state.set_state(SplitBillCreate.transfer_recipient_name)
-    await callback.message.answer("Введите ФИО получателя перевода:")
+    await answer_private_intermediate(callback.message, state, "Введите ФИО получателя перевода:")
     await finalize_callback(callback, "Банк выбран", delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)
 
 
@@ -219,18 +211,18 @@ async def split_bill_bank_select(callback: CallbackQuery, state: FSMContext):
 async def split_bill_bank_custom(message: Message, state: FSMContext):
     bank_name = (message.text or "").strip()
     if not bank_name:
-        await message.answer("❌ Название банка не должно быть пустым.")
+        await answer_private_intermediate(message, state, "❌ Название банка не должно быть пустым.")
         return
     await state.update_data(transfer_bank="other", transfer_bank_custom=bank_name)
     await state.set_state(SplitBillCreate.transfer_recipient_name)
-    await message.answer("Введите ФИО получателя перевода:")
+    await answer_private_intermediate(message, state, "Введите ФИО получателя перевода:")
 
 
 @router.message(SplitBillCreate.transfer_recipient_name, ~F.text.startswith("/"))
 async def split_bill_recipient_name(message: Message, state: FSMContext):
     fio = (message.text or "").strip()
     if not fio:
-        await message.answer("❌ ФИО не должно быть пустым.")
+        await answer_private_intermediate(message, state, "❌ ФИО не должно быть пустым.")
         return
     await state.update_data(transfer_recipient_name=fio)
     await finalize_split_bill(message, state)

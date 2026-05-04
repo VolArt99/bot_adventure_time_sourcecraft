@@ -133,7 +133,8 @@
 - `/set_responsible` и `/add_participant_manual` принимают как `user_id`, так и `@username`.
 - `/send_event_card <event_id>` позволяет организатору/ответственному/админу переопубликовать карточку мероприятия.
 - `/pending_intro` и `/list_intro` должны отражать только актуальных участников группы; записи исключённых пользователей очищаются из локальной таблицы.
-- В пошаговом `/split_bill` промежуточные сообщения в ЛС удаляются после успешного перехода по шагам через единый callback policy (`CALLBACK_DELETE_WIZARD_MESSAGE`); публичные group callbacks оставляют карточки на месте (`CALLBACK_KEEP_PUBLIC_MESSAGE`).
+- В пошаговых ЛС-сценариях (`/create_event`, `/split_bill`) промежуточные сообщения бота удаляются перед отправкой следующей подсказки или итогового ответа через `answer_private_intermediate`; итоговые ответы отправляются через `answer_private_final` и не помечаются на удаление.
+- Callback policy (`CALLBACK_DELETE_WIZARD_MESSAGE`) удаляет wizard-сообщения с кнопками, публичные group callbacks оставляют карточки на месте (`CALLBACK_KEEP_PUBLIC_MESSAGE`).
 
 ---
 

@@ -12,6 +12,7 @@ from bot.keyboards import event_actions
 from bot.texts import format_event_message
 from bot.utils.helpers import get_user_mention
 from bot.utils.weather import get_weather
+from bot.utils.ui import answer_private_final
 
 logger = logging.getLogger(__name__)
 TZ = pytz.timezone(TIMEZONE)
@@ -107,9 +108,13 @@ async def finalize_event_creation(
 
         await schedule_reminders_for_event(event_id, bot)
 
-        await state.clear()
         link = f"https://t.me/c/{str(GROUP_ID).replace('-100', '')}/{sent_msg.message_id}"
-        await message.answer(f"✅ Мероприятие создано!\n🧵 Тема: {topic_name or 'Основной чат'}\n🔗 {link}")
+        await answer_private_final(
+            message,
+            state,
+            f"✅ Мероприятие создано!\n🧵 Тема: {topic_name or 'Основной чат'}\n🔗 {link}",
+        )
+        await state.clear()
     except Exception as exc:
         logger.error(f"Ошибка публикации: {exc}")
-        await message.answer(f"❌ Ошибка публикации: {str(exc)[:200]}")
+        await answer_private_final(message, state, f"❌ Ошибка публикации: {str(exc)[:200]}")

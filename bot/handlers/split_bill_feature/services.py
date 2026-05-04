@@ -15,6 +15,7 @@ from bot.database import (
     remove_split_bill_participant,
 )
 from bot.utils.helpers import get_user_mention
+from bot.utils.ui import answer_private_final
 
 
 def parse_args(message: Message) -> list[str]:
@@ -112,12 +113,14 @@ async def finalize_split_bill(message: Message, state: FSMContext) -> None:
         reply_markup=split_bill_actions(split_id),
     )
 
-    await state.clear()
-    await message.answer(
+    await answer_private_final(
+        message,
+        state,
         f"✅ Чек «{data.get('title') or f'#{split_id}'}» создан и опубликован.\n"
         f"ID: {split_id}\n"
-        f"Ссылка: https://t.me/c/{str(GROUP_ID).replace('-100', '')}/{sent.message_id}"
+        f"Ссылка: https://t.me/c/{str(GROUP_ID).replace('-100', '')}/{sent.message_id}",
     )
+    await state.clear()
 
 
 async def refresh_split_message(callback: CallbackQuery, split_id: int) -> None:
