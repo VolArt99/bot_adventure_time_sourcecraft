@@ -357,10 +357,10 @@ async def list_topics(message: Message):
         )
         return
 
-    response = f"🧵 Найдено тем: <b>{len(topics)}</b>\n\n"
+    response = f"⚠️ Найдено тем: <b>{len(topics)}</b>\n\n"
     for topic in topics:
         response += f"🚀 <b>{topic['name']}</b> "
-        response += f"🔢 ID темы: <code>{topic['message_thread_id']}</code>\n"
+        response += f" ID темы: <code>{topic['message_thread_id']}</code>\n"
 
     await message.answer(response, parse_mode="HTML")
 

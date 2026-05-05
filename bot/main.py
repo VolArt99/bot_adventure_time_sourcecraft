@@ -64,16 +64,20 @@ async def _notify_owner_about_error(event: Update | None, exc: Exception) -> Non
 
     update_id = getattr(event, "update_id", "unknown")
     user_id = None
+    user_command = "unknown"
     if event and event.message and event.message.from_user:
         user_id = event.message.from_user.id
+        user_command = (event.message.text or "").strip()[:120] or "unknown"
     elif event and event.callback_query and event.callback_query.from_user:
         user_id = event.callback_query.from_user.id
+        user_command = (event.callback_query.data or "").strip()[:120] or "unknown"
 
     tb_short = "\n".join(traceback.format_exception_only(type(exc), exc)).strip()
     text = (
         "🚨 <b>Техническая ошибка бота</b>\n"
         f"• update_id: <code>{update_id}</code>\n"
         f"• user_id: <code>{user_id or 'unknown'}</code>\n"
+        f"• command: <code>{user_command}</code>\n"
         f"• error: <code>{tb_short[:800]}</code>\n"
         f"• throttle: {ERROR_THROTTLE_SECONDS}с"
     )
@@ -81,6 +85,27 @@ async def _notify_owner_about_error(event: Update | None, exc: Exception) -> Non
         await bot.send_message(OWNER_ID, text, parse_mode="HTML")
     except Exception:
         logger.exception("Не удалось отправить ошибку владельцу")
+
+
+async def _notify_user_about_error(event: Update | None) -> None:
+    if not event:
+        return
+    user_id = None
+    if event.message and event.message.from_user:
+        user_id = event.message.from_user.id
+    elif event.callback_query and event.callback_query.from_user:
+        user_id = event.callback_query.from_user.id
+    if not user_id:
+        return
+    from bot.config import OWNER_ID
+    text = (
+        "❌ Команда не сработала. Пожалуйста, обратитесь в поддержку к владельцу группы.\n"
+        f"Контакт: tg://user?id={OWNER_ID}"
+    )
+    try:
+        await bot.send_message(user_id, text, disable_web_page_preview=True)
+    except Exception:
+        logger.exception("Не удалось уведомить пользователя об ошибке")
 
 
 def _register_handlers() -> None:
@@ -112,6 +137,7 @@ def _register_handlers() -> None:
         logger.exception("Unhandled error while processing update", exc_info=err)
         update_obj = getattr(event, "update", None) if event else None
         await _notify_owner_about_error(update_obj, err or Exception("unknown error"))
+        await _notify_user_about_error(update_obj)
         return True
     
     

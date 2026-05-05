@@ -112,7 +112,7 @@ async def finalize_event_creation(
         await answer_private_final(
             message,
             state,
-            f"✅ Мероприятие создано!\n🧵 Тема: {topic_name or 'Основной чат'}\n🔗 {link}",
+            f"✅ Мероприятие создано!\n🚀 Тема: {topic_name or 'Основной чат'}\n🔗 {link}",
         )
         await state.clear()
     except Exception as exc:

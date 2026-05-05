@@ -134,7 +134,7 @@ async def format_event_message(
         lines.append(description)
 
     if topic_name:
-        lines.append(f"🧵 Тема: {escape(topic_name)}")
+        lines.append(f"🚀 Тема: {escape(topic_name)}")
 
     if organizer_mention:
         lines.append(f"👤 Организатор: {organizer_mention}")
@@ -236,7 +236,7 @@ def format_digest_text(
             f"<b>🔥 {title}</b>\n"
             f"🗺 Где: {location}\n"
             f"🗓 Когда: {date_str}\n"
-            f"🧵 Тема: {topic_name}\n"
+            f"🚀 Тема: {topic_name}\n"
             f"👤 Организатор: {org_name}\n"
             f"🔗 Ссылка: {link_text}\n"
         )

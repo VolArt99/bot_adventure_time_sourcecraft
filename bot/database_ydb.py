@@ -1419,7 +1419,7 @@ async def create_split_bill(
     source_event_id: int | None = None,
 ) -> int:
     pool = await get_pool()
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     result = await pool.retry_operation(
         lambda session: session.transaction().execute(
             """
@@ -2239,7 +2239,7 @@ async def get_events_for_user_subscriptions(
         )
     )
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     max_dt = now + timedelta(days=period_days)
     subscriptions_set = {
         item.strip().lower() for item in subscriptions if item and item.strip()
@@ -2254,6 +2254,8 @@ async def get_events_for_user_subscriptions(
         event_dt = _parse_event_datetime(event_dict.get("date_time"))
         if event_dt is None:
             continue
+        if event_dt.tzinfo is None:
+            event_dt = event_dt.replace(tzinfo=timezone.utc)
         if now <= event_dt <= max_dt:
             events.append(event_dict)
 

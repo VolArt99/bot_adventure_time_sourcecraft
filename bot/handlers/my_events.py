@@ -125,7 +125,7 @@ async def my_events_with_period(callback: CallbackQuery):
             f"\n<b>{event['title']}</b>\n"
             f"🆔 ID: <code>{event['id']}</code>\n"
             f"🗓 {date_str}\n"
-            f"🧵 Тема: {topic_title}\n"
+            f"🚀 Тема: {topic_title}\n"
             f"📍 {event.get('location') or 'не указано'}\n"
             f"🔗 Ссылка: {link_text}"
         )
@@ -283,7 +283,7 @@ async def cmd_send_event_card(message: Message):
     from bot.keyboards import event_actions
     text = await build_event_text(event_id, message.bot)
     sent = await message.bot.send_message(
-        chat_id=event["chat_id"],
+        chat_id=event.get("chat_id") or GROUP_ID,
         message_thread_id=event.get("thread_id") or None,
         text=text,
         parse_mode="HTML",

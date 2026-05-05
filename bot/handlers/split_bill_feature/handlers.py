@@ -34,6 +34,9 @@ from .services import (
 router = Router(name=__name__)
 TZ = pytz.timezone(TIMEZONE)
 
+def _is_private_message(message: Message) -> bool:
+    return bool(message and message.chat and message.chat.type == "private")
+
 class SplitBillCreate(StatesGroup):
     title = State()
     amount = State()
@@ -58,6 +61,8 @@ async def cmd_split_bill(message: Message, state: FSMContext):
 
 @router.message(SplitBillCreate.title, ~F.text.startswith("/"))
 async def split_bill_title(message: Message, state: FSMContext):
+    if not _is_private_message(message):
+        return
     await state.update_data(title=message.text.strip())
     await state.set_state(SplitBillCreate.amount)
     await answer_private_intermediate(message, state, "💰 Введите общую сумму чека (например, 4200):", reply_markup=cancel_keyboard())
@@ -65,6 +70,8 @@ async def split_bill_title(message: Message, state: FSMContext):
 
 @router.message(SplitBillCreate.amount, ~F.text.startswith("/"))
 async def split_bill_amount(message: Message, state: FSMContext):
+    if not _is_private_message(message):
+        return
     try:
         amount = float((message.text or "").replace(",", ".").strip())
     except ValueError:
@@ -102,6 +109,8 @@ async def split_bill_skip_event(callback: CallbackQuery, state: FSMContext):
 
 @router.message(SplitBillCreate.source_event, ~F.text.startswith("/"))
 async def split_bill_source_event(message: Message, state: FSMContext):
+    if not _is_private_message(message):
+        return
     raw = (message.text or "").strip()
     if raw.lower() == "пропустить":
         await state.update_data(source_event_id=None)
@@ -177,6 +186,8 @@ async def split_bill_transfer_target_type(callback: CallbackQuery, state: FSMCon
 
 @router.message(SplitBillCreate.transfer_target, ~F.text.startswith("/"))
 async def split_bill_transfer_target_value(message: Message, state: FSMContext):
+    if not _is_private_message(message):
+        return
     value = (message.text or "").strip()
     if not value:
         await answer_private_intermediate(message, state, "❌ Реквизиты не должны быть пустыми.")
@@ -209,6 +220,8 @@ async def split_bill_bank_select(callback: CallbackQuery, state: FSMContext):
 
 @router.message(SplitBillCreate.transfer_bank_custom, ~F.text.startswith("/"))
 async def split_bill_bank_custom(message: Message, state: FSMContext):
+    if not _is_private_message(message):
+        return
     bank_name = (message.text or "").strip()
     if not bank_name:
         await answer_private_intermediate(message, state, "❌ Название банка не должно быть пустым.")
@@ -220,6 +233,8 @@ async def split_bill_bank_custom(message: Message, state: FSMContext):
 
 @router.message(SplitBillCreate.transfer_recipient_name, ~F.text.startswith("/"))
 async def split_bill_recipient_name(message: Message, state: FSMContext):
+    if not _is_private_message(message):
+        return
     fio = (message.text or "").strip()
     if not fio:
         await answer_private_intermediate(message, state, "❌ ФИО не должно быть пустым.")
