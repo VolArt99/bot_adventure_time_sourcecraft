@@ -458,32 +458,38 @@ async def init_db():
             logger.warning("Не удалось применить мягкую миграцию events.responsible_id: %s", exc)
 
 
-    # Мягкая миграция для инсталляций, где split_bill_events была создана до поля title.
-    try:
-        await pool.retry_operation(
-            lambda session: session.execute_scheme(
-                """
-                ALTER TABLE split_bill_events
-                ADD COLUMN title Utf8,
-                ADD COLUMN total_amount Double NOT NULL,
-                ADD COLUMN transfer_target_type Utf8,
-                ADD COLUMN transfer_target_value Utf8,
-                ADD COLUMN transfer_bank Utf8,
-                ADD COLUMN transfer_bank_custom Utf8,
-                ADD COLUMN transfer_recipient_name Utf8;
-                """
+    # Мягкая миграция split_bill_events по колонкам.
+    # В старых инсталляциях часть колонок уже может быть создана, поэтому ALTER выполняем отдельно.
+    split_bill_event_alters = [
+        ("title", "Utf8"),
+        ("transfer_target_type", "Utf8"),
+        ("transfer_target_value", "Utf8"),
+        ("transfer_bank", "Utf8"),
+        ("transfer_bank_custom", "Utf8"),
+        ("transfer_recipient_name", "Utf8"),
+    ]
+    for column_name, column_type in split_bill_event_alters:
+        try:
+            await pool.retry_operation(
+                lambda session, name=column_name, ctype=column_type: session.execute_scheme(
+                    f"""
+                    ALTER TABLE split_bill_events
+                    ADD COLUMN {name} {ctype};
+                    """
+                )
             )
-        )
-        logger.info("Добавлены колонки split_bill_events.title и связанные с суммой и переводом")
-    except Exception as exc:
-        if _is_schema_limit_error(exc):
-            logger.warning("Пропускаем ALTER split_bill_events.title из-за лимита YDB: %s", exc)
-        elif "path does not exist" in str(exc).lower():
-            logger.warning("Таблица split_bill_events пока недоступна для ALTER, миграция будет повторена позже")
-        elif "already exists" in str(exc).lower():
-            pass
-        else:
-            logger.warning("Не удалось применить мягкую миграцию split_bill_events.title: %s", exc)
+            logger.info("Добавлена колонка split_bill_events.%s", column_name)
+        except Exception as exc:
+            if _is_schema_limit_error(exc):
+                logger.warning("Пропускаем ALTER split_bill_events.%s из-за лимита YDB: %s", column_name, exc)
+                continue
+            exc_text = str(exc).lower()
+            if "path does not exist" in exc_text:
+                logger.warning("Таблица split_bill_events пока недоступна для ALTER, миграция будет повторена позже")
+                break
+            if "already exists" in exc_text:
+                continue
+            logger.warning("Не удалось применить мягкую миграцию split_bill_events.%s: %s", column_name, exc)
 
 
 async def get_or_create_user(user_id: int, username: str = None) -> int:
