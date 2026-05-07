@@ -162,6 +162,23 @@ def broadcast_topics_keyboard(topics: list[dict], period: str) -> InlineKeyboard
     return builder.as_markup()
 
 
+def random_pairs_topics_keyboard(topics: list[dict]) -> InlineKeyboardMarkup:
+    """Клавиатура выбора подгруппы для публикации random 1:1 пар."""
+    builder = InlineKeyboardBuilder()
+    builder.button(text="📌 В основной чат", callback_data="random_pairs_topic_0")
+
+    for topic in topics:
+        topic_id = topic.get("message_thread_id") or topic.get("id")
+        topic_name = topic.get("name", f"Тема {topic_id}")
+        builder.button(
+            text=f"📁 {topic_name}",
+            callback_data=f"random_pairs_topic_{topic_id}",
+        )
+
+    builder.adjust(1)
+    return builder.as_markup()
+
+
 def notification_settings_keyboard(current: str) -> InlineKeyboardMarkup:
     """Клавиатура настроек уведомлений."""
     builder = InlineKeyboardBuilder()

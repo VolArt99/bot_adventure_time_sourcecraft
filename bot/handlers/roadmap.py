@@ -1,10 +1,9 @@
 from datetime import datetime
-from aiogram import Router
+from aiogram import F, Router
 from aiogram.filters import Command
-from aiogram.types import Message
-from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
+from aiogram.types import CallbackQuery, Message
 
-from bot.config import OWNER_ID, TIMEZONE
+from bot.config import GROUP_ID, OWNER_ID, TIMEZONE
 from bot.database import get_user_stats, get_top_participants, find_events
 from bot.database import (
     set_random_meeting_opt_in,
@@ -14,6 +13,10 @@ from bot.database import (
 from bot.utils.helpers import get_username_by_id, get_user_mention
 from bot.utils.pairing import build_random_pairs
 from bot.filters.admin import admin_only
+from bot.keyboards import random_pairs_topics_keyboard
+from bot.utils.callback_policy import CALLBACK_DELETE_WIZARD_MESSAGE
+from bot.utils.callbacks import finalize_callback
+from bot.utils.topics import get_topics_list_from_db
 
 import pytz
 
@@ -110,25 +113,44 @@ async def cmd_random_pairs(message: Message):
         await message.answer("Недостаточно участников с согласием для 1:1.")
         return
 
+    topics = await get_topics_list_from_db()
+    await message.answer(
+        "Выберите группу/подгруппу, куда опубликовать random 1:1 пары:",
+        reply_markup=random_pairs_topics_keyboard(topics),
+    )
+
+
+@router.callback_query(F.data.startswith("random_pairs_topic_"))
+@admin_only
+async def cb_random_pairs_publish(callback: CallbackQuery):
+    thread_raw = callback.data.removeprefix("random_pairs_topic_")
+    thread_id = int(thread_raw) if thread_raw != "0" else None
+
+    users = await get_random_meeting_opt_in_users()
+    if len(users) < 2:
+        await callback.message.answer("Недостаточно участников с согласием для 1:1.")
+        await finalize_callback(callback, delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)
+        return
+    
     pairs, leftovers = build_random_pairs(users)
-    lines = [f"🤝 Сформировано пар: {len(pairs)}"]
+    lines = ["🤝 <b>Random 1:1 пары</b>", f"Сформировано пар: <b>{len(pairs)}</b>", ""]
     for left_id, right_id in pairs:
-        left_name = await get_user_mention(left_id, message.bot)
-        right_name = await get_user_mention(right_id, message.bot)
+        left_name = await get_user_mention(left_id, callback.bot)
+        right_name = await get_user_mention(right_id, callback.bot)
         lines.append(f"• {left_name} ↔ {right_name}")
-        for uid, partner in ((left_id, right_name), (right_id, left_name)):
-            try:
-                await message.bot.send_message(
-                    uid,
-                    f"🤝 Ваша случайная встреча 1:1: {partner}. Договоритесь о времени!",
-                )
-            except (TelegramForbiddenError, TelegramBadRequest):
-                pass
 
     if leftovers:
-        lines.append("Ожидают следующего раунда: " + ", ".join(f"id{uid}" for uid in leftovers))
+        leftover_mentions = [await get_user_mention(uid, callback.bot) for uid in leftovers]
+        lines.extend(["", "Ожидают следующего раунда: " + ", ".join(leftover_mentions)])
 
-    await message.answer("\n".join(lines), parse_mode="HTML")
+    await callback.bot.send_message(
+        chat_id=GROUP_ID,
+        message_thread_id=thread_id,
+        text="\n".join(lines),
+        parse_mode="HTML",
+    )
+    await callback.message.answer("✅ Random 1:1 пары опубликованы в выбранной группе/подгруппе.")
+    await finalize_callback(callback, "Опубликовано", delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)
 
 
 @router.message(Command("random_optin_count"))

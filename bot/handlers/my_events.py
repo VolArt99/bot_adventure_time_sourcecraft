@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from html import escape
 
 import pytz
 
@@ -279,18 +280,31 @@ async def cmd_send_event_card(message: Message):
     if not allowed:
         await message.answer("❌ Команда доступна организатору, ответственному или админу.")
         return
-    from bot.handlers.participation import build_event_text
-    from bot.keyboards import event_actions
-    text = await build_event_text(event_id, message.bot)
+    dt = datetime.fromisoformat(event["date_time"]).astimezone(TZ)
+    topic_name = await get_topic_name_by_thread_id(event.get("thread_id"))
+    event_link = build_event_message_link(GROUP_ID, event.get("message_id"))
+    link_text = (
+        f'<a href="{event_link}">открыть основную карточку</a>'
+        if event_link
+        else "основная карточка недоступна"
+    )
+    text = (
+        "📌 <b>Напоминание о мероприятии</b>\n"
+        f"🆔 ID: <code>{event_id}</code>\n"
+        f"Название: <b>{escape(str(event['title']))}</b>\n"
+        f"🗓 {dt.strftime('%d.%m.%Y %H:%M')}\n"
+        f"📍 {escape(str(event.get('location') or 'не указано'))}\n"
+        f"🚀 Тема: {escape(str(topic_name or 'Основной чат'))}\n"
+        f"🔗 {link_text}"
+    )
     sent = await message.bot.send_message(
         chat_id=event.get("chat_id") or GROUP_ID,
         message_thread_id=event.get("thread_id") or None,
         text=text,
         parse_mode="HTML",
-        reply_markup=event_actions(event_id, event.get("carpool_enabled", False)),
         disable_web_page_preview=True,
     )
-    await message.answer(f"✅ Карточка мероприятия повторно отправлена (message_id: {sent.message_id}).")
+    await message.answer(f"✅ Короткое сообщение со ссылкой отправлено (message_id: {sent.message_id}).")
 
 
 @router.message(Command("set_carpool_manual"))

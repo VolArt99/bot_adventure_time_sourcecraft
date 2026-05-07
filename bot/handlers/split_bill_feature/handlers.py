@@ -9,7 +9,7 @@ from datetime import datetime
 import pytz
 
 from bot.database import is_member_approved
-from bot.database import get_user_events, get_user_id_by_username
+from bot.database import get_approved_member_ids, get_user_events, get_user_id_by_username
 from bot.config import TIMEZONE
 from bot.keyboards import cancel_keyboard, choose_topic_keyboard
 from bot.utils.topics import get_topics_list_from_db
@@ -33,6 +33,30 @@ from .services import (
 
 router = Router(name=__name__)
 TZ = pytz.timezone(TIMEZONE)
+
+
+async def _resolve_user_id(raw_user: str, message: Message) -> int | None:
+    value = (raw_user or "").strip()
+    if value.isdigit():
+        return int(value)
+
+    username = value.lstrip("@").lower()
+    if not username:
+        return None
+
+    resolved = await get_user_id_by_username(username)
+    if resolved:
+        return int(resolved)
+
+    for uid in await get_approved_member_ids():
+        try:
+            chat = await message.bot.get_chat(uid)
+        except Exception:
+            continue
+        if (getattr(chat, "username", "") or "").lower() == username:
+            return int(uid)
+    return None
+
 
 def _is_private_message(message: Message) -> bool:
     return bool(message and message.chat and message.chat.type == "private")
@@ -345,17 +369,9 @@ async def cmd_split_bill_add(message: Message):
     if split_id is None:
         await message.answer("Использование: /split_bill_add <split_id> <user_id|@username>")
         return
-    raw_user = args[1]
-    if raw_user.isdigit():
-        user_id = int(raw_user)
-    elif raw_user.startswith("@"):
-        resolved = await get_user_id_by_username(raw_user[1:])
-        if not resolved:
-            await message.answer("❌ Не удалось определить пользователя по username.")
-            return
-        user_id = int(resolved)
-    else:
-        await message.answer("❌ Укажите user_id или @username.")
+    user_id = await _resolve_user_id(args[1], message)
+    if not user_id:
+        await message.answer("❌ Не удалось определить пользователя. Используйте user_id или @username.")
         return
     if not await is_member_approved(user_id):
         await message.answer("❌ Пользователь не является актуальным участником группы.")

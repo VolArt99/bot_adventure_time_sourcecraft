@@ -46,7 +46,8 @@ async def format_split_bill_text(split_id: int, bot) -> str:
     participants = await get_split_bill_participants(split_id)
     organizer_mention = await get_user_mention(int(bill["organizer_id"]), bot)
     lines = [
-        f"💳 <b>Разделение чека #{split_id}</b>",
+        f"💳 <b>Разделение чека</b>",
+        f"🆔 ID: <code>{split_id}</code>",
         f"Название: <b>{bill.get('title') or '—'}</b>",
         f"Статус: <b>{bill.get('status')}</b>",
         f"Организатор: {organizer_mention}",

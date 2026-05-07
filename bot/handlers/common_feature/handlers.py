@@ -295,12 +295,6 @@ async def cmd_usage_stats(message: Message):
     await message.answer("\n".join(lines), parse_mode="HTML")
 
 
-@router.message(Command("health"))
-@restricted_command
-async def cmd_health(message: Message):
-    await message.answer("✅ Бот запущен и отвечает. Используйте /debug_info для подробной диагностики.")
-
-
 @router.message(Command("status"))
 async def cmd_status(message: Message):
     await message.answer("✅ Бот работает. Для списка возможностей используйте /help.")

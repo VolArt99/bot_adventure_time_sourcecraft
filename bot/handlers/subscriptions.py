@@ -2,6 +2,7 @@ from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.types import CallbackQuery, Message
 
+from bot.config import GROUP_ID
 from bot.constants import EVENT_CATEGORIES, EVENT_CATEGORY_GROUPS
 from bot.database import (
     get_events_for_user_subscriptions,
@@ -12,7 +13,7 @@ from bot.database import (
 )
 from bot.keyboards import period_keyboard
 from bot.texts import format_digest_text
-from bot.utils.helpers import get_username_by_id
+from bot.utils.helpers import build_event_message_link, get_username_by_id
 from bot.utils.callbacks import finalize_callback
 from bot.utils.callback_policy import CALLBACK_DELETE_WIZARD_MESSAGE
 
@@ -186,7 +187,8 @@ async def my_digest_with_period(callback: CallbackQuery):
     for event in events:
         usernames[event["creator_id"]] = await get_username_by_id(event["creator_id"], callback.bot)
         topic_name = await get_topic_name_by_thread_id(event.get("thread_id"))
-        event["topic_name"] = topic_name
+        event["topic_name"] = topic_name or "Основной чат"
+        event["event_link"] = build_event_message_link(GROUP_ID, event.get("message_id"))
 
     text = format_digest_text(events, usernames, period=period)
     await callback.message.answer(text, parse_mode="HTML", disable_web_page_preview=True)
