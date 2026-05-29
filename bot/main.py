@@ -27,7 +27,29 @@ from bot.utils.scheduler import restore_jobs, start_scheduler
 from bot.fsm_storage_ydb import YdbStorage
 from bot.init_flags import should_run_schema_init, should_run_schema_init_webhook
 
-from aiogram.types import Update
+from aiogram.types import BotCommand, BotCommandScopeDefault, Update
+
+USER_COMMANDS = [
+    BotCommand(command="start", description="Открыть главное меню"),
+    BotCommand(command="help", description="Список возможностей"),
+    BotCommand(command="menu", description="Открыть кнопочное меню"),
+    BotCommand(command="status", description="Проверить работу бота"),
+    BotCommand(command="create_event", description="Создать мероприятие"),
+    BotCommand(command="my_events", description="Мои мероприятия"),
+    BotCommand(command="digest", description="Афиша мероприятий"),
+    BotCommand(command="subscriptions", description="Настроить подписки"),
+    BotCommand(command="my_digest", description="Персональная афиша"),
+    BotCommand(command="find_events", description="Поиск мероприятий"),
+    BotCommand(command="split_bill", description="Создать разделение чека"),
+    BotCommand(command="split_bill_add", description="Добавить участника в чек"),
+    BotCommand(command="split_bill_remove", description="Удалить участника из чека"),
+]
+
+
+async def setup_bot_commands() -> None:
+    """Публикует команды в системном меню Telegram."""
+    await bot.set_my_commands(USER_COMMANDS, scope=BotCommandScopeDefault())
+    
 
 # Настройка логирования
 logging.basicConfig(
@@ -161,6 +183,7 @@ async def ensure_initialized(*, for_polling: bool = False) -> None:
             else:
                 logger.info("AUTO_INIT_DB disabled: пропускаем init_db() в этом окружении")
             await sync_topics_from_config()
+            await setup_bot_commands()
             _register_handlers()
             logger.info("База, темы и роутеры инициализированы")
             _is_initialized = True

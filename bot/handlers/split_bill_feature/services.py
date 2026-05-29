@@ -15,6 +15,7 @@ from bot.database import (
     remove_split_bill_participant,
 )
 from bot.utils.helpers import get_user_mention
+from bot.utils.design import BRAND, card_cta, card_header, card_section
 from bot.utils.ui import answer_private_final
 
 
@@ -45,22 +46,43 @@ async def format_split_bill_text(split_id: int, bot) -> str:
 
     participants = await get_split_bill_participants(split_id)
     organizer_mention = await get_user_mention(int(bill["organizer_id"]), bot)
+    paid_count = sum(1 for p in participants if p.get("is_paid"))
+    waiting_count = max(0, len(participants) - paid_count)
+    progress_units = 10
+    filled_units = round((paid_count / len(participants)) * progress_units) if participants else 0
+    progress_bar = "✅" * filled_units + "⏳" * (progress_units - filled_units)
+    bank = (
+        bill.get("transfer_bank_custom")
+        if bill.get("transfer_bank") == "other"
+        else bill.get("transfer_bank")
+    ) or "—"
+
     lines = [
-        f"💳 <b>Разделение чека</b>",
+        *card_header(BRAND["money"], "Разделение чека", "Карточка сбора и статусы оплат"),
         f"🆔 ID: <code>{split_id}</code>",
-        f"Название: <b>{bill.get('title') or '—'}</b>",
-        f"Статус: <b>{bill.get('status')}</b>",
-        f"Организатор: {organizer_mention}",
-        f"Сумма: <b>{bill.get('total_amount')} ₽</b>",
-        f"Участников: <b>{len(participants)}</b>",
+        f"🧾 Название: <b>{bill.get('title') or '—'}</b>",
+        f"📌 Статус: <b>{bill.get('status')}</b>",
+        f"👤 Организатор: {organizer_mention}",
+        f"💰 Сумма: <b>{bill.get('total_amount')} ₽</b>",
+        *card_section(
+            "Шкала оплат",
+            [
+                progress_bar,
+                f"✅ оплатили: <b>{paid_count}</b> / ⏳ ждём: <b>{waiting_count}</b>",
+                f"👥 участников: <b>{len(participants)}</b>",
+            ],
+        ),
+        *card_section(
+            "Реквизиты",
+            [
+                f"• Тип: {bill.get('transfer_target_type') or '—'}",
+                f"• Куда: {bill.get('transfer_target_value') or '—'}",
+                f"• Банк: {bank}",
+                f"• Получатель: {bill.get('transfer_recipient_name') or '—'}",
+            ],
+        ),
         "",
-        "<b>Реквизиты для перевода:</b>",
-        f"Тип: {bill.get('transfer_target_type') or '—'}",
-        f"Куда: {bill.get('transfer_target_value') or '—'}",
-        f"Банк: {(bill.get('transfer_bank_custom') if bill.get('transfer_bank') == 'other' else bill.get('transfer_bank')) or '—'}",
-        f"Получатель: {bill.get('transfer_recipient_name') or '—'}",
-        "",
-        "<b>Участники:</b>",
+        "<b>Участники</b>",
     ]
 
     if not participants:
@@ -68,10 +90,11 @@ async def format_split_bill_text(split_id: int, bot) -> str:
     else:
         for p in participants:
             uid = int(p["user_id"])
-            paid = "✅" if p.get("is_paid") else "⌛"
+            paid = "✅" if p.get("is_paid") else "⏳"
             mention = await get_user_mention(uid, bot)
             lines.append(f"{paid} {mention} — {p.get('share_amount')} ₽")
 
+    lines.extend(card_cta("Нажмите «Оплатил(а)», когда перевели свою долю."))
     return "\n".join(lines)
 
 

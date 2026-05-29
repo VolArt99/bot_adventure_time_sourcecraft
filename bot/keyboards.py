@@ -4,13 +4,13 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 
-def cancel_keyboard() -> InlineKeyboardMarkup:
-    """Клавиатура отмены."""
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_create")]
-        ]
-    )
+def cancel_keyboard(back_callback: str | None = None) -> InlineKeyboardMarkup:
+    """Клавиатура отмены с опциональным шагом назад."""
+    rows: list[list[InlineKeyboardButton]] = []
+    if back_callback:
+        rows.append([InlineKeyboardButton(text="↩️ Назад", callback_data=back_callback)])
+    rows.append([InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_create")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 def event_actions(event_id: int, carpool_enabled: bool = False) -> InlineKeyboardMarkup:
@@ -27,7 +27,7 @@ def event_actions(event_id: int, carpool_enabled: bool = False) -> InlineKeyboar
     return builder.as_markup()
 
 
-def choose_topic_keyboard(topics: list[dict]) -> InlineKeyboardMarkup:
+def choose_topic_keyboard(topics: list[dict], back_callback: str | None = None) -> InlineKeyboardMarkup:
     """Клавиатура для выбора темы с реальными названиями."""
     builder = InlineKeyboardBuilder()
 
@@ -38,30 +38,97 @@ def choose_topic_keyboard(topics: list[dict]) -> InlineKeyboardMarkup:
         topic_name = topic.get("name", f"Тема {topic_id}")
         builder.button(text=f"📁 {topic_name}", callback_data=f"topic_{topic_id}")
 
+    if back_callback:
+        builder.button(text="↩️ Назад", callback_data=back_callback)
+    builder.button(text="❌ Отмена", callback_data="cancel_create")
     builder.adjust(1)
     return builder.as_markup()
 
 
-def skip_field_keyboard(field: str) -> InlineKeyboardMarkup:
-    """Кнопка для пропуска опционального шага."""
+def skip_field_keyboard(field: str, back_callback: str | None = None) -> InlineKeyboardMarkup:
+    """Кнопка для пропуска опционального шага с опциональным шагом назад."""
+    rows = [[InlineKeyboardButton(text="⏭ Пропустить", callback_data=f"skip_{field}")]]
+    if back_callback:
+        rows.append([InlineKeyboardButton(text="↩️ Назад", callback_data=back_callback)])
+    rows.append([InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_create")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+
+def event_period_mode_keyboard(back_callback: str | None = None) -> InlineKeyboardMarkup:
+    """Кнопки выбора: разовое мероприятие или период действия."""
+    rows = [
+        [InlineKeyboardButton(text="📍 Разовое мероприятие", callback_data="event_period_none")],
+        [InlineKeyboardButton(text="📚 Период действия", callback_data="event_period_range")],
+    ]
+    if back_callback:
+        rows.append([InlineKeyboardButton(text="↩️ Назад", callback_data=back_callback)])
+    rows.append([InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_create")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def event_preview_keyboard() -> InlineKeyboardMarkup:
+    """Клавиатура подтверждения мини-превью мероприятия."""
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="⏭ Пропустить", callback_data=f"skip_{field}")],
+            [InlineKeyboardButton(text="🚀 Опубликовать", callback_data="event_preview_publish")],
+            [InlineKeyboardButton(text="↩️ К категориям", callback_data="event_back")],
             [InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_create")],
         ]
     )
 
 
-def event_price_mode_keyboard() -> InlineKeyboardMarkup:
+def quick_event_templates_keyboard() -> InlineKeyboardMarkup:
+    """Быстрые сценарии создания мероприятий."""
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="📚 Книжный клуб", callback_data="template_event_book"),
+                InlineKeyboardButton(text="🧠 Квиз", callback_data="template_event_quiz"),
+            ],
+            [
+                InlineKeyboardButton(text="🎲 Настолки", callback_data="template_event_boardgames"),
+                InlineKeyboardButton(text="🚶 Прогулка", callback_data="template_event_walk"),
+            ],
+            [InlineKeyboardButton(text="🍽 Ужин", callback_data="template_event_dinner")],
+            [InlineKeyboardButton(text="🏠 В меню", callback_data="menu_create_event")],
+        ]
+    )
+
+
+def main_menu_keyboard(is_admin_or_owner: bool = False) -> InlineKeyboardMarkup:
+    """Визуальное меню основных команд для личных сообщений."""
+    rows = [
+        [
+            InlineKeyboardButton(text="🎉 Создать", callback_data="menu_create_event"),
+            InlineKeyboardButton(text="📅 Мои", callback_data="menu_my_events"),
+        ],
+        [
+            InlineKeyboardButton(text="🧾 Чек", callback_data="menu_split_bill"),
+            InlineKeyboardButton(text="📣 Афиша", callback_data="menu_digest"),
+        ],
+        [
+            InlineKeyboardButton(text="🔔 Подписки", callback_data="menu_subscriptions"),
+            InlineKeyboardButton(text="🤝 Комьюнити", callback_data="menu_community"),
+        ],
+        [InlineKeyboardButton(text="⚡ Быстрые сценарии", callback_data="menu_quick")],
+        [InlineKeyboardButton(text="❓ Помощь", callback_data="menu_help")],
+    ]
+    if is_admin_or_owner:
+        rows.append([InlineKeyboardButton(text="🛡 Админ-панель", callback_data="menu_admin")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+def event_price_mode_keyboard(back_callback: str | None = None) -> InlineKeyboardMarkup:
     """Кнопки выбора модели стоимости мероприятия."""
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="💰 Общая сумма", callback_data="price_mode_total")],
-            [InlineKeyboardButton(text="👤 С человека", callback_data="price_mode_person")],
-            [InlineKeyboardButton(text="🆓 Бесплатно", callback_data="price_mode_free")],
-            [InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_create")],
-        ]
-    )
+    rows = [
+        [InlineKeyboardButton(text="💰 Общая сумма", callback_data="price_mode_total")],
+        [InlineKeyboardButton(text="👤 С человека", callback_data="price_mode_person")],
+        [InlineKeyboardButton(text="🆓 Бесплатно", callback_data="price_mode_free")],
+    ]
+    if back_callback:
+        rows.append([InlineKeyboardButton(text="↩️ Назад", callback_data=back_callback)])
+    rows.append([InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_create")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 def category_keyboard(categories: list[str]) -> InlineKeyboardMarkup:
@@ -74,20 +141,21 @@ def category_keyboard(categories: list[str]) -> InlineKeyboardMarkup:
     return builder.as_markup()
 
 
-def carpool_keyboard() -> InlineKeyboardMarkup:
+def carpool_keyboard(back_callback: str | None = None) -> InlineKeyboardMarkup:
     """Кнопки выбора карпулинга."""
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(text="✅ Да", callback_data="carpool_yes"),
-                InlineKeyboardButton(text="❌ Нет", callback_data="carpool_no"),
-            ],
-            [InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_create")],
-        ]
-    )
+    rows = [
+        [
+            InlineKeyboardButton(text="✅ Да", callback_data="carpool_yes"),
+            InlineKeyboardButton(text="❌ Нет", callback_data="carpool_no"),
+        ],
+    ]
+    if back_callback:
+        rows.append([InlineKeyboardButton(text="↩️ Назад", callback_data=back_callback)])
+    rows.append([InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_create")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
-def category_groups_keyboard(category_groups: dict[str, dict]) -> InlineKeyboardMarkup:
+def category_groups_keyboard(category_groups: dict[str, dict], back_callback: str | None = None) -> InlineKeyboardMarkup:
     """Клавиатура с группами категорий."""
     builder = InlineKeyboardBuilder()
     for group_key, group_data in category_groups.items():
@@ -95,6 +163,9 @@ def category_groups_keyboard(category_groups: dict[str, dict]) -> InlineKeyboard
             text=str(group_data["title"]),
             callback_data=f"category_group_{group_key}",
         )
+    builder.button(text="✅ Готово", callback_data="category_done")
+    if back_callback:
+        builder.button(text="↩️ Назад", callback_data=back_callback)    
     builder.button(text="❌ Отмена", callback_data="cancel_create")
     builder.adjust(1)
     return builder.as_markup()

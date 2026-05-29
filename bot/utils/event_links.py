@@ -49,10 +49,26 @@ def build_google_calendar_link(event: dict) -> str | None:
     except ValueError:
         return None
 
-    duration_minutes = int(event.get("duration_minutes") or 120)
-    if duration_minutes <= 0:
-        duration_minutes = 120
-    end_dt = start_dt + timedelta(minutes=duration_minutes)
+    period_end_raw = event.get("period_end")
+    if period_end_raw:
+        try:
+            end_dt = datetime.fromisoformat(str(period_end_raw))
+        except ValueError:
+            end_dt = None
+        try:
+            is_valid_end = bool(end_dt and end_dt > start_dt)
+        except TypeError:
+            is_valid_end = False
+        if not is_valid_end:
+            end_dt = None
+    else:
+        end_dt = None
+
+    if end_dt is None:
+        duration_minutes = int(event.get("duration_minutes") or 120)
+        if duration_minutes <= 0:
+            duration_minutes = 120
+        end_dt = start_dt + timedelta(minutes=duration_minutes)
 
     dates = f"{start_dt.strftime('%Y%m%dT%H%M%S')}/{end_dt.strftime('%Y%m%dT%H%M%S')}"
     description = (event.get("description") or "").strip()
@@ -83,8 +99,20 @@ def build_yandex_calendar_link(event: dict) -> str | None:
         start_dt = datetime.fromisoformat(str(date_time_raw))
     except ValueError:
         return None
-    duration_minutes = int(event.get("duration_minutes") or 120)
-    end_dt = start_dt + timedelta(minutes=max(1, duration_minutes))
+    period_end_raw = event.get("period_end")
+    end_dt = None
+    if period_end_raw:
+        try:
+            end_dt = datetime.fromisoformat(str(period_end_raw))
+        except ValueError:
+            end_dt = None
+    try:
+        is_valid_end = bool(end_dt and end_dt > start_dt)
+    except TypeError:
+        is_valid_end = False
+    if not is_valid_end:
+        duration_minutes = int(event.get("duration_minutes") or 120)
+        end_dt = start_dt + timedelta(minutes=max(1, duration_minutes))
     return (
         "https://calendar.yandex.ru/event?"
         f"name={quote_plus(title)}&start={quote_plus(start_dt.isoformat())}&end={quote_plus(end_dt.isoformat())}"

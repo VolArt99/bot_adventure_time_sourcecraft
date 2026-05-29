@@ -23,12 +23,12 @@ router = Router(name=__name__)
 @router.message(CreateEvent.carpool)
 async def process_carpool(message: Message, state: FSMContext):
     if not message.text:
-        await answer_private_intermediate(message, state, "Выберите вариант кнопкой ниже.", reply_markup=carpool_keyboard())
+        await answer_private_intermediate(message, state, "Выберите вариант кнопкой ниже.", reply_markup=carpool_keyboard(back_callback="event_back"))
         return
 
     normalized = message.text.lower().strip()
     if normalized not in {"да", "нет", "yes", "no", "y", "n", "1", "0", "true", "false"}:
-        await answer_private_intermediate(message, state, "Нажмите одну из кнопок: «Да» или «Нет».", reply_markup=carpool_keyboard())
+        await answer_private_intermediate(message, state, "Нажмите одну из кнопок: «Да» или «Нет».", reply_markup=carpool_keyboard(back_callback="event_back"))
         return
 
     carpool = normalized in {"да", "yes", "y", "1", "true"}
@@ -49,7 +49,7 @@ async def process_carpool_choice(message: Message, state: FSMContext, carpool: b
 
     if topics:
         await state.set_state(CreateEvent.thread)
-        await answer_private_intermediate(message, state, "🗂 Выберите, где опубликовать мероприятие:", reply_markup=choose_topic_keyboard(topics))
+        await answer_private_intermediate(message, state, "🗂 Выберите, где опубликовать мероприятие:", reply_markup=choose_topic_keyboard(topics, back_callback="event_back"))
         return
 
     await state.update_data(thread_id=None)
@@ -60,7 +60,7 @@ async def process_carpool_choice(message: Message, state: FSMContext, carpool: b
         "⚠️ Тем не найдено. Опубликуем в основной чат.\n"
         "💡 Отправьте сообщение в любую тему группы, и бот её автоматически обнаружит.\n\n"
         "📂 Выберите группу категории:",
-        reply_markup=category_groups_keyboard(EVENT_CATEGORY_GROUPS),
+        reply_markup=category_groups_keyboard(EVENT_CATEGORY_GROUPS, back_callback="event_back"),
     )
 
 
@@ -77,7 +77,7 @@ async def process_topic(callback: CallbackQuery, state: FSMContext):
             callback.message,
             state,
             "📂 Выберите группу категории:",
-            reply_markup=category_groups_keyboard(EVENT_CATEGORY_GROUPS),
+            reply_markup=category_groups_keyboard(EVENT_CATEGORY_GROUPS, back_callback="event_back"),
         )
         await finalize_callback(callback, "✅ Тема выбрана!", delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)
     except Exception as exc:

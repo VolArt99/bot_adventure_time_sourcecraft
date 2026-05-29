@@ -72,6 +72,57 @@ class SplitBillCreate(StatesGroup):
     transfer_recipient_name = State()
 
 
+async def _show_split_bill_step_prompt(message: Message, state: FSMContext, state_name: str) -> None:
+    if state_name == SplitBillCreate.title.state:
+        await answer_private_intermediate(message, state, "🧾 Введите название чека:", reply_markup=cancel_keyboard())
+    elif state_name == SplitBillCreate.amount.state:
+        await answer_private_intermediate(message, state, "💰 Введите общую сумму чека (например, 4200):", reply_markup=cancel_keyboard(back_callback="sb_back"))
+    elif state_name == SplitBillCreate.source_event.state:
+        data = await state.get_data()
+        upcoming = await get_user_events(int(data.get("creator_id") or 0))
+        await answer_private_intermediate(message, state, "🔗 Укажите ID мероприятия или выберите мероприятие кнопкой ниже.", reply_markup=split_bill_source_event_keyboard(upcoming))
+    elif state_name == SplitBillCreate.target_topic.state:
+        topics = await get_topics_list_from_db()
+        await answer_private_intermediate(message, state, "🗂 Выберите подгруппу для публикации разделения чека:", reply_markup=choose_topic_keyboard(topics, back_callback="sb_back"))
+    elif state_name == SplitBillCreate.transfer_target.state:
+        await ask_transfer_target(message, state)
+    elif state_name == SplitBillCreate.transfer_bank.state:
+        rows = [
+            [InlineKeyboardButton(text="Сбер", callback_data="sb_bank_sber")],
+            [InlineKeyboardButton(text="Т-банк", callback_data="sb_bank_tbank")],
+            [InlineKeyboardButton(text="Альфа", callback_data="sb_bank_alfa")],
+            [InlineKeyboardButton(text="Яндекс", callback_data="sb_bank_yandex")],
+            [InlineKeyboardButton(text="Свой вариант", callback_data="sb_bank_other")],
+            [InlineKeyboardButton(text="↩️ Назад", callback_data="sb_back")],
+            [InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_create")],
+        ]
+        await answer_private_intermediate(message, state, "🏦 Выберите банк:", reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+    elif state_name == SplitBillCreate.transfer_bank_custom.state:
+        await answer_private_intermediate(message, state, "Введите название банка:", reply_markup=cancel_keyboard(back_callback="sb_back"))
+    elif state_name == SplitBillCreate.transfer_recipient_name.state:
+        await answer_private_intermediate(message, state, "Введите ФИО получателя перевода:", reply_markup=cancel_keyboard(back_callback="sb_back"))
+
+
+@router.callback_query(F.data == "sb_back")
+async def split_bill_back(callback: CallbackQuery, state: FSMContext):
+    current = await state.get_state()
+    previous = {
+        SplitBillCreate.amount.state: SplitBillCreate.title.state,
+        SplitBillCreate.source_event.state: SplitBillCreate.amount.state,
+        SplitBillCreate.target_topic.state: SplitBillCreate.source_event.state,
+        SplitBillCreate.transfer_target.state: SplitBillCreate.target_topic.state,
+        SplitBillCreate.transfer_bank.state: SplitBillCreate.transfer_target.state,
+        SplitBillCreate.transfer_bank_custom.state: SplitBillCreate.transfer_bank.state,
+        SplitBillCreate.transfer_recipient_name.state: SplitBillCreate.transfer_bank.state,
+    }.get(current)
+    if not previous:
+        await finalize_callback(callback, "Вы уже на первом шаге", show_alert=True)
+        return
+    await state.set_state(previous)
+    await _show_split_bill_step_prompt(callback.message, state, previous)
+    await finalize_callback(callback, "Шаг назад", delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)
+
+
 @router.message(Command("split_bill"))
 async def cmd_split_bill(message: Message, state: FSMContext):
     if message.chat.type != "private":
@@ -89,7 +140,7 @@ async def split_bill_title(message: Message, state: FSMContext):
         return
     await state.update_data(title=message.text.strip())
     await state.set_state(SplitBillCreate.amount)
-    await answer_private_intermediate(message, state, "💰 Введите общую сумму чека (например, 4200):", reply_markup=cancel_keyboard())
+    await answer_private_intermediate(message, state, "💰 Введите общую сумму чека (например, 4200):", reply_markup=cancel_keyboard(back_callback="sb_back"))
 
 
 @router.message(SplitBillCreate.amount, ~F.text.startswith("/"))
@@ -173,7 +224,7 @@ async def ask_split_bill_topic(message: Message, state: FSMContext) -> None:
             message,
             state,
             "🗂 Выберите подгруппу для публикации разделения чека:",
-            reply_markup=choose_topic_keyboard(topics),
+            reply_markup=choose_topic_keyboard(topics, back_callback="sb_back"),
         )
         return
     await state.update_data(thread_id=None)
@@ -195,6 +246,8 @@ async def ask_transfer_target(message: Message, state: FSMContext) -> None:
         [InlineKeyboardButton(text="📱 Номер телефона", callback_data="sb_tt_phone")],
         [InlineKeyboardButton(text="💳 Номер карты", callback_data="sb_tt_card")],
         [InlineKeyboardButton(text="🔗 Ссылка на перевод", callback_data="sb_tt_link")],
+        [InlineKeyboardButton(text="↩️ Назад", callback_data="sb_back")],
+        [InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_create")],
     ]
     await answer_private_intermediate(message, state, "💸 Выберите формат реквизитов для перевода:", reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
 
@@ -204,7 +257,7 @@ async def split_bill_transfer_target_type(callback: CallbackQuery, state: FSMCon
     target_type = callback.data.removeprefix("sb_tt_")
     await state.update_data(transfer_target_type=target_type)
     await state.set_state(SplitBillCreate.transfer_target)
-    await answer_private_intermediate(callback.message, state, "Введите реквизиты для перевода (телефон/карта/ссылка):")
+    await answer_private_intermediate(callback.message, state, "Введите реквизиты для перевода (телефон/карта/ссылка):", reply_markup=cancel_keyboard(back_callback="sb_back"))
     await finalize_callback(callback, "Выбрано", delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)
 
 
@@ -224,6 +277,8 @@ async def split_bill_transfer_target_value(message: Message, state: FSMContext):
         [InlineKeyboardButton(text="Альфа", callback_data="sb_bank_alfa")],
         [InlineKeyboardButton(text="Яндекс", callback_data="sb_bank_yandex")],
         [InlineKeyboardButton(text="Свой вариант", callback_data="sb_bank_other")],
+        [InlineKeyboardButton(text="↩️ Назад", callback_data="sb_back")],
+        [InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_create")],
     ]
     await answer_private_intermediate(message, state, "🏦 Выберите банк:", reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
 
@@ -233,12 +288,12 @@ async def split_bill_bank_select(callback: CallbackQuery, state: FSMContext):
     bank = callback.data.removeprefix("sb_bank_")
     if bank == "other":
         await state.set_state(SplitBillCreate.transfer_bank_custom)
-        await answer_private_intermediate(callback.message, state, "Введите название банка:")
+        await answer_private_intermediate(callback.message, state, "Введите название банка:", reply_markup=cancel_keyboard(back_callback="sb_back"))
         await finalize_callback(callback, "Укажите свой банк", delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)
         return
     await state.update_data(transfer_bank=bank, transfer_bank_custom=None)
     await state.set_state(SplitBillCreate.transfer_recipient_name)
-    await answer_private_intermediate(callback.message, state, "Введите ФИО получателя перевода:")
+    await answer_private_intermediate(callback.message, state, "Введите ФИО получателя перевода:", reply_markup=cancel_keyboard(back_callback="sb_back"))
     await finalize_callback(callback, "Банк выбран", delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)
 
 
@@ -252,7 +307,7 @@ async def split_bill_bank_custom(message: Message, state: FSMContext):
         return
     await state.update_data(transfer_bank="other", transfer_bank_custom=bank_name)
     await state.set_state(SplitBillCreate.transfer_recipient_name)
-    await answer_private_intermediate(message, state, "Введите ФИО получателя перевода:")
+    await answer_private_intermediate(message, state, "Введите ФИО получателя перевода:", reply_markup=cancel_keyboard(back_callback="sb_back"))
 
 
 @router.message(SplitBillCreate.transfer_recipient_name, ~F.text.startswith("/"))
@@ -279,6 +334,7 @@ def split_bill_source_event_keyboard(events: list[dict]) -> InlineKeyboardMarkup
             ]
         )
     rows.append([InlineKeyboardButton(text="⏭ Пропустить", callback_data="sb_source_skip")])
+    rows.append([InlineKeyboardButton(text="↩️ Назад", callback_data="sb_back")])
     rows.append([InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_create")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 

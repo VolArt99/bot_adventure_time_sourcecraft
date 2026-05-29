@@ -22,6 +22,8 @@ class CreateEvent(StatesGroup):
     title = State()
     description = State()
     datetime = State()
+    period_mode = State()
+    period_end = State()
     duration = State()
     location = State()
     price_mode = State()
@@ -30,6 +32,7 @@ class CreateEvent(StatesGroup):
     carpool = State()
     thread = State()
     category = State()
+    preview = State()
 
 
 async def parse_datetime(text: str) -> datetime | None:
@@ -43,12 +46,12 @@ async def parse_datetime(text: str) -> datetime | None:
         return None
 
 
-async def finalize_event_creation(
-    message: Message,
+async def build_event_payload(
     state: FSMContext,
     category_value: str,
     creator_user_id: int,
-):
+) -> dict:
+    """Собирает payload мероприятия из FSM для превью и публикации."""
     await state.update_data(category=category_value)
     data = await state.get_data()
 
@@ -58,11 +61,12 @@ async def finalize_event_creation(
         if weather:
             weather_info = f"{weather['icon']} {weather['description']}, {weather['temp']}°C"
 
-    event_data = {
+    return {
         "title": data["title"],
         "description": data.get("description"),
         "date_time": data["date_time"],
         "duration_minutes": data.get("duration_minutes"),
+        "period_end": data.get("period_end"),
         "location": data.get("location"),
         "price_total": data.get("price_total"),
         "price_per_person": data.get("price_per_person"),
@@ -74,6 +78,16 @@ async def finalize_event_creation(
         "carpool_enabled": data.get("carpool_enabled", False),
         "category": category_value,
     }
+
+
+async def finalize_event_creation(
+    message: Message,
+    state: FSMContext,
+    category_value: str,
+    creator_user_id: int,
+):
+    event_data = await build_event_payload(state, category_value, creator_user_id)
+    data = await state.get_data()
     event_id = await create_event(event_data)
 
     bot = message.bot

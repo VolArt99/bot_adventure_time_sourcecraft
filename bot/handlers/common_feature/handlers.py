@@ -38,13 +38,15 @@ from bot.filters.admin import admin_only
 from bot.filters.command_access import restricted_command
 from bot.keyboards import (
     intro_status_keyboard,
+    main_menu_keyboard,
     onboarding_start_keyboard,
+    quick_event_templates_keyboard,
     rules_ack_keyboard,
 )
 from bot.texts import GROUP_RULES_TEXT, ONBOARDING_WELCOME_TEXT
 
 from .services import extract_command, is_user_in_group, notify_owner_about_request
-from .views import build_help_text
+from .views import build_help_text, build_main_menu_text, build_menu_section_text
 
 logger = logging.getLogger(__name__)
 router = Router()
@@ -58,9 +60,11 @@ async def cmd_start(message: Message):
     await get_or_create_user(user_id, username)
     if await is_user_in_group(message, user_id=user_id):
         await upsert_approved_member(user_id, username, full_name, intro_status="completed")
+        is_admin_or_owner = user_id in ADMIN_IDS or user_id == OWNER_ID
         await message.answer(
-            "👋 С возвращением! Вы уже состоите в группе, поэтому заявка не требуется.\n"
-            "Используйте /help для списка команд."
+            build_main_menu_text(is_admin_or_owner=is_admin_or_owner),
+            parse_mode="HTML",
+            reply_markup=main_menu_keyboard(is_admin_or_owner=is_admin_or_owner),
         )
         return
 
@@ -252,11 +256,46 @@ async def intro_toggle(callback: CallbackQuery):
     await update_intro_status(user_id, new_status)
     await finalize_callback(callback, f"Статус: {new_status}")
 
+@router.message(Command("menu"))
+async def cmd_menu(message: Message):
+    is_admin_or_owner = message.from_user.id in ADMIN_IDS or message.from_user.id == OWNER_ID
+    await message.answer(
+        build_main_menu_text(is_admin_or_owner=is_admin_or_owner),
+        parse_mode="HTML",
+        reply_markup=main_menu_keyboard(is_admin_or_owner=is_admin_or_owner),
+    )
+
 
 @router.message(Command("help"))
 async def cmd_help(message: Message):
     is_admin_or_owner = message.from_user.id in ADMIN_IDS or message.from_user.id == OWNER_ID
-    await message.answer(build_help_text(is_admin_or_owner=is_admin_or_owner), parse_mode="HTML")
+    await message.answer(
+        build_help_text(is_admin_or_owner=is_admin_or_owner),
+        parse_mode="HTML",
+        reply_markup=main_menu_keyboard(is_admin_or_owner=is_admin_or_owner),
+    )
+
+
+@router.callback_query(F.data.startswith("menu_"))
+async def menu_callback(callback: CallbackQuery):
+    section = callback.data.removeprefix("menu_")
+    is_admin_or_owner = callback.from_user.id in ADMIN_IDS or callback.from_user.id == OWNER_ID
+    text = build_menu_section_text(section, is_admin_or_owner=is_admin_or_owner)
+    if not text:
+        await finalize_callback(callback, "Раздел меню недоступен", show_alert=True)
+        return
+
+    reply_markup = (
+        quick_event_templates_keyboard()
+        if section == "quick"
+        else main_menu_keyboard(is_admin_or_owner=is_admin_or_owner)
+    )
+    await callback.message.answer(
+        text,
+        parse_mode="HTML",
+        reply_markup=reply_markup,
+    )
+    await finalize_callback(callback, "Раздел открыт")
 
 
 @router.message(Command("roles"))

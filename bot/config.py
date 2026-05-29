@@ -34,7 +34,7 @@ MEMBER_ALLOWED_COMMANDS = {
     cmd.strip().lower()
     for cmd in os.getenv(
         "MEMBER_ALLOWED_COMMANDS",
-        "start,help,status,create_event,my_events,digest,subscriptions,my_digest,my_stats,top,find_events,random_optin,random_optout,"
+        "start,help,menu,status,create_event,my_events,digest,subscriptions,my_digest,my_stats,top,find_events,random_optin,random_optout,"
         "split_bill,split_bill_add,split_bill_remove,"
         "set_responsible,add_participant_manual,set_carpool_manual,add_passenger_manual",
     ).split(",")

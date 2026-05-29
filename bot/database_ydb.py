@@ -258,6 +258,7 @@ async def init_db():
             description Utf8,
             date_time Utf8 NOT NULL,
             duration_minutes Int64,
+            period_end Utf8,
             location Utf8,
             location_lat Double,
             location_lon Double,
@@ -435,27 +436,28 @@ async def init_db():
         logger.info("Таблицы YDB созданы или уже существуют")
 
 
-    # Мягкая миграция для уже существующих инсталляций без ответственного.
-    try:
-        await pool.retry_operation(
-            lambda session: session.execute_scheme(
-                """
-                ALTER TABLE events
-                ADD COLUMN responsible_id Int64;
-                """
+    # Мягкие миграции для уже существующих инсталляций.
+    event_alters = [("responsible_id", "Int64"), ("period_end", "Utf8")]
+    for column_name, column_type in event_alters:
+        try:
+            await pool.retry_operation(
+                lambda session, name=column_name, ctype=column_type: session.execute_scheme(
+                    f"""
+                    ALTER TABLE events
+                    ADD COLUMN {name} {ctype};
+                    """
+                )
             )
-        )
-        logger.info("Добавлена колонка events.responsible_id")
-    except Exception as exc:
-        # Колонка уже может существовать, либо временно достигнут лимит schema-операций.
-        if _is_schema_limit_error(exc):
-            logger.warning("Пропускаем ALTER events.responsible_id из-за лимита YDB: %s", exc)
-        elif "path does not exist" in str(exc).lower():
-            logger.warning("Таблица events пока недоступна для ALTER, миграция будет повторена позже")
-        elif "already exists" in str(exc).lower():
-            pass
-        else:
-            logger.warning("Не удалось применить мягкую миграцию events.responsible_id: %s", exc)
+            logger.info("Добавлена колонка events.%s", column_name)
+        except Exception as exc:
+            if _is_schema_limit_error(exc):
+                logger.warning("Пропускаем ALTER events.%s из-за лимита YDB: %s", column_name, exc)
+            elif "path does not exist" in str(exc).lower():
+                logger.warning("Таблица events пока недоступна для ALTER, миграция будет повторена позже")
+            elif "already exists" in str(exc).lower():
+                pass
+            else:
+                logger.warning("Не удалось применить мягкую миграцию events.%s: %s", column_name, exc)
 
 
     # Мягкая миграция split_bill_events по колонкам.
@@ -901,13 +903,13 @@ async def create_event(event_data: Dict[str, Any]) -> int:
         lambda session: session.transaction().execute(
             """
             INSERT INTO events (
-                id, title, description, date_time, duration_minutes,
+                id, title, description, date_time, duration_minutes, period_end,
                 location, location_lat, location_lon,
                 price_total, price_per_person, participant_limit,
                 thread_id, message_id, creator_id,
                 responsible_id, weather_info, carpool_enabled, category
             ) VALUES (
-                $id, $title, $description, $date_time, $duration_minutes,
+                $id, $title, $description, $date_time, $duration_minutes, $period_end,
                 $location, $location_lat, $location_lon,
                 $price_total, $price_per_person, $participant_limit,
                 $thread_id, $message_id, $creator_id,
@@ -920,6 +922,7 @@ async def create_event(event_data: Dict[str, Any]) -> int:
                 "description": event_data.get("description", ""),
                 "date_time": event_data.get("date_time", ""),
                 "duration_minutes": event_data.get("duration_minutes") or 0,
+                "period_end": event_data.get("period_end") or "",
                 "location": event_data.get("location", ""),
                 "location_lat": event_data.get("location_lat") or 0.0,
                 "location_lon": event_data.get("location_lon") or 0.0,

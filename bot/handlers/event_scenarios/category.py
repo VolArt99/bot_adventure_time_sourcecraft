@@ -3,11 +3,14 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
 from bot.constants import EVENT_CATEGORIES, EVENT_CATEGORY_GROUPS
-from bot.keyboards import category_groups_keyboard, category_subgroups_keyboard
+from bot.keyboards import category_groups_keyboard, category_subgroups_keyboard, event_preview_keyboard
 from bot.utils.callbacks import finalize_callback
 from bot.utils.ui import answer_private_intermediate
 from bot.utils.callback_policy import CALLBACK_DELETE_WIZARD_MESSAGE
-from .shared import CreateEvent, finalize_event_creation
+from bot.database import get_topic_name_by_thread_id
+from bot.texts import format_event_message
+from bot.utils.helpers import get_user_mention
+from .shared import CreateEvent, build_event_payload, finalize_event_creation
 
 router = Router(name=__name__)
 
@@ -18,7 +21,7 @@ async def process_category(message: Message, state: FSMContext):
         message,
         state,
         "❌ Выбор категорий теперь только через кнопки ниже.",
-        reply_markup=category_groups_keyboard(EVENT_CATEGORY_GROUPS),
+        reply_markup=category_groups_keyboard(EVENT_CATEGORY_GROUPS, back_callback="event_back"),
     )
 
 
@@ -78,7 +81,7 @@ async def back_to_category_groups(callback: CallbackQuery, state: FSMContext):
         callback.message,
         state,
         "📂 Выберите группу категории:",
-        reply_markup=category_groups_keyboard(EVENT_CATEGORY_GROUPS),
+        reply_markup=category_groups_keyboard(EVENT_CATEGORY_GROUPS, back_callback="event_back"),
     )
     await finalize_callback(callback, delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)
 
@@ -91,10 +94,46 @@ async def finish_categories(callback: CallbackQuery, state: FSMContext):
         await finalize_callback(callback, "Выберите хотя бы одну подкатегорию", show_alert=True)
         return
 
+    category_value = ",".join(selected_categories)
+    event_data = await build_event_payload(state, category_value, callback.from_user.id)
+    organizer_mention = await get_user_mention(callback.from_user.id, callback.bot)
+    responsible_id = event_data.get("responsible_id", callback.from_user.id)
+    responsible_mention = await get_user_mention(responsible_id, callback.bot)
+    topic_name = await get_topic_name_by_thread_id(event_data.get("thread_id"))
+    preview_text = await format_event_message(
+        {**event_data, "id": "preview"},
+        [],
+        [],
+        {callback.from_user.id: organizer_mention, responsible_id: responsible_mention},
+        topic_name=topic_name,
+        organizer_mention=organizer_mention,
+        responsible_mention=responsible_mention,
+    )
+    await state.set_state(CreateEvent.preview)
+    await answer_private_intermediate(
+        callback.message,
+        state,
+        "👀 <b>Мини-превью карточки</b>\n"
+        "Проверьте, как мероприятие будет выглядеть в группе. Если всё ок — публикуем.\n\n"
+        f"{preview_text}",
+        reply_markup=event_preview_keyboard(),
+        parse_mode="HTML",
+    )
+    await finalize_callback(callback, "Показано превью", delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)
+
+
+@router.callback_query(CreateEvent.preview, F.data == "event_preview_publish")
+async def publish_previewed_event(callback: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    category_value = data.get("category")
+    if not category_value:
+        await finalize_callback(callback, "Категории не выбраны", show_alert=True)
+        return
+    
     await finalize_event_creation(
         callback.message,
         state,
-        ",".join(selected_categories),
+        category_value,
         creator_user_id=callback.from_user.id,
     )
-    await finalize_callback(callback, "Категории сохранены", delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)
+    await finalize_callback(callback, "Мероприятие опубликовано", delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)

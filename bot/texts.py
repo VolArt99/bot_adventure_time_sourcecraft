@@ -4,6 +4,8 @@ from html import escape
 import pytz
 
 from bot.config import TIMEZONE
+from bot.constants import EVENT_CATEGORY_GROUPS
+from bot.utils.design import BRAND, CARD_DIVIDER, card_cta, card_header, card_section
 from bot.utils.event_links import (
     build_2gis_maps_link,
     build_google_calendar_link,
@@ -56,6 +58,20 @@ def format_duration(minutes: int | None) -> str:
     return f"{mins} мин"
 
 
+def format_event_period(start_dt: datetime, period_end_raw: str | None) -> str | None:
+    """Форматирует период действия мероприятия, если он задан."""
+    if not period_end_raw:
+        return None
+    try:
+        end_dt = datetime.fromisoformat(str(period_end_raw)).astimezone(TZ)
+    except ValueError:
+        return None
+
+    start_text = start_dt.strftime("%d.%m.%Y %H:%M")
+    end_text = end_dt.strftime("%d.%m.%Y %H:%M")
+    return f"📆 Период: {start_text} — {end_text}"
+
+
 def category_to_hashtag(category: str | None) -> str:
     if not category:
         return ""
@@ -63,6 +79,27 @@ def category_to_hashtag(category: str | None) -> str:
     return f"#{safe}"
 
 
+def category_emoji(category: str | None) -> str:
+    """Возвращает emoji группы для категории."""
+    if not category:
+        return "📂"
+    normalized = category.strip().lower()
+    for group in EVENT_CATEGORY_GROUPS.values():
+        if normalized in {str(item).lower() for item in group["subcategories"]}:
+            return str(group["title"]).split()[0]
+    return "📂"
+
+
+def category_to_branded_hashtags(categories_raw: str | None) -> str:
+    """Форматирует категории с emoji-брендингом."""
+    if not categories_raw:
+        return "не указана"
+    categories = [item.strip() for item in categories_raw.split(",") if item.strip()]
+    if not categories:
+        return "не указана"
+    return " ".join(f"{category_emoji(category)} {category_to_hashtag(category)}" for category in categories)
+
+    
 def category_to_hashtags(categories_raw: str | None) -> str:
     if not categories_raw:
         return "не указана"
@@ -87,11 +124,12 @@ async def format_event_message(
     time_str = dt.strftime("%H:%M")
 
     duration = format_duration(event.get("duration_minutes"))
+    period_text = format_event_period(dt, event.get("period_end"))
 
     location = escape(event.get("location") or "не указано")
     title = escape(event["title"])
     description = escape(event.get("description") or "")
-    category = escape(category_to_hashtags(event.get("category")))
+    category = escape(category_to_branded_hashtags(event.get("category")))
 
     price_total = event.get("price_total") or 0
     price_per_person = event.get("price_per_person") or 0
@@ -126,7 +164,7 @@ async def format_event_message(
     )
 
     lines = [
-        f"📌 <b>{title}</b>",
+        *card_header(BRAND["event"], title, "Карточка мероприятия"),
         f"🆔 ID: <code>{event['id']}</code>",
     ]
 
@@ -145,21 +183,21 @@ async def format_event_message(
         lines.append(weather)
 
     lines.extend(
-        [
-            f"🗓 {date_str} в {time_str}",
-            f"⏱ Длительность: {duration}",
-            f"📂 Категория: {category}",
-            f"📍 {location}",
-            price_text,
-            f"👥 Кто уже идёт: {going_count}/{limit_str}",
-            "",
-            "<b>Список участников:</b>",
-            going_names,
-            "",
-            "<b>Резерв:</b>",
-            waitlist_names,
-        ]
+        card_section(
+            "Детали",
+            [
+                f"🗓 Старт: {date_str} в {time_str}",
+                *([period_text] if period_text else []),
+                f"⏱ Длительность: {duration}",
+                f"{category}",
+                f"📍 {location}",
+                price_text,
+                f"👥 Кто уже идёт: {going_count}/{limit_str}",
+            ],
+        )
     )
+    lines.extend(card_section("Список участников", [going_names]))
+    lines.extend(card_section("Резерв", [waitlist_names]))
 
     maps_link = build_maps_link(event.get("location"))
     y_maps_link = build_yandex_maps_link(event.get("location"))
@@ -167,7 +205,7 @@ async def format_event_message(
     gcal_link = build_google_calendar_link(event)
     ycal_link = build_yandex_calendar_link(event)
     if maps_link or y_maps_link or dgis_link or gcal_link or ycal_link:
-        lines.extend(["", "<b>🔗 Полезные ссылки:</b>"])
+        lines.extend(card_section("🔗 Полезные ссылки", []))
         if maps_link:
             lines.append(f'• <a href="{maps_link}">Google Maps</a>')
         if y_maps_link:
@@ -182,12 +220,12 @@ async def format_event_message(
     if carpool:
         lines.extend(["", carpool])
 
-    if event.get("carpool_enabled"):
+    if event.get("carpool_enabled") and str(event.get("id", "")).isdigit():
         from bot.database import get_drivers_with_passengers
 
-        drivers = await get_drivers_with_passengers(event["id"])
+        drivers = await get_drivers_with_passengers(int(event["id"]))
         if drivers:
-            lines.extend(["", "<b>🚗 Водители и пассажиры:</b>"])
+            lines.extend(card_section("🚗 Водители и пассажиры", []))
             for driver in drivers:
                 driver_mention = mentions_dict.get(
                     driver["user_id"], f"id{driver['user_id']}"
@@ -202,6 +240,7 @@ async def format_event_message(
                     )
                     lines.append(f"   Пассажиры: {passengers}")
 
+    lines.extend(card_cta("Нажмите кнопку под карточкой, чтобы присоединиться или обновить статус."))
     return "\n".join(lines)
 
 
