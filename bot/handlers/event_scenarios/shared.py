@@ -35,6 +35,33 @@ class CreateEvent(StatesGroup):
     preview = State()
 
 
+EVENT_STEP_META = {
+    CreateEvent.title.state: (1, 12, "📝 Название"),
+    CreateEvent.description.state: (2, 12, "📄 Описание"),
+    CreateEvent.datetime.state: (3, 12, "🗓 Дата"),
+    CreateEvent.period_mode.state: (4, 12, "📆 Повтор"),
+    CreateEvent.period_end.state: (5, 12, "📆 Финал повтора"),
+    CreateEvent.duration.state: (6, 12, "⏱ Длительность"),
+    CreateEvent.location.state: (7, 12, "📍 Место"),
+    CreateEvent.price_mode.state: (8, 12, "💰 Тип оплаты"),
+    CreateEvent.price.state: (9, 12, "💰 Стоимость"),
+    CreateEvent.limit.state: (10, 12, "👥 Лимит"),
+    CreateEvent.carpool.state: (11, 12, "🚗 Карпулинг"),
+    CreateEvent.thread.state: (12, 12, "🗂 Публикация"),
+    CreateEvent.category.state: (12, 12, "📂 Категории"),
+    CreateEvent.preview.state: (12, 12, "👀 Превью"),
+}
+
+
+def event_step_prompt(state_name: str, text: str) -> str:
+    """Добавляет прогресс мастера создания мероприятия к тексту шага."""
+    step = EVENT_STEP_META.get(state_name)
+    if not step:
+        return text
+    current, total, label = step
+    return f"Шаг {current}/{total} · {label}\n\n{text}"
+
+
 async def parse_datetime(text: str) -> datetime | None:
     try:
         dt = datetime.strptime(text, "%d.%m.%Y %H:%M")

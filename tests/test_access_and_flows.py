@@ -8,7 +8,7 @@ os.environ.setdefault("BOT_TOKEN", "test-token")
 os.environ.setdefault("OWNER_ID", "12345")
 from bot.middleware.command_access import CommandAccessMiddleware  # noqa: E402
 
-common = importlib.import_module("bot.handlers.common")
+common = importlib.import_module("bot.handlers.common_feature.handlers")
 participation = importlib.import_module("bot.handlers.participation")
 
 class _FakeMessage:
@@ -97,6 +97,7 @@ class ParticipationTransitionsTests(unittest.IsolatedAsyncioTestCase):
         callback = _FakeCallback(user_id=11, data="waitlist_100")
 
         with (
+            patch("bot.filters.approved_member.is_member_approved", new=AsyncMock(return_value=True)),
             patch("bot.handlers.participation.get_event", new=AsyncMock(return_value={"id": 100, "status": "active"})),
             patch("bot.handlers.participation.get_main_participants", new=AsyncMock(return_value=[11])),
         ):

@@ -4,9 +4,13 @@ from datetime import datetime
 
 os.environ.setdefault("BOT_TOKEN", "test-token")
 
-from bot.texts import format_duration, format_event_period, category_to_hashtags, category_to_branded_hashtags  # noqa: E402
+from bot.texts import event_status_badges, format_duration, format_event_period, category_to_hashtags, category_to_branded_hashtags  # noqa: E402
 from bot.utils.event_links import build_google_calendar_link, build_maps_link  # noqa: E402
 from bot.utils.pairing import build_random_pairs  # noqa: E402
+from bot.handlers.event_scenarios.shared import CreateEvent, event_step_prompt  # noqa: E402
+from bot.handlers.split_bill_feature.handlers import SplitBillCreate, split_bill_step_prompt  # noqa: E402
+from bot.handlers.split_bill_feature.services import build_payment_progress_bar  # noqa: E402
+from bot.texts import format_digest_text  # noqa: E402
 
 class TextFormattersTest(unittest.TestCase):
     def test_format_duration_hours_and_minutes(self):
@@ -19,7 +23,21 @@ class TextFormattersTest(unittest.TestCase):
         self.assertEqual(category_to_hashtags("спорт, поездки"), "#спорт #поездки")
 
     def test_category_to_branded_hashtags(self):
-        self.assertEqual(category_to_branded_hashtags("настолки, книжный клуб"), "🎲 #настолки 📚 #книжный_клуб")
+        self.assertEqual(
+            category_to_branded_hashtags("настолки, книжный клуб"),
+            "🎲 Настолки #настолки 📚 Книги #книжный_клуб",
+        )
+
+    def test_event_status_badges(self):
+        event = {
+            "date_time": "2026-06-01T12:00:00+03:00",
+            "participant_limit": 2,
+        }
+        now = datetime.fromisoformat("2026-06-01T09:00:00+03:00")
+
+        self.assertEqual(event_status_badges(event, 1, 0, now=now), "🔥 скоро · ✅ набор открыт")
+        self.assertEqual(event_status_badges(event, 2, 0, now=now), "🔥 скоро · 🚫 мест нет")
+        self.assertEqual(event_status_badges(event, 2, 1, now=now), "🔥 скоро · ⏳ резерв")
 
     def test_format_event_period(self):
         start_dt = datetime.fromisoformat("2026-06-01T10:00:00+03:00")
@@ -65,7 +83,32 @@ class FeatureHelpersTest(unittest.TestCase):
         pairs, leftovers = build_random_pairs([1, 2, 3])
         self.assertEqual(len(pairs), 1)
         self.assertEqual(len(leftovers), 1)
-        
+
+    def test_wizard_progress_prompts(self):
+        self.assertIn("Шаг 7/12 · 📍 Место", event_step_prompt(CreateEvent.location.state, "Введите место"))
+        self.assertIn("Шаг 4/7 · 🗂 Публикация", split_bill_step_prompt(SplitBillCreate.target_topic.state, "Выберите тему"))
+
+    def test_split_bill_payment_progress_bar(self):
+        self.assertEqual(build_payment_progress_bar(4, 6), "████░░ 4/6 оплатили")
+        self.assertEqual(build_payment_progress_bar(0, 0), "░░░░░░ 0/0 оплатили")
+
+    def test_digest_uses_event_counts_for_status_badges(self):
+        text = format_digest_text(
+            [
+                {
+                    "id": 1,
+                    "title": "Квиз",
+                    "date_time": "2026-06-01T12:00:00+03:00",
+                    "creator_id": 10,
+                    "participant_limit": 2,
+                    "going_count": 2,
+                    "waitlist_count": 1,
+                }
+            ],
+            {10: "owner"},
+        )
+
+        self.assertIn("⏳ резерв", text)        
 
 if __name__ == "__main__":
     unittest.main()

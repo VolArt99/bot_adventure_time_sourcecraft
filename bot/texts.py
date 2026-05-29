@@ -4,7 +4,7 @@ from html import escape
 import pytz
 
 from bot.config import TIMEZONE
-from bot.constants import EVENT_CATEGORY_GROUPS
+from bot.constants import EVENT_CATEGORY_GROUPS, category_badge
 from bot.utils.design import BRAND, CARD_DIVIDER, card_cta, card_header, card_section
 from bot.utils.event_links import (
     build_2gis_maps_link,
@@ -91,13 +91,13 @@ def category_emoji(category: str | None) -> str:
 
 
 def category_to_branded_hashtags(categories_raw: str | None) -> str:
-    """Форматирует категории с emoji-брендингом."""
+    """Форматирует категории с едиными бейджами и хештегами."""
     if not categories_raw:
         return "не указана"
     categories = [item.strip() for item in categories_raw.split(",") if item.strip()]
     if not categories:
         return "не указана"
-    return " ".join(f"{category_emoji(category)} {category_to_hashtag(category)}" for category in categories)
+    return " ".join(f"{category_badge(category)} {category_to_hashtag(category)}" for category in categories)
 
     
 def category_to_hashtags(categories_raw: str | None) -> str:
@@ -108,6 +108,31 @@ def category_to_hashtags(categories_raw: str | None) -> str:
     if not categories:
         return "не указана"
     return " ".join(category_to_hashtag(category) for category in categories)
+
+
+def event_status_badges(event: Dict, going_count: int, waitlist_count: int, *, now: datetime | None = None) -> str:
+    """Возвращает визуальный статус карточки мероприятия."""
+    try:
+        dt = datetime.fromisoformat(event["date_time"]).astimezone(TZ)
+    except (KeyError, ValueError):
+        dt = None
+    current_time = now.astimezone(TZ) if now else datetime.now(TZ)
+    try:
+        limit_value = int(event.get("participant_limit") or 0)
+    except (TypeError, ValueError):
+        limit_value = 0
+    is_full = limit_value > 0 and going_count >= limit_value
+
+    badges: list[str] = []
+    if dt and dt >= current_time and (dt - current_time).total_seconds() <= 24 * 60 * 60:
+        badges.append("🔥 скоро")
+    if is_full and waitlist_count > 0:
+        badges.append("⏳ резерв")
+    elif is_full:
+        badges.append("🚫 мест нет")
+    else:
+        badges.append("✅ набор открыт")
+    return " · ".join(badges)
 
 
 async def format_event_message(
@@ -163,8 +188,9 @@ async def format_event_message(
         "\n".join(mentions_dict.get(uid, f"id{uid}") for uid in waitlist_list) or "—"
     )
 
+    status_badges = event_status_badges(event, going_count, len(waitlist_list))
     lines = [
-        *card_header(BRAND["event"], title, "Карточка мероприятия"),
+        *card_header(BRAND["event"], title, status_badges),
         f"🆔 ID: <code>{event['id']}</code>",
     ]
 
@@ -269,10 +295,15 @@ def format_digest_text(
             f'<a href="{event_link}">открыть сообщение</a>'
             if event_link
             else "недоступна"
-        )        
+        )
 
+        status_badges = event_status_badges(
+            e,
+            int(e.get("going_count") or 0),
+            int(e.get("waitlist_count") or 0),
+        )        
         lines.append(
-            f"<b>🔥 {title}</b>\n"
+            f"<b>{status_badges} · {title}</b>\n"
             f"🗺 Где: {location}\n"
             f"🗓 Когда: {date_str}\n"
             f"🚀 Тема: {topic_name}\n"

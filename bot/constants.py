@@ -104,6 +104,25 @@ EVENT_CATEGORIES: list[str] = [
     for subcategory in group["subcategories"]
 ]
 
+CATEGORY_BADGES: dict[str, set[str]] = {
+    "🎲 Настолки": {"настолки", "настольные игры", "игры"},
+    "📚 Книги": {"книги", "книжный клуб", "обсуждение книг"},
+    "🚶 Прогулки": {"прогулки", "велопрогулки", "спонтанные встречи"},
+    "🍽 Еда": {"еда", "гастрономия", "пикники", "шашлыки", "рестораны", "кафе"},
+    "🧠 Квиз": {"квиз", "квизы", "викторины", "интеллектуальные игры", "своя игра"},
+}
+
+
+def category_badge(category: str | None) -> str:
+    """Возвращает единый человекочитаемый бейдж категории."""
+    normalized = (category or "").strip().lower()
+    if not normalized:
+        return "📂 Другое"
+    for badge, aliases in CATEGORY_BADGES.items():
+        if normalized in aliases:
+            return badge
+    return f"{category.strip().title()}"
+
 CARPOOL_HELP_TEXT = (
     "🚗 <b>Нужен карпулинг?</b> (да/нет)\n"
     "Карпулинг — это когда участники едут вместе на машине.\n"

@@ -1,10 +1,13 @@
 import logging
+import time
 from typing import Callable, Dict, Any, Awaitable
 
 from aiogram import BaseMiddleware
 from aiogram.types import Update
 
 logger = logging.getLogger(__name__)
+TOPIC_DISCOVERY_TTL_SECONDS = 600
+_seen_topics: dict[int, float] = {}
 
 class TopicDiscovererMiddleware(BaseMiddleware):
     """
@@ -26,6 +29,12 @@ class TopicDiscovererMiddleware(BaseMiddleware):
             if hasattr(message, "message_thread_id") and message.message_thread_id:
                 message_thread_id = message.message_thread_id
 
+                now = time.time()
+                last_seen = _seen_topics.get(message_thread_id, 0)
+                if now - last_seen < TOPIC_DISCOVERY_TTL_SECONDS:
+                    return await handler(event, data)
+                _seen_topics[message_thread_id] = now
+                
                 # Получаем название темы из конфига или генерируем
                 topic_name = self._get_topic_name(message_thread_id)
 

@@ -16,9 +16,8 @@ from bot.database import (
     get_main_participants,
     get_topic_name_by_thread_id,
     set_event_responsible,
-    add_participant,
-    add_driver,
-    add_passenger,
+    set_driver,
+    set_passenger,
     get_approved_member_ids,
     is_member_approved,
     get_user_id_by_username,
@@ -311,15 +310,18 @@ async def cmd_send_event_card(message: Message):
 async def cmd_set_carpool_manual(message: Message):
     parts = _parse_manual_args(message, expected_min=4)
     if not parts:
-        await message.answer("Использование: /set_carpool_manual <event_id> <driver_id> <seats>")
+        await message.answer("Использование: /set_carpool_manual <event_id> <driver_id|@username> <seats>")
         return
 
     try:
         event_id = int(parts[1])
-        driver_id = int(parts[2])
         seats = int(parts[3])
     except ValueError:
-        await message.answer("❌ event_id, driver_id и seats должны быть числами.")
+        await message.answer("❌ event_id и seats должны быть числами.")
+        return
+    driver_id = await _resolve_user_id(parts[2], message)
+    if not driver_id:
+        await message.answer("❌ Не удалось определить водителя. Используйте user_id или @username.")
         return
     if seats < 1:
         await message.answer("❌ Количество мест должно быть >= 1.")
@@ -333,8 +335,7 @@ async def cmd_set_carpool_manual(message: Message):
         await message.answer("❌ Только создатель или админ может настраивать карпулинг.")
         return
 
-    await add_participant(event_id, driver_id, "going")
-    ok = await add_driver(event_id, driver_id, seats)
+    ok = await set_driver(event_id, driver_id, seats)
     from bot.handlers.participation import update_event_message
     await update_event_message(message.bot, event_id, event["thread_id"], event["message_id"])
     await message.answer("✅ Водитель сохранён." if ok else "ℹ️ Водитель уже существует.")
@@ -344,15 +345,18 @@ async def cmd_set_carpool_manual(message: Message):
 async def cmd_add_passenger_manual(message: Message):
     parts = _parse_manual_args(message, expected_min=4)
     if not parts:
-        await message.answer("Использование: /add_passenger_manual <event_id> <passenger_id> <driver_id>")
+        await message.answer("Использование: /add_passenger_manual <event_id> <passenger_id|@username> <driver_id|@username>")
         return
 
     try:
         event_id = int(parts[1])
-        passenger_id = int(parts[2])
-        driver_id = int(parts[3])
     except ValueError:
-        await message.answer("❌ event_id, passenger_id и driver_id должны быть числами.")
+        await message.answer("❌ event_id должен быть числом.")
+        return
+    passenger_id = await _resolve_user_id(parts[2], message)
+    driver_id = await _resolve_user_id(parts[3], message)
+    if not passenger_id or not driver_id:
+        await message.answer("❌ Не удалось определить пассажира или водителя. Используйте user_id или @username.")
         return
 
     allowed, event = await _can_manage_event(event_id, message.from_user.id)
@@ -363,8 +367,7 @@ async def cmd_add_passenger_manual(message: Message):
         await message.answer("❌ Только создатель или админ может настраивать карпулинг.")
         return
 
-    await add_participant(event_id, passenger_id, "going")
-    ok = await add_passenger(event_id, passenger_id, driver_id)
+    ok = await set_passenger(event_id, passenger_id, driver_id)
     from bot.handlers.participation import update_event_message
     await update_event_message(message.bot, event_id, event["thread_id"], event["message_id"])
     await message.answer("✅ Пассажир добавлен." if ok else "ℹ️ Не удалось добавить пассажира (проверьте места/дубликат).")

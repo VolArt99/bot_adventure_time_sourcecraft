@@ -1,5 +1,13 @@
-from aiogram import Bot
+import asyncio
+import logging
+import time
 from html import escape
+
+from aiogram import Bot
+
+logger = logging.getLogger(__name__)
+USER_MENTION_CACHE_TTL_SECONDS = 3600
+_user_mentions_cache: dict[int, tuple[float, str]] = {}
 
 
 def build_event_message_link(chat_id: int, message_id: int | None) -> str | None:
@@ -26,24 +34,38 @@ async def get_username_by_id(user_id: int, bot: Bot) -> str | None:
             return chat.username
         full_name = " ".join(filter(None, [chat.first_name, getattr(chat, "last_name", None)])).strip()
         return full_name or None
-    except Exception:
-        return None
+    except Exception as exc:
+        logger.debug("Не удалось получить username для user_id=%s: %s", user_id, exc)
 
 
 async def get_user_mention(user_id: int, bot: Bot) -> str:
-    """Возвращает HTML-mention для Telegram."""
+    """Возвращает HTML-mention для Telegram с коротким in-memory кешем."""
+    now = time.monotonic()
+    cached = _user_mentions_cache.get(int(user_id))
+    if cached and now - cached[0] < USER_MENTION_CACHE_TTL_SECONDS:
+        return cached[1]
     try:
         chat = await bot.get_chat(user_id)
         if chat.username:
-            return f"@{escape(chat.username)}"
+            mention = f"@{escape(chat.username)}"
+        else:
+            full_name = " ".join(
+                filter(None, [chat.first_name, getattr(chat, "last_name", None)])
+            ).strip() or f"id{user_id}"
+            mention = f'<a href="tg://user?id={user_id}">{escape(full_name)}</a>'
+    except Exception as exc:
+        logger.debug("Не удалось получить mention для user_id=%s: %s", user_id, exc)
+        mention = f'<a href="tg://user?id={user_id}">id{user_id}</a>'
 
-        full_name = " ".join(
-            filter(None, [chat.first_name, getattr(chat, "last_name", None)])
-        ).strip() or f"id{user_id}"
+    _user_mentions_cache[int(user_id)] = (now, mention)
+    return mention
 
-        return f'<a href="tg://user?id={user_id}">{escape(full_name)}</a>'
-    except Exception:
-        return f'<a href="tg://user?id={user_id}">id{user_id}</a>'
+
+async def get_user_mentions(user_ids: set[int] | list[int] | tuple[int, ...], bot: Bot) -> dict[int, str]:
+    """Параллельно собирает HTML-mentions для набора пользователей."""
+    normalized_ids = sorted({int(uid) for uid in user_ids if uid is not None})
+    mentions = await asyncio.gather(*(get_user_mention(uid, bot) for uid in normalized_ids))
+    return dict(zip(normalized_ids, mentions))
 
 
 def parse_int_arg(raw: str) -> int | None:

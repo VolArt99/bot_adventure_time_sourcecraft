@@ -24,9 +24,8 @@ def start_scheduler():
         logger.info("Планировщик запущен")
 
 
-async def schedule_reminders_for_event(event_id: int, bot):
-    """Планирует напоминания для мероприятия."""
-    event = await get_event(event_id)
+async def schedule_reminders_for_event_data(event: dict, bot):
+    """Планирует напоминания для уже загруженного мероприятия."""
     if not event or event["status"] != "active":
         return
 
@@ -36,16 +35,22 @@ async def schedule_reminders_for_event(event_id: int, bot):
     for interval in REMINDER_INTERVALS:
         remind_time = event_time - timedelta(seconds=interval)
         if remind_time > now:
-            job_id = f"reminder_{event_id}_{interval}"
+            job_id = f"reminder_{event['id']}_{interval}"
             scheduler.add_job(
                 send_reminder,
                 trigger="date",
                 run_date=remind_time,
-                args=[event_id, interval, bot],
+                args=[event["id"], interval, bot],
                 id=job_id,
                 replace_existing=True,
             )
             logger.info(f"Запланировано напоминание {job_id} на {remind_time}")
+
+
+async def schedule_reminders_for_event(event_id: int, bot):
+    """Планирует напоминания для мероприятия по id."""
+    event = await get_event(event_id)
+    await schedule_reminders_for_event_data(event, bot)
 
 
 async def send_reminder(event_id: int, interval: int, bot):
@@ -92,7 +97,7 @@ async def restore_jobs(bot):
     events = await get_active_events()
     count = 0
     for event in events:
-        await schedule_reminders_for_event(event["id"], bot)
+        await schedule_reminders_for_event_data(event, bot)
         count += 1
     logger.info(f"Восстановлено {count} мероприятий с напоминаниями")
 

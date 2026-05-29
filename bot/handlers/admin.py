@@ -45,11 +45,11 @@ async def cmd_admin_report(message: Message):
         categories_text = "• пока нет данных"
 
     text = (
-        "📊 <b>Admin Report</b>\n\n"
-        f"• Активных событий: <b>{metrics['active_events']}</b>\n"
-        f"• Средняя посещаемость: <b>{metrics['avg_attendance']}</b>\n"
-        f"• No-show: <b>{metrics['no_show']}</b>\n\n"
-        f"<b>Топ категорий:</b>\n{categories_text}"
+        "<b>Админ · отчёт</b>\n\n"
+        f"Активные: <b>{metrics['active_events']}</b>\n"
+        f"Средняя явка: <b>{metrics['avg_attendance']}</b>\n"
+        f"No-show: <b>{metrics['no_show']}</b>\n\n"
+        f"<b>Топ категорий</b>\n{categories_text}"
     )
     await message.answer(text, parse_mode="HTML")
 

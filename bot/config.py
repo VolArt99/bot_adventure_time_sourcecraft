@@ -1,7 +1,9 @@
- # загрузка настроек из .env
+# загрузка настроек из .env
 
 import os
 from dotenv import load_dotenv
+
+from bot.commands import DEFAULT_MEMBER_ALLOWED_COMMANDS
 
 load_dotenv()
 
@@ -18,6 +20,7 @@ GROUP_ID = int(os.getenv("GROUP_ID")) if os.getenv("GROUP_ID") else 0
 # ⚠️ ОБНОВЛЕНО: ADMIN_IDS теперь список организаторов (не только админы)
 ADMIN_IDS = list(map(int, os.getenv("ADMIN_IDS", "").split(","))) if os.getenv("ADMIN_IDS") else []
 OWNER_ID = int(os.getenv("OWNER_ID")) if os.getenv("OWNER_ID") else 0
+OWNER_CONTACT = os.getenv("OWNER_CONTACT", "").strip()
 OUTSIDER_ALLOWED_COMMANDS = {
     cmd.strip().lower()
     for cmd in os.getenv("OUTSIDER_ALLOWED_COMMANDS", "start").split(",")
@@ -34,9 +37,7 @@ MEMBER_ALLOWED_COMMANDS = {
     cmd.strip().lower()
     for cmd in os.getenv(
         "MEMBER_ALLOWED_COMMANDS",
-        "start,help,menu,status,create_event,my_events,digest,subscriptions,my_digest,my_stats,top,find_events,random_optin,random_optout,"
-        "split_bill,split_bill_add,split_bill_remove,"
-        "set_responsible,add_participant_manual,set_carpool_manual,add_passenger_manual",
+        DEFAULT_MEMBER_ALLOWED_COMMANDS,
     ).split(",")
     if cmd.strip()
 }
@@ -65,3 +66,9 @@ if not 1 <= DIGEST_DAY_OF_WEEK <= 7:
     raise ValueError("DIGEST_DAY_OF_WEEK должен быть в диапазоне 1..7 (1=Пн, 7=Вс).")
 if not 0 <= DIGEST_HOUR <= 23:
     raise ValueError("DIGEST_HOUR должен быть в диапазоне 0..23.")
+
+def validate_runtime_config(*, production: bool | None = None) -> None:
+    """Проверяет критичные настройки для production-режима."""
+    is_production = production if production is not None else os.getenv("ENV", "").lower() in {"prod", "production"}
+    if is_production and GROUP_ID == 0:
+        raise ValueError("GROUP_ID обязателен для production-режима.")

@@ -10,7 +10,7 @@ from bot.utils.callback_policy import CALLBACK_DELETE_WIZARD_MESSAGE
 from bot.database import get_topic_name_by_thread_id
 from bot.texts import format_event_message
 from bot.utils.helpers import get_user_mention
-from .shared import CreateEvent, build_event_payload, finalize_event_creation
+from .shared import CreateEvent, build_event_payload, event_step_prompt, finalize_event_creation
 
 router = Router(name=__name__)
 
@@ -20,7 +20,7 @@ async def process_category(message: Message, state: FSMContext):
     await answer_private_intermediate(
         message,
         state,
-        "❌ Выбор категорий теперь только через кнопки ниже.",
+        event_step_prompt(CreateEvent.category.state, "❌ Выбор категорий теперь только через кнопки ниже."),
         reply_markup=category_groups_keyboard(EVENT_CATEGORY_GROUPS, back_callback="event_back"),
     )
 
@@ -38,8 +38,11 @@ async def open_category_group(callback: CallbackQuery, state: FSMContext):
     await answer_private_intermediate(
         callback.message,
         state,
-        f"Выберите подкатегории в группе «{EVENT_CATEGORY_GROUPS[group_key]['title']}». "
-        f"Можно выбрать несколько.",
+        event_step_prompt(
+            CreateEvent.category.state,
+            f"Выберите подкатегории в группе «{EVENT_CATEGORY_GROUPS[group_key]['title']}». "
+            f"Можно выбрать несколько.",
+        ),
         reply_markup=category_subgroups_keyboard(
             group_key, EVENT_CATEGORY_GROUPS, selected_categories
         ),
@@ -80,7 +83,7 @@ async def back_to_category_groups(callback: CallbackQuery, state: FSMContext):
     await answer_private_intermediate(
         callback.message,
         state,
-        "📂 Выберите группу категории:",
+        event_step_prompt(CreateEvent.category.state, "📂 Выберите группу категории:"),
         reply_markup=category_groups_keyboard(EVENT_CATEGORY_GROUPS, back_callback="event_back"),
     )
     await finalize_callback(callback, delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)
@@ -113,9 +116,12 @@ async def finish_categories(callback: CallbackQuery, state: FSMContext):
     await answer_private_intermediate(
         callback.message,
         state,
-        "👀 <b>Мини-превью карточки</b>\n"
-        "Проверьте, как мероприятие будет выглядеть в группе. Если всё ок — публикуем.\n\n"
-        f"{preview_text}",
+        event_step_prompt(
+            CreateEvent.preview.state,
+            "👀 <b>Мини-превью карточки</b>\n"
+            "Проверьте, как мероприятие будет выглядеть в группе. Если всё ок — публикуем.\n\n"
+            f"{preview_text}",
+        ),
         reply_markup=event_preview_keyboard(),
         parse_mode="HTML",
     )

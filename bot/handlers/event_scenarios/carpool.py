@@ -14,7 +14,7 @@ from bot.utils.topics import get_topics_list_from_db
 from bot.utils.callbacks import finalize_callback
 from bot.utils.ui import answer_private_intermediate
 from bot.utils.callback_policy import CALLBACK_DELETE_WIZARD_MESSAGE
-from .shared import CreateEvent
+from .shared import CreateEvent, event_step_prompt
 
 logger = logging.getLogger(__name__)
 router = Router(name=__name__)
@@ -49,7 +49,12 @@ async def process_carpool_choice(message: Message, state: FSMContext, carpool: b
 
     if topics:
         await state.set_state(CreateEvent.thread)
-        await answer_private_intermediate(message, state, "🗂 Выберите, где опубликовать мероприятие:", reply_markup=choose_topic_keyboard(topics, back_callback="event_back"))
+        await answer_private_intermediate(
+            message,
+            state,
+            event_step_prompt(CreateEvent.thread.state, "🗂 Выберите, где опубликовать мероприятие:"),
+            reply_markup=choose_topic_keyboard(topics, back_callback="event_back"),
+        )
         return
 
     await state.update_data(thread_id=None)
@@ -57,9 +62,12 @@ async def process_carpool_choice(message: Message, state: FSMContext, carpool: b
     await answer_private_intermediate(
         message,
         state,
-        "⚠️ Тем не найдено. Опубликуем в основной чат.\n"
-        "💡 Отправьте сообщение в любую тему группы, и бот её автоматически обнаружит.\n\n"
-        "📂 Выберите группу категории:",
+        event_step_prompt(
+            CreateEvent.category.state,
+            "⚠️ Тем не найдено. Опубликуем в основной чат.\n"
+            "💡 Отправьте сообщение в любую тему группы, и бот её автоматически обнаружит.\n\n"
+            "📂 Выберите группу категории:",
+        ),
         reply_markup=category_groups_keyboard(EVENT_CATEGORY_GROUPS, back_callback="event_back"),
     )
 
@@ -76,7 +84,7 @@ async def process_topic(callback: CallbackQuery, state: FSMContext):
         await answer_private_intermediate(
             callback.message,
             state,
-            "📂 Выберите группу категории:",
+            event_step_prompt(CreateEvent.category.state, "📂 Выберите группу категории:"),
             reply_markup=category_groups_keyboard(EVENT_CATEGORY_GROUPS, back_callback="event_back"),
         )
         await finalize_callback(callback, "✅ Тема выбрана!", delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)

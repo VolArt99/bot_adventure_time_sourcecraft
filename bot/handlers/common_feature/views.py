@@ -78,8 +78,15 @@ def build_menu_section_text(section: str, *, is_admin_or_owner: bool) -> str | N
         "help": (
             [
                 *card_header(BRAND["help"], "Помощь", "Справка по командам"),
-                *card_section("Где искать", ["• /help — полная справка по ролям и сценариям;", "• /menu — вернуться в Control Center."]),
-                *card_cta("Если не знаете, с чего начать — нажмите /menu."),
+                *card_section("Быстрые кнопки", ["• /help — полная справка по ролям и сценариям;", "• /status — проверить, что бот онлайн;", "• /menu — вернуться в Control Center."]),
+                *card_cta("Выберите команду кнопкой ниже."),
+            ]
+        ),
+        "commands": (
+            [
+                *card_header("🧭", "Все команды", "Разделы и подгруппы вместо ручного ввода"),
+                *card_section("Как пользоваться", ["• откройте нужную группу кнопкой ниже;", "• команды с параметрами покажут пример заполнения;", "• основные сценарии запускаются из своих разделов меню."]),
+                *card_cta("Выберите группу команд."),
             ]
         ),
         "quick": (
@@ -94,12 +101,71 @@ def build_menu_section_text(section: str, *, is_admin_or_owner: bool) -> str | N
         if not is_admin_or_owner:
             return None
         return "\n".join([
-            *card_header(BRAND["admin"], "Админ-панель", "Диагностика, отчёты и управление"),
-            *card_section("Инструменты", ["• /admin_report и /usage_stats — отчёты;", "• /send_events_list — публикация списка;", "• /pending_intro — контроль рассказа о себе;", "• /list_topics и /debug_info — диагностика."]),
-            *card_cta("Используйте аккуратно: команды доступны по ролям."),
+            *card_header("Админ", "Панель", "Отчёты, публикации, диагностика"),
+            *card_section("Действия", ["• Отчёт / Статы — метрики;", "• Афиша — список мероприятий;", "• Интро — контроль рассказа о себе;", "• Темы / Диагн. — диагностика."]),
+            *card_cta("Выберите короткую action-кнопку ниже."),
         ])
     section_lines = sections.get(section)
     return "\n".join(section_lines) if section_lines else None
+
+
+from bot.commands import COMMANDS_BY_KEY
+
+
+COMMAND_ACTIONS = {
+    key: (spec.display_syntax, spec.description)
+    for key, spec in COMMANDS_BY_KEY.items()
+}
+
+# Legacy overrides with rich examples.
+COMMAND_ACTIONS.update({
+    "help": ("/help", "Подробная справка по ролям и сценариям."),
+    "menu": ("/menu", "Главное кнопочное меню."),
+    "status": ("/status", "Проверить, что бот онлайн."),
+    "create_event": ("/create_event", "Запустить мастер создания мероприятия."),
+    "my_events": ("/my_events", "Открыть список ваших мероприятий."),
+    "find_events": ("/find_events &lt;текст&gt;", "Поиск активных мероприятий. Пример: <code>/find_events квиз</code>"),
+    "set_responsible": ("/set_responsible &lt;event_id&gt; &lt;user_id|@username&gt;", "Сменить ответственного. Пример: <code>/set_responsible 42 @ivan</code>"),
+    "add_participant_manual": ("/add_participant_manual &lt;event_id&gt; &lt;user_id|@username&gt;", "Добавить участника вручную. Пример: <code>/add_participant_manual 42 @ivan</code>"),
+    "set_carpool_manual": ("/set_carpool_manual &lt;event_id&gt; &lt;driver_id|@driver&gt; &lt;seats&gt;", "Ручное управление статусом карпулинга."),
+    "add_passenger_manual": ("/add_passenger_manual &lt;event_id&gt; &lt;passenger_id|@passenger&gt; &lt;driver_id|@driver&gt;", "Ручное добавление пассажира к водителю."),
+    "send_event_card": ("/send_event_card &lt;event_id&gt;", "Отправить короткое сообщение со ссылкой на основную карточку мероприятия."),
+    "digest": ("/digest", "Открыть общую афишу."),
+    "subscriptions": ("/subscriptions", "Настроить подписки и уведомления."),
+    "my_digest": ("/my_digest", "Получить персональный дайджест."),
+    "my_stats": ("/my_stats", "Посмотреть личную статистику участий."),
+    "top": ("/top", "Показать топ активности за 30 дней."),
+    "random_optin": ("/random_optin", "Включиться в random-встречи 1:1."),
+    "random_optout": ("/random_optout", "Выключиться из random-встреч 1:1."),
+    "split_bill": ("/split_bill", "Запустить мастер разделения чека."),
+    "split_bill_add": ("/split_bill_add &lt;id&gt; &lt;user_id|@username&gt;", "Добавить участника в чек вручную."),
+    "split_bill_remove": ("/split_bill_remove &lt;id&gt; &lt;user_id&gt;", "Удалить участника из чека вручную."),
+    "roles": ("/roles", "Показать роли и лимиты."),
+    "usage_stats": ("/usage_stats", "Статистика использования команд."),
+    "debug_info": ("/debug_info", "Диагностическая сводка."),
+    "list_topics": ("/list_topics", "Показать темы форума из БД."),
+    "update_topic_names": ("/update_topic_names", "Синхронизировать названия тем."),
+    "admin_report": ("/admin_report", "Управленческий отчёт по активности."),
+    "send_events_list": ("/send_events_list", "Опубликовать список мероприятий."),
+    "member_reengage": ("/member_reengage", "Отчёт по молчащим участникам."),
+    "sync_members": ("/sync_members", "Синхронизировать локальный список участников."),
+    "random_pairs": ("/random_pairs", "Сформировать и опубликовать пары 1:1."),
+    "pending_intro": ("/pending_intro", "Проверить статус рассказов о себе."),
+    "random_optin_count": ("/random_optin_count", "Количество участников, согласных на 1:1."),
+})
+
+
+def build_command_action_text(command_key: str) -> str | None:
+    """Карточка-подсказка для кнопки команды."""
+    command = COMMAND_ACTIONS.get(command_key)
+    if not command:
+        return None
+    syntax, description = command
+    return "\n".join([
+        *card_header("⌨️", "Команда", syntax.replace("&lt;", "<").replace("&gt;", ">")),
+        *card_section("Что делает", [description]),
+        *card_cta("Скопируйте команду или нажмите соответствующий раздел меню."),
+    ])
 
 
 def build_member_help_text() -> str:
@@ -138,7 +204,7 @@ def build_member_help_text() -> str:
 
 def build_admin_help_text() -> str:
     return (
-        "🛠 <b>Команды администратора/владельца</b>\n\n"
+        "<b>Админ · команды администратора/владельца</b>\n\n"
         "• /roles — текущая модель ролей и лимитов.\n"
         "• /usage_stats — среднее число запросов по ролям за 7 дней.\n"
         "• /debug_info — диагностическая сводка бота/группы/тем.\n"

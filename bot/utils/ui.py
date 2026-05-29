@@ -1,8 +1,11 @@
 from __future__ import annotations
 import asyncio
+import logging
 from collections.abc import Mapping
 from html import escape
 from aiogram import Bot
+
+logger = logging.getLogger(__name__)
 from aiogram.fsm.context import FSMContext
 
 PRIVATE_INTERMEDIATE_MESSAGE_IDS_KEY = "private_intermediate_message_ids"
@@ -27,16 +30,16 @@ async def safe_delete_bot_message(message) -> None:
     try:
         if message and message.from_user and bool(getattr(message.from_user, "is_bot", False)):
             await message.delete()
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.debug("Не удалось удалить сообщение бота: %s", exc)
 
 
 async def safe_delete_message_by_id(bot: Bot, chat_id: int, message_id: int) -> None:
     """Best-effort удаление сообщения по id."""
     try:
         await bot.delete_message(chat_id=chat_id, message_id=message_id)
-    except Exception:
-        return
+    except Exception as exc:
+        logger.debug("Не удалось удалить сообщение chat_id=%s message_id=%s: %s", chat_id, message_id, exc)
 
 
 def _is_private_message(message) -> bool:
@@ -88,5 +91,6 @@ async def delete_message_later(bot: Bot, chat_id: int, message_id: int, ttl_seco
     await asyncio.sleep(max(1, ttl_seconds))
     try:
         await bot.delete_message(chat_id=chat_id, message_id=message_id)
-    except Exception:
+    except Exception as exc:
+        logger.debug("Не удалось отложенно удалить сообщение chat_id=%s message_id=%s: %s", chat_id, message_id, exc)
         return

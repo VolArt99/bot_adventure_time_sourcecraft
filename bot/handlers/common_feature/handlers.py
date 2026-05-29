@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import logging
+from html import escape
+from urllib.parse import quote
 
 import aiogram
 from aiogram import F, Router
@@ -18,6 +20,7 @@ from bot.config import (
     GROUP_ID,
     MEMBER_DAILY_COMMAND_LIMIT,
     OUTSIDER_START_DAILY_LIMIT,
+    OWNER_CONTACT,
     OWNER_ID,
 )
 from bot.database import (
@@ -39,6 +42,7 @@ from bot.filters.command_access import restricted_command
 from bot.keyboards import (
     intro_status_keyboard,
     main_menu_keyboard,
+    menu_section_keyboard,
     onboarding_start_keyboard,
     quick_event_templates_keyboard,
     rules_ack_keyboard,
@@ -46,10 +50,26 @@ from bot.keyboards import (
 from bot.texts import GROUP_RULES_TEXT, ONBOARDING_WELCOME_TEXT
 
 from .services import extract_command, is_user_in_group, notify_owner_about_request
-from .views import build_help_text, build_main_menu_text, build_menu_section_text
+from .views import build_command_action_text, build_help_text, build_main_menu_text, build_menu_section_text
 
 logger = logging.getLogger(__name__)
 router = Router()
+
+
+def _owner_contact_html() -> str:
+    """Контакт владельца для onboarding-сообщений."""
+    if OWNER_CONTACT:
+        if OWNER_CONTACT.startswith("@"):
+            username = OWNER_CONTACT[1:]
+            if username.replace("_", "").isalnum():
+                return f'<a href="https://t.me/{quote(username)}">{escape(OWNER_CONTACT)}</a>'
+        if OWNER_CONTACT.startswith("http://") or OWNER_CONTACT.startswith("https://"):
+            safe_url = escape(OWNER_CONTACT, quote=True)
+            return f'<a href="{safe_url}">контакт владельца</a>'
+        return escape(OWNER_CONTACT)
+    if OWNER_ID:
+        return f'<a href="tg://user?id={OWNER_ID}">владельцу</a>'
+    return "владельцу"
 
 
 @router.message(CommandStart())
@@ -129,7 +149,10 @@ async def owner_approve_user(callback: CallbackQuery):
         invite = await callback.bot.create_chat_invite_link(chat_id=GROUP_ID, member_limit=1)
         await callback.bot.send_message(
             user_id,
-            f"✅ Ваша заявка одобрена. Ссылка для входа в группу:\n{invite.invite_link}",
+            "✅ Ваша заявка одобрена. Ссылка для входа в группу:\n"
+            f"{invite.invite_link}\n\n"
+            f"Если возникнут вопросы — напишите {_owner_contact_html()}.",
+            parse_mode="HTML",
         )
     except (TelegramForbiddenError, TelegramBadRequest) as exc:
         logger.warning(
@@ -276,10 +299,205 @@ async def cmd_help(message: Message):
     )
 
 
+@router.callback_query(F.data.startswith("menu_action_"))
+async def menu_action_callback(callback: CallbackQuery, state: FSMContext):
+    action = callback.data.removeprefix("menu_action_")
+    user_id = callback.from_user.id
+    is_admin_or_owner = user_id in ADMIN_IDS or user_id == OWNER_ID
+
+    if action == "create_event":
+        from bot.handlers.event_scenarios.create import start_create_event_wizard
+
+        await start_create_event_wizard(callback.message, state)
+        await finalize_callback(callback, "Мастер открыт", delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)
+        return
+
+    if action == "split_bill":
+        from bot.handlers.split_bill_feature.handlers import start_split_bill_wizard
+
+        await start_split_bill_wizard(callback.message, state, creator_id=user_id)
+        await finalize_callback(callback, "Мастер открыт", delete_message=CALLBACK_DELETE_WIZARD_MESSAGE)
+        return
+
+    if action == "my_events":
+        from bot.keyboards import period_keyboard
+
+        await callback.message.answer("Выберите период для списка ваших мероприятий:", reply_markup=period_keyboard("my_events_period"))
+        await finalize_callback(callback, "Открыто")
+        return
+
+    if action == "digest":
+        from bot.keyboards import period_keyboard
+
+        await callback.message.answer("Выберите период для дайджеста:", reply_markup=period_keyboard("digest_period"))
+        await finalize_callback(callback, "Открыто")
+        return
+
+    if action == "subscriptions":
+        from bot.handlers.subscriptions import _subscriptions_keyboard
+        from bot.database import get_user_category_subscriptions
+
+        selected = await get_user_category_subscriptions(user_id)
+        await callback.message.answer("📬 Выберите группы категорий для персонального дайджеста:", reply_markup=_subscriptions_keyboard(selected))
+        await finalize_callback(callback, "Открыто")
+        return
+
+    if action == "my_digest":
+        from bot.keyboards import period_keyboard
+
+        await callback.message.answer("Выберите период для персонального дайджеста по вашим подпискам:", reply_markup=period_keyboard("my_digest"))
+        await finalize_callback(callback, "Открыто")
+        return
+
+    if action in {"random_optin", "random_optout"}:
+        from bot.database import set_random_meeting_opt_in
+
+        await set_random_meeting_opt_in(user_id, action == "random_optin")
+        text = "✅ Вы участвуете в рандомных встречах 1:1." if action == "random_optin" else "👌 Вы исключены из рандомных встреч 1:1."
+        await callback.message.answer(text)
+        await finalize_callback(callback, "Готово")
+        return
+
+    if action == "my_stats":
+        from bot.database import get_user_stats
+
+        stats = await get_user_stats(user_id)
+        await callback.message.answer(
+            "📊 <b>Ваша статистика</b>\n"
+            f"• Уникальных мероприятий: <b>{stats.get('events_count', 0) or 0}</b>\n"
+            f"• Подтверждённых участий: <b>{stats.get('total_participations', 0) or 0}</b>",
+            parse_mode="HTML",
+        )
+        await finalize_callback(callback, "Готово")
+        return
+
+    if action == "top":
+        from bot.database import get_top_participants
+        from bot.utils.helpers import get_username_by_id
+
+        top_users = await get_top_participants(days=30, limit=3)
+        if not top_users:
+            await callback.message.answer("🏆 За последние 30 дней пока нет данных по посещениям.")
+        else:
+            medals = ["🥇", "🥈", "🥉"]
+            lines = ["🏆 <b>Топ-3 участников за 30 дней</b>"]
+            for idx, item in enumerate(top_users, start=1):
+                username = await get_username_by_id(item["user_id"], callback.bot) or f"id{item['user_id']}"
+                lines.append(f"{medals[idx-1]} {escape(username)} — {item['participations']} участий")
+            await callback.message.answer("\n".join(lines), parse_mode="HTML")
+        await finalize_callback(callback, "Готово")
+        return
+
+    if action in {"roles", "usage_stats"}:
+        if not is_admin_or_owner:
+            await finalize_callback(callback, "Недостаточно прав", show_alert=True)
+            return
+        if action == "roles":
+            await callback.message.answer(
+                "🔐 <b>Роли и доступ</b>\n\n"
+                f"👑 Владелец — полный доступ, без лимита.\n"
+                f"🛡 Админ — все команды, лимит: {ADMIN_DAILY_COMMAND_LIMIT}/сутки.\n"
+                f"🙋 Участник — пользовательские команды, лимит: {MEMBER_DAILY_COMMAND_LIMIT}/сутки.\n"
+                f"🚪 Не участник — только /start, лимит: {OUTSIDER_START_DAILY_LIMIT}/сутки.",
+                parse_mode="HTML",
+            )
+        else:
+            rows = await get_command_usage_summary(days=7)
+            if not rows:
+                await callback.message.answer("📉 Пока нет статистики по использованию команд.")
+            else:
+                role_labels = {"owner": "владелец", "member": "участник", "outsider": "не участник", "admin": "администратор"}
+                lines = ["📊 <b>Среднее использование команд (7 дней)</b>"]
+                for row in rows:
+                    role_name = role_labels.get(str(row["role"]).lower(), row["role"])
+                    lines.append(f"• {role_name}: всего {row['total_commands']}, в среднем {row['avg_per_day']}/день")
+                await callback.message.answer("\n".join(lines), parse_mode="HTML")
+        await finalize_callback(callback, "Готово")
+        return
+
+    if action in {"admin_report", "send_events_list", "random_pairs"}:
+        if not is_admin_or_owner:
+            await finalize_callback(callback, "Недостаточно прав", show_alert=True)
+            return
+        if action == "admin_report":
+            from bot.database import get_admin_report_metrics
+
+            metrics = await get_admin_report_metrics()
+            top_categories = metrics["top_categories"]
+            categories_text = "\n".join(f"• {row['category']} — {row['cnt']}" for row in top_categories) if top_categories else "• пока нет данных"
+            await callback.message.answer(
+                "<b>Админ · отчёт</b>\n\n"
+                f"Активные: <b>{metrics['active_events']}</b>\n"
+                f"Средняя явка: <b>{metrics['avg_attendance']}</b>\n"
+                f"No-show: <b>{metrics['no_show']}</b>\n\n"
+                f"<b>Топ категорий</b>\n{categories_text}",
+                parse_mode="HTML",
+            )
+        elif action == "send_events_list":
+            from bot.keyboards import period_keyboard
+
+            await callback.message.answer(
+                "Выберите период для публикации списка мероприятий:",
+                reply_markup=period_keyboard("broadcast_period"),
+            )
+        else:
+            from bot.database import get_random_meeting_opt_in_users
+            from bot.keyboards import random_pairs_topics_keyboard
+            from bot.utils.topics import get_topics_list_from_db
+
+            users = await get_random_meeting_opt_in_users()
+            if len(users) < 2:
+                await callback.message.answer("Недостаточно участников с согласием для 1:1.")
+            else:
+                topics = await get_topics_list_from_db()
+                await callback.message.answer(
+                    "Выберите группу/подгруппу, куда опубликовать random 1:1 пары:",
+                    reply_markup=random_pairs_topics_keyboard(topics),
+                )
+        await finalize_callback(callback, "Готово")
+        return
+
+    text = build_command_action_text(action)
+    if not text:
+        await finalize_callback(callback, "Действие недоступно", show_alert=True)
+        return
+    await callback.message.answer(
+        text,
+        parse_mode="HTML",
+        reply_markup=main_menu_keyboard(is_admin_or_owner=is_admin_or_owner),
+    )
+    await finalize_callback(callback, "Подсказка открыта")
+
+
+@router.callback_query(F.data.startswith("menu_cmd_"))
+async def menu_command_callback(callback: CallbackQuery):
+    command_key = callback.data.removeprefix("menu_cmd_")
+    text = build_command_action_text(command_key)
+    if not text:
+        await finalize_callback(callback, "Команда недоступна", show_alert=True)
+        return
+    is_admin_or_owner = callback.from_user.id in ADMIN_IDS or callback.from_user.id == OWNER_ID
+    await callback.message.answer(
+        text,
+        parse_mode="HTML",
+        reply_markup=main_menu_keyboard(is_admin_or_owner=is_admin_or_owner),
+    )
+    await finalize_callback(callback, "Команда открыта")
+
+
 @router.callback_query(F.data.startswith("menu_"))
 async def menu_callback(callback: CallbackQuery):
     section = callback.data.removeprefix("menu_")
     is_admin_or_owner = callback.from_user.id in ADMIN_IDS or callback.from_user.id == OWNER_ID
+    if section == "home":
+        await callback.message.answer(
+            build_main_menu_text(is_admin_or_owner=is_admin_or_owner),
+            parse_mode="HTML",
+            reply_markup=main_menu_keyboard(is_admin_or_owner=is_admin_or_owner),
+        )
+        await finalize_callback(callback, "Главное меню")
+        return
+        
     text = build_menu_section_text(section, is_admin_or_owner=is_admin_or_owner)
     if not text:
         await finalize_callback(callback, "Раздел меню недоступен", show_alert=True)
@@ -288,7 +506,7 @@ async def menu_callback(callback: CallbackQuery):
     reply_markup = (
         quick_event_templates_keyboard()
         if section == "quick"
-        else main_menu_keyboard(is_admin_or_owner=is_admin_or_owner)
+        else menu_section_keyboard(section, is_admin_or_owner=is_admin_or_owner)
     )
     await callback.message.answer(
         text,

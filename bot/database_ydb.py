@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 YDB_ENDPOINT = os.getenv("YDB_ENDPOINT")
 YDB_DATABASE = os.getenv("YDB_DATABASE")
 YDB_SESSION_POOL_SIZE = max(1, int(os.getenv("YDB_SESSION_POOL_SIZE", "30")))
+YDB_PATCH_TX_EXECUTE = os.getenv("YDB_PATCH_TX_EXECUTE", "1") == "1"
 
 # Глобальные переменные для драйвера и пула сессий
 _driver = None
@@ -84,9 +85,10 @@ def _build_query_with_declares(query: str, types: dict[str, Any]) -> str:
     return "\n".join(declares) + "\n" + query
 
 
-def _patch_tx_execute_for_parameters() -> None:
+def install_ydb_execute_parameter_patch() -> None:
+    """Изолированно включает совместимость старых вызовов execute(parameters=dict)."""
     global _tx_execute_patched
-    if _tx_execute_patched:
+    if _tx_execute_patched or not YDB_PATCH_TX_EXECUTE:
         return
 
     original_sync = ydb.table.TxContext.execute
@@ -127,7 +129,7 @@ def _patch_tx_execute_for_parameters() -> None:
     _tx_execute_patched = True
 
 
-_patch_tx_execute_for_parameters()
+install_ydb_execute_parameter_patch()
 
 
 def _is_schema_limit_error(exc: Exception) -> bool:
@@ -260,8 +262,6 @@ async def init_db():
             duration_minutes Int64,
             period_end Utf8,
             location Utf8,
-            location_lat Double,
-            location_lon Double,
             price_total Double,
             price_per_person Double,
             participant_limit Int64,
@@ -286,17 +286,6 @@ async def init_db():
             car_seats Int64,
             passenger_of Int64,
             joined_at Timestamp,
-            PRIMARY KEY (id)
-        )
-        """,
-        """
-        CREATE TABLE IF NOT EXISTS reviews (
-            id Int64 NOT NULL,
-            event_id Int64 NOT NULL,
-            user_id Int64 NOT NULL,
-            rating Int64,
-            comment Utf8,
-            created_at Timestamp,
             PRIMARY KEY (id)
         )
         """,
@@ -394,6 +383,8 @@ async def init_db():
             transfer_recipient_name Utf8,
             status Utf8 NOT NULL,
             source_event_id Int64,
+            thread_id Int64,
+            message_id Int64,
             created_at Timestamp,
             closed_at Timestamp,
             PRIMARY KEY (id)
@@ -469,6 +460,8 @@ async def init_db():
         ("transfer_bank", "Utf8"),
         ("transfer_bank_custom", "Utf8"),
         ("transfer_recipient_name", "Utf8"),
+        ("thread_id", "Int64"),
+        ("message_id", "Int64"),
     ]
     for column_name, column_type in split_bill_event_alters:
         try:
@@ -904,13 +897,13 @@ async def create_event(event_data: Dict[str, Any]) -> int:
             """
             INSERT INTO events (
                 id, title, description, date_time, duration_minutes, period_end,
-                location, location_lat, location_lon,
+                location,
                 price_total, price_per_person, participant_limit,
                 thread_id, message_id, creator_id,
                 responsible_id, weather_info, carpool_enabled, category
             ) VALUES (
                 $id, $title, $description, $date_time, $duration_minutes, $period_end,
-                $location, $location_lat, $location_lon,
+                $location,
                 $price_total, $price_per_person, $participant_limit,
                 $thread_id, $message_id, $creator_id,
                 $responsible_id, $weather_info, $carpool_enabled, $category
@@ -924,8 +917,6 @@ async def create_event(event_data: Dict[str, Any]) -> int:
                 "duration_minutes": event_data.get("duration_minutes") or 0,
                 "period_end": event_data.get("period_end") or "",
                 "location": event_data.get("location", ""),
-                "location_lat": event_data.get("location_lat") or 0.0,
-                "location_lon": event_data.get("location_lon") or 0.0,
                 "price_total": event_data.get("price_total") or 0.0,
                 "price_per_person": event_data.get("price_per_person") or 0.0,
                 "participant_limit": event_data.get("participant_limit") or 0,
@@ -1472,7 +1463,7 @@ async def get_split_bill(split_id: int) -> Optional[dict[str, Any]]:
     result = await pool.retry_operation(
         lambda session: session.transaction().execute(
             """
-            SELECT id, group_id, organizer_id, title, total_amount, transfer_target_type, transfer_target_value, transfer_bank, transfer_bank_custom, transfer_recipient_name, status, source_event_id, created_at, closed_at
+            SELECT id, group_id, organizer_id, title, total_amount, transfer_target_type, transfer_target_value, transfer_bank, transfer_bank_custom, transfer_recipient_name, status, source_event_id, thread_id, message_id, created_at, closed_at
             FROM split_bill_events
             WHERE id = $split_id
             """,
@@ -1483,6 +1474,26 @@ async def get_split_bill(split_id: int) -> Optional[dict[str, Any]]:
     if not result[0].rows:
         return None
     return _normalize_row(result[0].rows[0])
+
+
+async def update_split_bill_message_id(split_id: int, thread_id: int | None, message_id: int) -> None:
+    """Сохраняет id опубликованной split-bill карточки для последующих refresh-обновлений."""
+    pool = await get_pool()
+    await pool.retry_operation(
+        lambda session: session.transaction().execute(
+            """
+            UPDATE split_bill_events
+            SET thread_id = $thread_id, message_id = $message_id
+            WHERE id = $split_id
+            """,
+            parameters={
+                "split_id": int(split_id),
+                "thread_id": int(thread_id) if thread_id is not None else None,
+                "message_id": int(message_id),
+            },
+            commit_tx=True,
+        )
+    )
 
 
 async def get_event_participant_ids(event_id: int) -> list[int]:
@@ -1848,101 +1859,68 @@ async def get_driver_free_seats(driver_id: int, event_id: int) -> int:
     return max(0, free_seats)
 
 
-async def add_driver(event_id: int, user_id: int, car_seats: int) -> bool:
-    """Добавляет водителя."""
+async def set_driver(event_id: int, user_id: int, car_seats: int) -> bool:
+    """Атомарно назначает пользователя водителем, обновляя существующую запись участника."""
     pool = await get_pool()
 
-    # Проверяем, не является ли уже участником
-    result = await pool.retry_operation(
-        lambda session: session.transaction().execute(
-            """
-            SELECT id FROM participants 
-            WHERE event_id = $event_id AND user_id = $user_id
-            """,
-            parameters={
-                "event_id": event_id,
-                "user_id": user_id,
-            },
-            commit_tx=True,
-        )
-    )
-
-    if result[0].rows:
-        return False
-
-    # Генерируем ID для участника
-    import time
-
-    participant_id = int(time.time() * 1000) + user_id
+    participant_id = int(time.time() * 1000) + int(user_id)
 
     await pool.retry_operation(
         lambda session: session.transaction().execute(
             """
-            INSERT INTO participants (id, event_id, user_id, status, car_seats)
-            VALUES ($id, $event_id, $user_id, 'driver', $car_seats)
+            DELETE FROM participants
+            WHERE event_id = $event_id AND user_id = $user_id;
+
+            UPSERT INTO participants (id, event_id, user_id, status, car_seats, passenger_of)
+            VALUES ($id, $event_id, $user_id, 'driver', $car_seats, 0);
             """,
             parameters={
                 "id": participant_id,
-                "event_id": event_id,
-                "user_id": user_id,
-                "car_seats": car_seats,
+                "event_id": int(event_id),
+                "user_id": int(user_id),
+                "car_seats": int(car_seats),
             },
             commit_tx=True,
         )
     )
-
     return True
 
 
-async def add_passenger(event_id: int, user_id: int, driver_id: int) -> bool:
-    """Добавляет пассажира к водителю."""
-    pool = await get_pool()
-
-    # Проверяем, есть ли свободные места у водителя
+async def set_passenger(event_id: int, user_id: int, driver_id: int) -> bool:
+    """Атомарно назначает пользователя пассажиром выбранного водителя."""
     free_seats = await get_driver_free_seats(driver_id, event_id)
     if free_seats <= 0:
         return False
-
-    # Проверяем, не является ли уже участником
-    result = await pool.retry_operation(
-        lambda session: session.transaction().execute(
-            """
-            SELECT id FROM participants 
-            WHERE event_id = $event_id AND user_id = $user_id
-            """,
-            parameters={
-                "event_id": event_id,
-                "user_id": user_id,
-            },
-            commit_tx=True,
-        )
-    )
-
-    if result[0].rows:
-        return False
-
-    # Генерируем ID для участника
-    import time
-
-    participant_id = int(time.time() * 1000) + user_id
-
+    pool = await get_pool()
+    participant_id = int(time.time() * 1000) + int(user_id)
     await pool.retry_operation(
         lambda session: session.transaction().execute(
             """
-            INSERT INTO participants (id, event_id, user_id, status, passenger_of)
-            VALUES ($id, $event_id, $user_id, 'passenger', $driver_id)
+            DELETE FROM participants
+            WHERE event_id = $event_id AND user_id = $user_id;
+
+            UPSERT INTO participants (id, event_id, user_id, status, car_seats, passenger_of)
+            VALUES ($id, $event_id, $user_id, 'passenger', 0, $driver_id);
             """,
             parameters={
                 "id": participant_id,
-                "event_id": event_id,
-                "user_id": user_id,
-                "driver_id": driver_id,
+                "event_id": int(event_id),
+                "user_id": int(user_id),
+                "driver_id": int(driver_id),
             },
             commit_tx=True,
         )
     )
-
     return True
+
+
+async def add_driver(event_id: int, user_id: int, car_seats: int) -> bool:
+    """Добавляет или обновляет водителя."""
+    return await set_driver(event_id, user_id, car_seats)
+
+async def add_passenger(event_id: int, user_id: int, driver_id: int) -> bool:
+    """Добавляет или обновляет пассажира к водителю."""
+    return await set_passenger(event_id, user_id, driver_id)
 
 
 async def get_forum_topics_raw(bot, chat_id: int):
@@ -2163,6 +2141,33 @@ async def get_events_for_digest(period: str = "week") -> List[Dict]:
         if now <= event_dt <= max_dt:
             events.append(event_dict)
 
+    event_ids = {int(event["id"]) for event in events}
+    if event_ids:
+        counts_result = await pool.retry_operation(
+            lambda session: session.transaction().execute(
+                """
+                SELECT event_id, status FROM participants
+                """,
+                commit_tx=True,
+            )
+        )
+        counts: dict[int, dict[str, int]] = {event_id: {"going": 0, "waitlist": 0} for event_id in event_ids}
+        for row in counts_result[0].rows:
+            if not hasattr(row, "event_id"):
+                continue
+            event_id = int(row.event_id)
+            if event_id not in counts:
+                continue
+            status = str(row.status)
+            if status in {"going", "driver", "passenger"}:
+                counts[event_id]["going"] += 1
+            elif status == "waitlist":
+                counts[event_id]["waitlist"] += 1
+        for event in events:
+            event_counts = counts.get(int(event["id"]), {})
+            event["going_count"] = event_counts.get("going", 0)
+            event["waitlist_count"] = event_counts.get("waitlist", 0)
+
     events.sort(key=lambda x: x.get("date_time", ""))
     return events
 
@@ -2268,5 +2273,32 @@ async def get_events_for_user_subscriptions(
         if now <= event_dt <= max_dt:
             events.append(event_dict)
 
+    event_ids = {int(event["id"]) for event in events}
+    if event_ids:
+        counts_result = await pool.retry_operation(
+            lambda session: session.transaction().execute(
+                """
+                SELECT event_id, status FROM participants
+                """,
+                commit_tx=True,
+            )
+        )
+        counts: dict[int, dict[str, int]] = {event_id: {"going": 0, "waitlist": 0} for event_id in event_ids}
+        for row in counts_result[0].rows:
+            if not hasattr(row, "event_id"):
+                continue
+            event_id = int(row.event_id)
+            if event_id not in counts:
+                continue
+            status = str(row.status)
+            if status in {"going", "driver", "passenger"}:
+                counts[event_id]["going"] += 1
+            elif status == "waitlist":
+                counts[event_id]["waitlist"] += 1
+        for event in events:
+            event_counts = counts.get(int(event["id"]), {})
+            event["going_count"] = event_counts.get("going", 0)
+            event["waitlist_count"] = event_counts.get("waitlist", 0)
+            
     events.sort(key=lambda x: x.get("date_time", ""))
     return events

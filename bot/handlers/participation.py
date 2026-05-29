@@ -1,12 +1,14 @@
 # обработка кнопок "Пойду", "Отказаться", "В резерв"
 
+import asyncio
+import logging
 from aiogram import Router, F, Bot
 from aiogram.types import CallbackQuery, Message
 from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 
 from bot.keyboards import event_actions
 from bot.texts import format_event_message
-from bot.utils.helpers import get_username_by_id
+from bot.utils.helpers import get_username_by_id, get_user_mentions
 from bot.utils.ui import safe_delete_bot_message
 from bot.config import GROUP_ID, ADMIN_IDS
 
@@ -15,6 +17,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from bot.utils.callbacks import finalize_callback
+from bot.filters.approved_member import approved_member_callback_only
 from bot.utils.callback_policy import CALLBACK_DELETE_WIZARD_MESSAGE
 
 from bot.database import (
@@ -36,6 +39,7 @@ class CarpoolState(StatesGroup):
     seats = State()
 
 
+logger = logging.getLogger(__name__)
 router = Router()
 
 
@@ -44,24 +48,26 @@ async def build_event_text(event_id: int, bot: Bot) -> str:
     if not event:
         return "❌ Мероприятие не найдено."
     from bot.database import get_topic_name_by_thread_id
-    from bot.utils.helpers import get_user_mention
-
-    going = await get_main_participants(event_id)
-    waitlist = await get_participants(event_id, "waitlist")
+    going, waitlist, topic_name, drivers = await asyncio.gather(
+        get_main_participants(event_id),
+        get_participants(event_id, "waitlist"),
+        get_topic_name_by_thread_id(event.get("thread_id")),
+        get_drivers_with_passengers(event_id),
+    )
     responsible_id = event.get("responsible_id") or event["creator_id"]
     all_users = set(going + waitlist + [event["creator_id"], responsible_id])
-    mentions = {uid: await get_user_mention(uid, bot) for uid in all_users}
-    topic_name = await get_topic_name_by_thread_id(event.get("thread_id"))
-    organizer_mention = await get_user_mention(event["creator_id"], bot)
-    responsible_mention = await get_user_mention(responsible_id, bot)
+    for driver in drivers:
+        all_users.add(driver["user_id"])
+        all_users.update(driver["passengers"])
+    mentions = await get_user_mentions(all_users, bot)
     return await format_event_message(
         event,
         going,
         waitlist,
         mentions,
         topic_name=topic_name,
-        organizer_mention=organizer_mention,
-        responsible_mention=responsible_mention,
+        organizer_mention=mentions.get(event["creator_id"]),
+        responsible_mention=mentions.get(responsible_id),
     )
 
     
@@ -73,27 +79,22 @@ async def update_event_message(
         return
 
     from bot.database import get_topic_name_by_thread_id
-    from bot.utils.helpers import get_user_mention
-
-    going = await get_main_participants(event_id)
-    waitlist = await get_participants(event_id, "waitlist")
+    going, waitlist, drivers, topic_name = await asyncio.gather(
+        get_main_participants(event_id),
+        get_participants(event_id, "waitlist"),
+        get_drivers_with_passengers(event_id),
+        get_topic_name_by_thread_id(event.get("thread_id")),
+    )
 
     responsible_id = event.get("responsible_id") or event["creator_id"]
     all_users = set(going + waitlist + [event["creator_id"], responsible_id])
 
-    drivers = await get_drivers_with_passengers(event_id)
     for driver in drivers:
         all_users.add(driver["user_id"])
         for p in driver["passengers"]:
             all_users.add(p)
 
-    mentions = {}
-    for uid in all_users:
-        mentions[uid] = await get_user_mention(uid, bot)
-
-    topic_name = await get_topic_name_by_thread_id(event.get("thread_id"))
-    organizer_mention = await get_user_mention(event["creator_id"], bot)
-    responsible_mention = await get_user_mention(responsible_id, bot)
+    mentions = await get_user_mentions(all_users, bot)
 
     text = await format_event_message(
         event,
@@ -101,8 +102,8 @@ async def update_event_message(
         waitlist,
         mentions,
         topic_name=topic_name,
-        organizer_mention=organizer_mention,
-        responsible_mention=responsible_mention,
+        organizer_mention=mentions.get(event["creator_id"]),
+        responsible_mention=mentions.get(responsible_id),
     )
     try:
         await bot.edit_message_text(
@@ -119,6 +120,7 @@ async def update_event_message(
 
 
 @router.callback_query(F.data.startswith("join_"))
+@approved_member_callback_only
 async def join_event(callback: CallbackQuery):
     event_id = int(callback.data.split("_")[1])
     user_id = callback.from_user.id
@@ -147,6 +149,7 @@ async def join_event(callback: CallbackQuery):
 
 
 @router.callback_query(F.data.startswith("waitlist_"))
+@approved_member_callback_only
 async def waitlist_event(callback: CallbackQuery):
     event_id = int(callback.data.split("_")[1])
     user_id = callback.from_user.id
@@ -170,6 +173,7 @@ async def waitlist_event(callback: CallbackQuery):
 
 
 @router.callback_query(F.data.startswith("driver_"))
+@approved_member_callback_only
 async def become_driver(callback: CallbackQuery, state: FSMContext):
     event_id = int(callback.data.split("_")[1])
     user_id = callback.from_user.id
@@ -236,6 +240,7 @@ async def process_car_seats(message: Message, state: FSMContext):
 
 
 @router.callback_query(F.data.startswith("passenger_"))
+@approved_member_callback_only
 async def become_passenger(callback: CallbackQuery):
     event_id = int(callback.data.split("_")[1])
     user_id = callback.from_user.id
@@ -287,6 +292,7 @@ async def become_passenger(callback: CallbackQuery):
 
 
 @router.callback_query(F.data.startswith("choose_driver_"))
+@approved_member_callback_only
 async def choose_driver(callback: CallbackQuery):
     parts = callback.data.split("_")
     event_id = int(parts[2])
@@ -334,8 +340,8 @@ async def decline_event(callback: CallbackQuery):
                 moved_user,
                 f"Освободилось место на мероприятии {event['title']}! Вы автоматически добавлены в основной список.",
             )
-        except:
-            pass
+        except Exception as exc:
+            logger.warning("Не удалось уведомить участника из резерва user_id=%s event_id=%s: %s", moved_user, event_id, exc)
     await update_event_message(
         callback.bot, event_id, event["thread_id"], event["message_id"]
     )

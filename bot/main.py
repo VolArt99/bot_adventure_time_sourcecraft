@@ -11,38 +11,28 @@ from aiogram import Bot, Dispatcher, F
 from aiogram.exceptions import TelegramNetworkError
 from aiogram.fsm.strategy import FSMStrategy
 
-from bot.config import BOT_TOKEN
+from bot.config import BOT_TOKEN, validate_runtime_config
 from bot.database import init_db, sync_topics_from_config
-import bot.handlers.common as common
+import bot.handlers.common_feature.handlers as common
 import bot.handlers.events as events
 import bot.handlers.participation as participation
 import bot.handlers.digest as digest
-import bot.handlers.reminders as reminders
 import bot.handlers.my_events as my_events
 import bot.handlers.roadmap as roadmap
 import bot.handlers.subscriptions as subscriptions
 import bot.handlers.admin as admin
-import bot.handlers.split_bill as split_bill
+import bot.handlers.split_bill_feature.handlers as split_bill
 from bot.utils.scheduler import restore_jobs, start_scheduler
 from bot.fsm_storage_ydb import YdbStorage
 from bot.init_flags import should_run_schema_init, should_run_schema_init_webhook
 
 from aiogram.types import BotCommand, BotCommandScopeDefault, Update
+from bot.commands import COMMAND_SPECS
 
 USER_COMMANDS = [
-    BotCommand(command="start", description="Открыть главное меню"),
-    BotCommand(command="help", description="Список возможностей"),
-    BotCommand(command="menu", description="Открыть кнопочное меню"),
-    BotCommand(command="status", description="Проверить работу бота"),
-    BotCommand(command="create_event", description="Создать мероприятие"),
-    BotCommand(command="my_events", description="Мои мероприятия"),
-    BotCommand(command="digest", description="Афиша мероприятий"),
-    BotCommand(command="subscriptions", description="Настроить подписки"),
-    BotCommand(command="my_digest", description="Персональная афиша"),
-    BotCommand(command="find_events", description="Поиск мероприятий"),
-    BotCommand(command="split_bill", description="Создать разделение чека"),
-    BotCommand(command="split_bill_add", description="Добавить участника в чек"),
-    BotCommand(command="split_bill_remove", description="Удалить участника из чека"),
+    BotCommand(command=spec.command, description=spec.description.split(".", 1)[0])
+    for spec in COMMAND_SPECS
+    if spec.group != "admin"
 ]
 
 
@@ -140,7 +130,6 @@ def _register_handlers() -> None:
     dp.include_router(events.router)
     dp.include_router(participation.router)
     dp.include_router(digest.router)
-    dp.include_router(reminders.router)
     dp.include_router(my_events.router)
     dp.include_router(roadmap.router)
     dp.include_router(subscriptions.router)
@@ -176,6 +165,7 @@ async def ensure_initialized(*, for_polling: bool = False) -> None:
 
         if not _is_initialized:
             logger.info("Инициализация бота...")
+            validate_runtime_config()
             run_schema_init = should_run_schema_init() if for_polling else should_run_schema_init_webhook()
             if run_schema_init:
                 await init_db()
